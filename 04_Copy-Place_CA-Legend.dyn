@@ -33,7 +33,7 @@
     {
       "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
       "NodeType": "PythonScriptNode",
-      "Code": "import clr\r\nclr.AddReference('RevitAPI')\r\nclr.AddReference('RevitServices')\r\nclr.AddReference('System')\r\n\r\nfrom System import Guid\r\nfrom System.Collections.Generic import List\r\nfrom Autodesk.Revit.DB import *\r\nfrom RevitServices.Persistence import DocumentManager\r\nfrom RevitServices.Transactions import TransactionManager\r\n\r\n# Get the current Revit document (the active project)\r\ndoc = DocumentManager.Instance.CurrentDBDocument\r\n\r\n# Inputs from Dynamo\r\ntemplate_path = IN[0]  # File path to the Revit template (RVT) file\r\nlegend_name = IN[1]  # Name of the Legend View to extract\r\nsheet_name = IN[2]   # Name of the sheet to place the legend on\r\nplacement_location = IN[3]  # XYZ coordinates for the placement of the legend (tuple/list)\r\n\r\ncopied_legend_id = None\r\nlegend_on_sheet_id = None\r\n\r\ntry:\r\n    # Check if the legend view already exists in the current project\r\n    existing_legend = next((view for view in FilteredElementCollector(doc).OfClass(View)\r\n                            if view.ViewType == ViewType.Legend and view.Name == legend_name), None)\r\n\r\n    if existing_legend:\r\n        copied_legend = existing_legend\r\n    else:\r\n        # Open the Revit template document\r\n        app = doc.Application\r\n        template_doc = app.OpenDocumentFile(template_path)\r\n\r\n        try:\r\n            # Find the legend view by name in the template file\r\n            legend_view = next((view for view in FilteredElementCollector(template_doc).OfClass(View)\r\n                                if view.ViewType == ViewType.Legend and view.Name == legend_name), None)\r\n\r\n            if legend_view is None:\r\n                OUT = f\"Error: Legend view named '{legend_name}' not found in the template.\"\r\n            else:\r\n                # Start a transaction to copy the legend into the current document\r\n                TransactionManager.Instance.EnsureInTransaction(doc)\r\n\r\n                # Copy the legend to the current project\r\n                element_ids = List[ElementId]([legend_view.Id])\r\n                copied_ids = ElementTransformUtils.CopyElements(template_doc, element_ids, doc, Transform.Identity, CopyPasteOptions())\r\n\r\n                TransactionManager.Instance.TransactionTaskDone()\r\n\r\n                # Get the copied legend\r\n                copied_legend_id = copied_ids[0]\r\n                copied_legend = doc.GetElement(copied_legend_id)\r\n        finally:\r\n            # Ensure the template document is closed\r\n            if not template_doc.IsDisposed:\r\n                template_doc.Close(False)\r\n\r\n    # Locate the sheet where the legend should be placed\r\n    sheet = next((s for s in FilteredElementCollector(doc).OfClass(ViewSheet) if s.Name == sheet_name), None)\r\n\r\n    if sheet is None:\r\n        OUT = f\"Error: Sheet named '{sheet_name}' not found in the current project.\"\r\n    else:\r\n        # Check if the legend is already on the sheet\r\n        legend_on_sheet = next((doc.GetElement(vp_id) for vp_id in sheet.GetAllViewports()\r\n                                if doc.GetElement(vp_id).ViewId == copied_legend.Id), None)\r\n\r\n        # Start a transaction to either place or move the legend on the sheet\r\n        TransactionManager.Instance.EnsureInTransaction(doc)\r\n\r\n        # Convert placement_location to XYZ\r\n        x, y, z = placement_location\r\n        position = XYZ(x, y, z)\r\n\r\n        try:\r\n            if legend_on_sheet:\r\n                # Move the existing legend to the new position\r\n                legend_on_sheet.SetBoxCenter(position)\r\n                legend_on_sheet_id = legend_on_sheet.Id\r\n                OUT = (f\"Legend '{legend_name}' position updated on sheet '{sheet_name}' to ({x}, {y}, {z}).\",\r\n                       copied_legend.Id.IntegerValue, legend_on_sheet.Id.IntegerValue)\r\n            else:\r\n                # Place the legend view on the sheet at the specified location\r\n                viewport = Viewport.Create(doc, sheet.Id, copied_legend.Id, position)\r\n\r\n                if viewport is None:\r\n                    OUT = f\"Error: Could not place the legend '{legend_name}' on sheet '{sheet_name}'.\"\r\n                else:\r\n                    # Optionally remove any labels from the viewport\r\n                    label_ids = viewport.GetLabelIds()\r\n                    for label_id in label_ids:\r\n                        label = doc.GetElement(label_id)\r\n                        if label:\r\n                            doc.Delete(label.Id)\r\n\r\n                    legend_on_sheet_id = viewport.Id\r\n                    OUT = (f\"Legend '{legend_name}' successfully placed on sheet '{sheet_name}' at position ({x}, {y}, {z}).\",\r\n                           copied_legend.Id.IntegerValue, viewport.Id.IntegerValue)\r\n        except Exception as e:\r\n            TransactionManager.Instance.ForceCloseTransaction()\r\n            OUT = f\"Error during placement: {e}\"\r\n\r\n        TransactionManager.Instance.TransactionTaskDone()\r\n\r\nexcept Exception as e:\r\n    OUT = f\"Error: {e}\"\r\n\r\n# Output the result along with copied legend and viewport IDs if available\r\nif copied_legend_id and legend_on_sheet_id:\r\n    OUT = (OUT, copied_legend_id.IntegerValue, legend_on_sheet_id.IntegerValue)\r\nelse:\r\n    OUT = OUT\r\n",
+      "Code": "import clr\r\nclr.AddReference('RevitAPI')\r\nclr.AddReference('RevitServices')\r\nclr.AddReference('System')\r\n\r\nfrom System import Guid\r\nfrom System.Collections.Generic import List\r\nfrom Autodesk.Revit.DB import *\r\nfrom RevitServices.Persistence import DocumentManager\r\nfrom RevitServices.Transactions import TransactionManager\r\n\r\n# Get the current Revit document (the active project)\r\ndoc = DocumentManager.Instance.CurrentDBDocument\r\n\r\n# Inputs from Dynamo\r\ntemplate_path = IN[0]  # File path to the Revit template (RVT) file\r\nlegend_name = IN[1]  # Name of the Legend View to extract\r\nsheet_name = IN[2]   # Name of the sheet to place the legend on\r\nplacement_location = IN[3]  # XYZ coordinates for the placement of the legend (tuple/list)\r\n\r\ncopied_legend_id = None\r\nlegend_on_sheet_id = None\r\n\r\ntry:\r\n    # Check if the legend view already exists in the current project\r\n    existing_legend = next((view for view in FilteredElementCollector(doc).OfClass(View)\r\n                            if view.ViewType == ViewType.Legend and view.Name == legend_name), None)\r\n\r\n    if existing_legend:\r\n        copied_legend = existing_legend\r\n    else:\r\n        # Open the Revit template document\r\n        app = doc.Application\r\n        template_doc = app.OpenDocumentFile(template_path)\r\n\r\n        try:\r\n            # Find the legend view by name in the template file\r\n            legend_view = next((view for view in FilteredElementCollector(template_doc).OfClass(View)\r\n                                if view.ViewType == ViewType.Legend and view.Name == legend_name), None)\r\n\r\n            if legend_view is None:\r\n                OUT = f\"Error: Legend view named '{legend_name}' not found in the template.\"\r\n            else:\r\n                # Start a transaction to copy the legend into the current document\r\n                TransactionManager.Instance.EnsureInTransaction(doc)\r\n\r\n                # Copy the legend to the current project\r\n                element_ids = List[ElementId]([legend_view.Id])\r\n                copied_ids = ElementTransformUtils.CopyElements(template_doc, element_ids, doc, Transform.Identity, CopyPasteOptions())\r\n\r\n                TransactionManager.Instance.TransactionTaskDone()\r\n\r\n                # Get the copied legend\r\n                copied_legend_id = copied_ids[0]\r\n                copied_legend = doc.GetElement(copied_legend_id)\r\n        finally:\r\n            # Ensure the template document is closed properly\r\n            if template_doc.IsValidObject:\r\n                template_doc.Close(False)\r\n\r\n    # Locate the sheet where the legend should be placed\r\n    sheet = next((s for s in FilteredElementCollector(doc).OfClass(ViewSheet) if s.Name == sheet_name), None)\r\n\r\n    if sheet is None:\r\n        OUT = f\"Error: Sheet named '{sheet_name}' not found in the current project.\"\r\n    else:\r\n        # Start a transaction to either place or move the legend on the sheet\r\n        TransactionManager.Instance.EnsureInTransaction(doc)\r\n\r\n        # Convert placement_location to XYZ\r\n        x, y, z = placement_location\r\n        position = XYZ(x, y, z)\r\n\r\n        try:\r\n            # Place the legend view on the sheet at the specified location\r\n            viewport = Viewport.Create(doc, sheet.Id, copied_legend.Id, position)\r\n\r\n            if viewport is None:\r\n                OUT = f\"Error: Could not place the legend '{legend_name}' on sheet '{sheet_name}'.\"\r\n            else:\r\n                legend_on_sheet_id = viewport.Id\r\n                OUT = [\r\n                    f\"Legend '{legend_name}' successfully placed on sheet '{sheet_name}' at position ({x}, {y}, {z}).\",\r\n                    copied_legend_id.IntegerValue,\r\n                    legend_on_sheet_id.IntegerValue\r\n                ]\r\n        except Exception as e:\r\n            TransactionManager.Instance.ForceCloseTransaction()\r\n            OUT = f\"Error during placement: {e}\"\r\n\r\n        TransactionManager.Instance.TransactionTaskDone()\r\n\r\nexcept Exception as e:\r\n    OUT = f\"Error: {e}\"\r\n\r\n# Output only the relevant result\r\nOUT = OUT\r\n",
       "Engine": "CPython3",
       "EngineName": "CPython3",
       "VariableInputPorts": true,
@@ -180,75 +180,6 @@
       "Description": "Visualize the node's output"
     },
     {
-      "ConcreteType": "Dynamo.Nodes.DSModelElementSelection, DSRevitNodesUI",
-      "NodeType": "ExtensionNode",
-      "InstanceId": [
-        "c8d32e6f-430a-4617-83c5-2fe25906e8dc-00459eab"
-      ],
-      "Id": "589ced5bde624fa79bb93076dba05161",
-      "Inputs": [],
-      "Outputs": [
-        {
-          "Id": "165b5cbf976448969076e71390a2eb24",
-          "Name": "Element",
-          "Description": "The selected elements.",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        }
-      ],
-      "Replication": "Disabled"
-    },
-    {
-      "ConcreteType": "Dynamo.Graph.Nodes.ZeroTouch.DSFunction, DynamoCore",
-      "NodeType": "FunctionNode",
-      "FunctionSignature": "Revit.Elements.Element.SetParameterByName@string,var",
-      "Id": "bbaac55bfe784da88fcd97b85cb06208",
-      "Inputs": [
-        {
-          "Id": "1add8506880a4236bf81b73cecc06ae7",
-          "Name": "element",
-          "Description": "Revit.Elements.Element",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        },
-        {
-          "Id": "8249f2121a4940e582b9a7113447a8ac",
-          "Name": "parameterName",
-          "Description": "The name of the parameter to set.\n\nstring",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        },
-        {
-          "Id": "7112b79d7ea74a60b3eecafd7b416bc1",
-          "Name": "value",
-          "Description": "The value.\n\nvar",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        }
-      ],
-      "Outputs": [
-        {
-          "Id": "eb56fdd414924cd79d4502718baed5cb",
-          "Name": "Element",
-          "Description": "Element",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        }
-      ],
-      "Replication": "Auto",
-      "Description": "Set one of the element's parameters.\n\nElement.SetParameterByName (parameterName: string, value: var): Element"
-    },
-    {
       "ConcreteType": "Dynamo.Graph.Nodes.ZeroTouch.DSFunction, DynamoCore",
       "NodeType": "FunctionNode",
       "FunctionSignature": "DSCore.List.GetItemAtIndex@var[]..[],int",
@@ -308,12 +239,45 @@
       "Description": "Allows for DesignScript code to be authored directly"
     },
     {
-      "ConcreteType": "CoreNodeModels.Watch, CoreNodeModels",
-      "NodeType": "ExtensionNode",
-      "Id": "2e6481c724cc4d6e8ae0ae6077530c83",
+      "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
+      "NodeType": "PythonScriptNode",
+      "Code": "import clr\r\nclr.AddReference('RevitAPI')\r\nclr.AddReference('RevitServices')\r\n\r\nfrom Autodesk.Revit.DB import *\r\nfrom RevitServices.Persistence import DocumentManager\r\nfrom RevitServices.Transactions import TransactionManager\r\n\r\n# Get the current Revit document\r\ndoc = DocumentManager.Instance.CurrentDBDocument\r\n\r\n# Inputs from Dynamo\r\nlegend_on_sheet_id = IN[0]  # Element ID of the legend on the sheet\r\n\r\ntry:\r\n    # Convert input to ElementId\r\n    legend_on_sheet_element_id = ElementId(legend_on_sheet_id)\r\n    legend_on_sheet = doc.GetElement(legend_on_sheet_element_id)\r\n\r\n    # Verify if the element is found\r\n    if legend_on_sheet is None:\r\n        OUT = f\"Error: No element found with ID {legend_on_sheet_id}.\"\r\n    elif not isinstance(legend_on_sheet, Viewport):\r\n        OUT = f\"Error: Element with ID {legend_on_sheet_id} is not a Viewport.\"\r\n    else:\r\n        # Start a transaction to modify the Viewport type\r\n        TransactionManager.Instance.EnsureInTransaction(doc)\r\n\r\n        try:\r\n            # Gather all viewport types available in the document\r\n            viewport_types = FilteredElementCollector(doc).OfClass(ElementType).OfCategory(BuiltInCategory.OST_Viewports)\r\n            \r\n            # Output all available viewport types for debugging\r\n            available_types = {vt.Id.IntegerValue: vt.Name for vt in viewport_types}\r\n            \r\n            # Find a type named \"No Label\"\r\n            no_label_type = next((vt for vt in viewport_types if \"No Label\" in vt.Name), None)\r\n\r\n            if no_label_type is None:\r\n                OUT = f\"Error: No viewport type named 'No Label' found. Available types: {available_types}\"\r\n            else:\r\n                # Set the Viewport to the found type without labels\r\n                legend_on_sheet.ChangeTypeId(no_label_type.Id)\r\n                OUT = f\"Viewport property for legend with ID {legend_on_sheet_id} set to type 'No Label'.\"\r\n\r\n        except Exception as e:\r\n            OUT = f\"Error: {e}\"\r\n        finally:\r\n            TransactionManager.Instance.TransactionTaskDone()\r\n\r\nexcept Exception as e:\r\n    OUT = f\"Error: {e}\"\r\n\r\n# Output the result\r\nOUT = OUT\r\n",
+      "Engine": "CPython3",
+      "EngineName": "CPython3",
+      "VariableInputPorts": true,
+      "Id": "ffb588c86c344180b2e842b5ac3d1f18",
       "Inputs": [
         {
-          "Id": "172bf85ae7cd47cca693ff4237dff3b7",
+          "Id": "b13099b65b014fbdb6bfe97f6d2c446c",
+          "Name": "IN[0]",
+          "Description": "Input #0",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "61266f239d6441ab9d3127567ffad357",
+          "Name": "OUT",
+          "Description": "Result of the python script",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Runs an embedded Python script."
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Watch, CoreNodeModels",
+      "NodeType": "ExtensionNode",
+      "Id": "0667f95f42e04d50bcb4d829232252fd",
+      "Inputs": [
+        {
+          "Id": "d17139609ca64c8989e835d3bee79bbb",
           "Name": "",
           "Description": "Node to show output from",
           "UsingDefaultValue": false,
@@ -324,76 +288,7 @@
       ],
       "Outputs": [
         {
-          "Id": "77707ce262394f49be3be3de75b372e5",
-          "Name": "",
-          "Description": "Node output",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        }
-      ],
-      "Replication": "Disabled",
-      "Description": "Visualize the node's output"
-    },
-    {
-      "ConcreteType": "Dynamo.Graph.Nodes.CodeBlockNodeModel, DynamoCore",
-      "NodeType": "CodeBlockNode",
-      "Code": "\"Title on Sheet\";",
-      "Id": "36d8f4e7b67045aca4e396e842eb86ed",
-      "Inputs": [],
-      "Outputs": [
-        {
-          "Id": "c3ea2b250f95423ead46bdc6c52c141c",
-          "Name": "",
-          "Description": "Value of expression at line 1",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        }
-      ],
-      "Replication": "Disabled",
-      "Description": "Allows for DesignScript code to be authored directly"
-    },
-    {
-      "ConcreteType": "Dynamo.Graph.Nodes.CodeBlockNodeModel, DynamoCore",
-      "NodeType": "CodeBlockNode",
-      "Code": "\"No Label\";",
-      "Id": "68a085b9100840c3b199df6399325630",
-      "Inputs": [],
-      "Outputs": [
-        {
-          "Id": "f08e4242ca7542e5802832c3ce4ec885",
-          "Name": "",
-          "Description": "Value of expression at line 1",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        }
-      ],
-      "Replication": "Disabled",
-      "Description": "Allows for DesignScript code to be authored directly"
-    },
-    {
-      "ConcreteType": "CoreNodeModels.Watch, CoreNodeModels",
-      "NodeType": "ExtensionNode",
-      "Id": "c6cb15db665b40f3a8340ccb1f0ff698",
-      "Inputs": [
-        {
-          "Id": "c4b08de9c9b9466e8e07154684cd1d0e",
-          "Name": "",
-          "Description": "Node to show output from",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        }
-      ],
-      "Outputs": [
-        {
-          "Id": "5cafafa102bf4d61974cc44e6fa2fadb",
+          "Id": "279eea9669104f449649f319b3590ca4",
           "Name": "",
           "Description": "Node output",
           "UsingDefaultValue": false,
@@ -410,7 +305,7 @@
     {
       "Start": "25aaaf7b6cc04ddb835247587d7a4a55",
       "End": "b833beb46bbd4cd9915b79ec684bdc56",
-      "Id": "2a53d6683c6448d9a01e3446b60ce3db",
+      "Id": "91fca9073e934708a786f2dfb1f99809",
       "IsHidden": "False"
     },
     {
@@ -422,7 +317,7 @@
     {
       "Start": "ccca40a26de34301baa53702d63aafb0",
       "End": "2126bbc7fbfa41ff9092b29903e14ad7",
-      "Id": "4ed9d195f2f947609546e219cfc8dc52",
+      "Id": "2eeb77b9300244c797822b387db6ffc9",
       "IsHidden": "False"
     },
     {
@@ -444,15 +339,9 @@
       "IsHidden": "False"
     },
     {
-      "Start": "eb56fdd414924cd79d4502718baed5cb",
-      "End": "172bf85ae7cd47cca693ff4237dff3b7",
-      "Id": "f27d7c6f7ac44098958a5146ddc42cc1",
-      "IsHidden": "False"
-    },
-    {
       "Start": "cdb5b36c21344505be0465de07fab25c",
-      "End": "c4b08de9c9b9466e8e07154684cd1d0e",
-      "Id": "b8147ac032fc414ca12c4dba32d80f8a",
+      "End": "b13099b65b014fbdb6bfe97f6d2c446c",
+      "Id": "383bd422e5874731b14d0f177f4851f6",
       "IsHidden": "False"
     },
     {
@@ -462,15 +351,9 @@
       "IsHidden": "False"
     },
     {
-      "Start": "c3ea2b250f95423ead46bdc6c52c141c",
-      "End": "8249f2121a4940e582b9a7113447a8ac",
-      "Id": "1abf2a091f754139bd985511d186ba1b",
-      "IsHidden": "False"
-    },
-    {
-      "Start": "f08e4242ca7542e5802832c3ce4ec885",
-      "End": "7112b79d7ea74a60b3eecafd7b416bc1",
-      "Id": "00ac1300d06040d5bf89453035a96824",
+      "Start": "61266f239d6441ab9d3127567ffad357",
+      "End": "d17139609ca64c8989e835d3bee79bbb",
+      "Id": "d1bd39e8e5f648239a814906aab6ab20",
       "IsHidden": "False"
     }
   ],
@@ -542,7 +425,7 @@
         "Y": 3577.9648448121256
       },
       {
-        "Name": "Magic",
+        "Name": "Copy and Place Legend",
         "ShowGeometry": true,
         "Id": "a84168fe4b0b4406a98f0db090aa930d",
         "IsSetAsInput": false,
@@ -588,28 +471,8 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 3617.4187676241268,
-        "Y": 3372.523907543643
-      },
-      {
-        "Name": "Select Model Element",
-        "ShowGeometry": true,
-        "Id": "589ced5bde624fa79bb93076dba05161",
-        "IsSetAsInput": false,
-        "IsSetAsOutput": false,
-        "Excluded": false,
-        "X": 3985.0720144595821,
-        "Y": 3382.9716321815067
-      },
-      {
-        "Name": "Element.SetParameterByName",
-        "ShowGeometry": true,
-        "Id": "bbaac55bfe784da88fcd97b85cb06208",
-        "IsSetAsInput": false,
-        "IsSetAsOutput": false,
-        "Excluded": false,
-        "X": 4302.8753089339843,
-        "Y": 4007.3195708968797
+        "X": 3630.0124038957265,
+        "Y": 3609.8757314817235
       },
       {
         "Name": "List.GetItemAtIndex",
@@ -618,8 +481,8 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 3874.7463236412495,
-        "Y": 3800.2769092252238
+        "X": 3885.03085531963,
+        "Y": 4014.3584528709348
       },
       {
         "Name": "Code Block",
@@ -628,48 +491,28 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 3620.7463236412495,
-        "Y": 3834.1044092252237
+        "X": 3631.03085531963,
+        "Y": 4048.1859528709342
+      },
+      {
+        "Name": "Set Legend Properties",
+        "ShowGeometry": true,
+        "Id": "ffb588c86c344180b2e842b5ac3d1f18",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 4208.03085531963,
+        "Y": 3919.9882298471011
       },
       {
         "Name": "Watch",
         "ShowGeometry": true,
-        "Id": "2e6481c724cc4d6e8ae0ae6077530c83",
+        "Id": "0667f95f42e04d50bcb4d829232252fd",
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 4707.4101195770954,
-        "Y": 4007.3195708968797
-      },
-      {
-        "Name": "Code Block",
-        "ShowGeometry": true,
-        "Id": "36d8f4e7b67045aca4e396e842eb86ed",
-        "IsSetAsInput": false,
-        "IsSetAsOutput": false,
-        "Excluded": false,
-        "X": 3984.8753089339843,
-        "Y": 3984.1470708968795
-      },
-      {
-        "Name": "Code Block",
-        "ShowGeometry": true,
-        "Id": "68a085b9100840c3b199df6399325630",
-        "IsSetAsInput": false,
-        "IsSetAsOutput": false,
-        "Excluded": false,
-        "X": 3984.8753089339843,
-        "Y": 4132.1470708968809
-      },
-      {
-        "Name": "Watch",
-        "ShowGeometry": true,
-        "Id": "c6cb15db665b40f3a8340ccb1f0ff698",
-        "IsSetAsInput": false,
-        "IsSetAsOutput": false,
-        "Excluded": false,
-        "X": 4162.5523412724442,
-        "Y": 3803.1897553630242
+        "X": 4540.7726508520755,
+        "Y": 3892.3717085335247
       }
     ],
     "Annotations": [
@@ -702,22 +545,18 @@
         "WidthAdjustment": 0.0,
         "HeightAdjustment": 0.0,
         "Nodes": [
-          "bbaac55bfe784da88fcd97b85cb06208",
           "2e6e3f1f4fd148c1b90e1a0af8b09894",
           "c7692373ddd54c26b71619eec357cd17",
-          "2e6481c724cc4d6e8ae0ae6077530c83",
-          "36d8f4e7b67045aca4e396e842eb86ed",
-          "68a085b9100840c3b199df6399325630",
-          "c6cb15db665b40f3a8340ccb1f0ff698"
+          "ffb588c86c344180b2e842b5ac3d1f18"
         ],
         "HasNestedGroups": false,
-        "Left": 3610.7463236412495,
-        "Top": 3727.2769092252238,
-        "Width": 1263.6637959358459,
-        "Height": 536.87016167165712,
+        "Left": 3621.03085531963,
+        "Top": 3846.9882298471011,
+        "Width": 835.0,
+        "Height": 333.19772302383262,
         "FontSize": 36.0,
-        "InitialTop": 3800.2769092252238,
-        "InitialHeight": 470.82749999999987,
+        "InitialTop": 3919.9882298471011,
+        "InitialHeight": 470.8275,
         "TextblockHeight": 63.0,
         "Background": "#FFC1D676"
       },
@@ -737,18 +576,18 @@
         ],
         "HasNestedGroups": true,
         "Left": 2569.1118562843121,
-        "Top": 3345.9648448121256,
-        "Width": 895.26377720319215,
-        "Height": 816.96029558626424,
+        "Top": 3388.9648448121256,
+        "Width": 976.26377720319215,
+        "Height": 773.96029558626424,
         "FontSize": 36.0,
         "InitialTop": 3461.9648448121256,
         "InitialHeight": 627.96029558626424,
-        "TextblockHeight": 106.0,
+        "TextblockHeight": 63.0,
         "Background": "#FFFFB8D8"
       }
     ],
-    "X": -1007.0697688609503,
-    "Y": -1231.5210500545982,
-    "Zoom": 0.40054212128363043
+    "X": -895.34831618363455,
+    "Y": -1079.2615401699238,
+    "Zoom": 0.36140215341067528
   }
 }
