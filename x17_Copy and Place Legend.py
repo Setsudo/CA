@@ -22,41 +22,43 @@ copied_legend_id = None
 legend_on_sheet_id = None
 
 try:
-    # Check if the legend view already exists in the current project
+    # Start a transaction to remove any existing legend with the same name
+    TransactionManager.Instance.EnsureInTransaction(doc)
     existing_legend = next((view for view in FilteredElementCollector(doc).OfClass(View)
                             if view.ViewType == ViewType.Legend and view.Name == legend_name), None)
 
     if existing_legend:
-        copied_legend = existing_legend
-    else:
-        # Open the Revit template document
-        app = doc.Application
-        template_doc = app.OpenDocumentFile(template_path)
+        doc.Delete(existing_legend.Id)
+    TransactionManager.Instance.TransactionTaskDone()
 
-        try:
-            # Find the legend view by name in the template file
-            legend_view = next((view for view in FilteredElementCollector(template_doc).OfClass(View)
-                                if view.ViewType == ViewType.Legend and view.Name == legend_name), None)
+    # Open the Revit template document
+    app = doc.Application
+    template_doc = app.OpenDocumentFile(template_path)
 
-            if legend_view is None:
-                OUT = f"Error: Legend view named '{legend_name}' not found in the template."
-            else:
-                # Start a transaction to copy the legend into the current document
-                TransactionManager.Instance.EnsureInTransaction(doc)
+    try:
+        # Find the legend view by name in the template file
+        legend_view = next((view for view in FilteredElementCollector(template_doc).OfClass(View)
+                            if view.ViewType == ViewType.Legend and view.Name == legend_name), None)
 
-                # Copy the legend to the current project
-                element_ids = List[ElementId]([legend_view.Id])
-                copied_ids = ElementTransformUtils.CopyElements(template_doc, element_ids, doc, Transform.Identity, CopyPasteOptions())
+        if legend_view is None:
+            OUT = f"Error: Legend view named '{legend_name}' not found in the template."
+        else:
+            # Start a transaction to copy the legend into the current document
+            TransactionManager.Instance.EnsureInTransaction(doc)
 
-                TransactionManager.Instance.TransactionTaskDone()
+            # Copy the legend to the current project
+            element_ids = List[ElementId]([legend_view.Id])
+            copied_ids = ElementTransformUtils.CopyElements(template_doc, element_ids, doc, Transform.Identity, CopyPasteOptions())
 
-                # Get the copied legend
-                copied_legend_id = copied_ids[0]
-                copied_legend = doc.GetElement(copied_legend_id)
-        finally:
-            # Ensure the template document is closed properly
-            if template_doc.IsValidObject:
-                template_doc.Close(False)
+            TransactionManager.Instance.TransactionTaskDone()
+
+            # Get the copied legend
+            copied_legend_id = copied_ids[0]
+            copied_legend = doc.GetElement(copied_legend_id)
+    finally:
+        # Ensure the template document is closed properly
+        if template_doc.IsValidObject:
+            template_doc.Close(False)
 
     # Locate the sheet where the legend should be placed
     sheet = next((s for s in FilteredElementCollector(doc).OfClass(ViewSheet) if s.Name == sheet_name), None)
@@ -72,7 +74,7 @@ try:
         position = XYZ(x, y, z)
 
         try:
-            # Place the legend view on the sheet at the specified location
+            # Place the legend view on the sheet using Viewport.Create
             viewport = Viewport.Create(doc, sheet.Id, copied_legend.Id, position)
 
             if viewport is None:
