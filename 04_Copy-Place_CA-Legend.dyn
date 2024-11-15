@@ -1,0 +1,700 @@
+{
+  "Uuid": "835f952c-e6fa-4cfc-8ced-085e223da08a",
+  "IsCustomNode": false,
+  "Description": "",
+  "Name": "04_Copy-Place_CA-Legend [fix]",
+  "ElementResolver": {
+    "ResolutionMap": {}
+  },
+  "Inputs": [],
+  "Outputs": [],
+  "Nodes": [
+    {
+      "ConcreteType": "CoreNodeModels.Input.Filename, CoreNodeModels",
+      "HintPath": "C:\\_Albertsons\\x17 (Lineal Footage Analysis)\\Templates\\ACI_Project_Template.rte",
+      "InputValue": "Templates\\ACI_Project_Template.rte",
+      "NodeType": "ExtensionNode",
+      "Id": "35dc14e8cb7a4b1295f8637d6702a3f2",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "25aaaf7b6cc04ddb835247587d7a4a55",
+          "Name": "",
+          "Description": "File Path",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Allows you to select a file on the system to get its file path."
+    },
+    {
+      "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
+      "NodeType": "PythonScriptNode",
+      "Code": "import clr\r\nclr.AddReference('RevitAPI')\r\nclr.AddReference('RevitServices')\r\nclr.AddReference('System')\r\n\r\nfrom System import Guid\r\nfrom System.Collections.Generic import List  # Fix: Import List from System.Collections.Generic\r\nfrom Autodesk.Revit.DB import *\r\nfrom RevitServices.Persistence import DocumentManager\r\nfrom RevitServices.Transactions import TransactionManager\r\n\r\n# Get the current Revit document (the active project)\r\ndoc = DocumentManager.Instance.CurrentDBDocument\r\n\r\n# Inputs from Dynamo\r\ntemplate_path = IN[0]  # File path to the Revit template (RVT) file\r\nlegend_name = IN[1]  # Name of the Legend View to extract\r\nsheet_name = IN[2]   # Name of the sheet to place the legend on\r\nplacement_location = IN[3]  # XYZ coordinates for the placement of the legend\r\n\r\n# Open the Revit template document\r\ntry:\r\n    # Check if the legend view already exists in the current project\r\n    existing_legend = None\r\n    for view in FilteredElementCollector(doc).OfClass(View):\r\n        if view.ViewType == ViewType.Legend and view.Name == legend_name:\r\n            existing_legend = view\r\n            break\r\n\r\n    if existing_legend is not None:\r\n        copied_legend = existing_legend\r\n    else:\r\n        app = doc.Application\r\n        template_doc = app.OpenDocumentFile(template_path)\r\n\r\n        # Find the legend view by name in the template file\r\n        legend_view = None\r\n        for view in FilteredElementCollector(template_doc).OfClass(View):\r\n            if view.ViewType == ViewType.Legend and view.Name == legend_name:\r\n                legend_view = view\r\n                break\r\n\r\n        if legend_view is None:\r\n            OUT = f\"Error: Legend view named '{legend_name}' not found in the template.\"\r\n        else:\r\n            # Start a transaction to copy the legend into the current document\r\n            TransactionManager.Instance.EnsureInTransaction(doc)\r\n\r\n            # Copy the legend to the current project\r\n            element_ids = List[ElementId]([legend_view.Id])\r\n            copied_ids = ElementTransformUtils.CopyElements(template_doc, element_ids, doc, Transform.Identity, CopyPasteOptions())\r\n\r\n            TransactionManager.Instance.TransactionTaskDone()\r\n\r\n            # Get the copied legend\r\n            copied_legend_id = copied_ids[0]\r\n            copied_legend = doc.GetElement(copied_legend_id)\r\n\r\n        # Close the template document if it is not the active document\r\n        if template_doc.IsReadOnly:\r\n            template_doc.Close(False)\r\n\r\n    # Locate the sheet where the legend should be placed\r\n    sheet = None\r\n    for s in FilteredElementCollector(doc).OfClass(ViewSheet):\r\n        if s.Name == sheet_name:\r\n            sheet = s\r\n            break\r\n\r\n    if sheet is None:\r\n        OUT = f\"Error: Sheet named '{sheet_name}' not found in the current project.\"\r\n    else:\r\n        # Check if the legend is already on the sheet\r\n        legend_on_sheet = None\r\n        for vp_id in sheet.GetAllViewports():\r\n            viewport = doc.GetElement(vp_id)\r\n            if viewport.ViewId == copied_legend.Id:\r\n                legend_on_sheet = viewport\r\n                break\r\n\r\n        # Start a transaction to either place or move the legend on the sheet\r\n        TransactionManager.Instance.EnsureInTransaction(doc)\r\n\r\n        # Convert placement_location to XYZ\r\n        x, y, z = placement_location\r\n        position = XYZ(x, y, z)\r\n\r\n        if legend_on_sheet:\r\n            # Move the existing legend to the new position\r\n            try:\r\n                legend_on_sheet.SetBoxCenter(position)\r\n                OUT = [f\"Legend '{legend_name}' position updated on sheet '{sheet_name}' to ({x}, {y}, {z}).\", legend_on_sheet.Id]\r\n            except Exception as e:\r\n                OUT = f\"Error: {e}\"\r\n        else:\r\n            # Place the legend view on the sheet at the specified location\r\n            try:\r\n                # Use Viewport.Create to place the legend on the sheet\r\n                viewport = Viewport.Create(doc, sheet.Id, copied_legend.Id, position)\r\n\r\n                if viewport is None:\r\n                    OUT = f\"Error: Could not place the legend '{legend_name}' on sheet '{sheet_name}'.\"\r\n                else:\r\n                    # Output the viewport's ID and view ID for further manipulation, such as using Dynamo nodes to set properties\r\n                    OUT = [f\"Legend '{legend_name}' successfully placed on sheet '{sheet_name}' at position ({x}, {y}, {z}).\", viewport.Id, copied_legend.Id]\r\n            except Exception as e:\r\n                TransactionManager.Instance.ForceCloseTransaction()\r\n                OUT = f\"Error: {e}\"\r\n\r\n        TransactionManager.Instance.TransactionTaskDone()\r\n\r\nexcept Exception as e:\r\n    OUT = f\"Error: {e}\"\r\n",
+      "Engine": "CPython3",
+      "EngineName": "CPython3",
+      "VariableInputPorts": true,
+      "Id": "a84168fe4b0b4406a98f0db090aa930d",
+      "Inputs": [
+        {
+          "Id": "b833beb46bbd4cd9915b79ec684bdc56",
+          "Name": "IN[0]",
+          "Description": "Input #0",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "81595bbd3aeb43f3bf44277dfa7d45a5",
+          "Name": "IN[1]",
+          "Description": "Input #1",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "8172db2cb50f4219a94a937cdccc1533",
+          "Name": "IN[2]",
+          "Description": "Input #2",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "cf534886647b48c9906bb2174703fc6e",
+          "Name": "IN[3]",
+          "Description": "Input #3",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "ccca40a26de34301baa53702d63aafb0",
+          "Name": "OUT",
+          "Description": "Result of the python script",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Runs an embedded Python script."
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CodeBlockNodeModel, DynamoCore",
+      "NodeType": "CodeBlockNode",
+      "Code": "\"DSP Comp Ref\";",
+      "Id": "b7c954c52a21416f9d339dd7289e4679",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "4505e5f30df1473097956b222136b361",
+          "Name": "",
+          "Description": "Value of expression at line 1",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Allows for DesignScript code to be authored directly"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CodeBlockNodeModel, DynamoCore",
+      "NodeType": "CodeBlockNode",
+      "Code": "\"FIXTURE PLAN\";",
+      "Id": "5d7259f665d04c1ca3bf8bd4dbd10103",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "9d6d769129f74063b42c82104293f61a",
+          "Name": "",
+          "Description": "Value of expression at line 1",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Allows for DesignScript code to be authored directly"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CodeBlockNodeModel, DynamoCore",
+      "NodeType": "CodeBlockNode",
+      "Code": "[3.483, 2.695, 0.0];",
+      "Id": "c4fd386312554f0b8e6001210018bdd3",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "224d7a788328463eaab2f1fa3663625e",
+          "Name": "",
+          "Description": "Value of expression at line 1",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Allows for DesignScript code to be authored directly"
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Watch, CoreNodeModels",
+      "NodeType": "ExtensionNode",
+      "Id": "ef6a43c382664cc48b29f524768c87dc",
+      "Inputs": [
+        {
+          "Id": "c6d808c804e444e6a93f5461e8043499",
+          "Name": "",
+          "Description": "Node to show output from",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "eed879ccd43f47b4aebc087b88daafb6",
+          "Name": "",
+          "Description": "Node output",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Visualize the node's output"
+    },
+    {
+      "ConcreteType": "Dynamo.Nodes.DSModelElementSelection, DSRevitNodesUI",
+      "NodeType": "ExtensionNode",
+      "InstanceId": [
+        "c8d32e6f-430a-4617-83c5-2fe25906e8dc-00459eab"
+      ],
+      "Id": "589ced5bde624fa79bb93076dba05161",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "165b5cbf976448969076e71390a2eb24",
+          "Name": "Element",
+          "Description": "The selected elements.",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.ZeroTouch.DSFunction, DynamoCore",
+      "NodeType": "FunctionNode",
+      "FunctionSignature": "Revit.Elements.Element.SetParameterByName@string,var",
+      "Id": "bbaac55bfe784da88fcd97b85cb06208",
+      "Inputs": [
+        {
+          "Id": "1add8506880a4236bf81b73cecc06ae7",
+          "Name": "element",
+          "Description": "Revit.Elements.Element",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "8249f2121a4940e582b9a7113447a8ac",
+          "Name": "parameterName",
+          "Description": "The name of the parameter to set.\n\nstring",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "7112b79d7ea74a60b3eecafd7b416bc1",
+          "Name": "value",
+          "Description": "The value.\n\nvar",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "eb56fdd414924cd79d4502718baed5cb",
+          "Name": "Element",
+          "Description": "Element",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Auto",
+      "Description": "Set one of the element's parameters.\n\nElement.SetParameterByName (parameterName: string, value: var): Element"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.ZeroTouch.DSFunction, DynamoCore",
+      "NodeType": "FunctionNode",
+      "FunctionSignature": "DSCore.List.GetItemAtIndex@var[]..[],int",
+      "Id": "2e6e3f1f4fd148c1b90e1a0af8b09894",
+      "Inputs": [
+        {
+          "Id": "2126bbc7fbfa41ff9092b29903e14ad7",
+          "Name": "list",
+          "Description": "List to fetch an item from.\n\nvar[]..[]",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "75e004f8ec95412883edb5f9243b60c2",
+          "Name": "index",
+          "Description": "Index of the item to be fetched.\n\nint",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "cdb5b36c21344505be0465de07fab25c",
+          "Name": "item",
+          "Description": "Item in the list at the given index.",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Auto",
+      "Description": "Returns an item from the given list that's located at the specified index.\n\nList.GetItemAtIndex (list: var[]..[], index: int): var[]..[]"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CodeBlockNodeModel, DynamoCore",
+      "NodeType": "CodeBlockNode",
+      "Code": "1;",
+      "Id": "c7692373ddd54c26b71619eec357cd17",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "8543d36bd9aa46f98b1e9a5d8a186d76",
+          "Name": "",
+          "Description": "Value of expression at line 1",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Allows for DesignScript code to be authored directly"
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Watch, CoreNodeModels",
+      "NodeType": "ExtensionNode",
+      "Id": "2e6481c724cc4d6e8ae0ae6077530c83",
+      "Inputs": [
+        {
+          "Id": "172bf85ae7cd47cca693ff4237dff3b7",
+          "Name": "",
+          "Description": "Node to show output from",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "77707ce262394f49be3be3de75b372e5",
+          "Name": "",
+          "Description": "Node output",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Visualize the node's output"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CodeBlockNodeModel, DynamoCore",
+      "NodeType": "CodeBlockNode",
+      "Code": "\"Title on Sheet\";",
+      "Id": "36d8f4e7b67045aca4e396e842eb86ed",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "c3ea2b250f95423ead46bdc6c52c141c",
+          "Name": "",
+          "Description": "Value of expression at line 1",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Allows for DesignScript code to be authored directly"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CodeBlockNodeModel, DynamoCore",
+      "NodeType": "CodeBlockNode",
+      "Code": "\"No Label\";",
+      "Id": "68a085b9100840c3b199df6399325630",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "f08e4242ca7542e5802832c3ce4ec885",
+          "Name": "",
+          "Description": "Value of expression at line 1",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Allows for DesignScript code to be authored directly"
+    }
+  ],
+  "Connectors": [
+    {
+      "Start": "25aaaf7b6cc04ddb835247587d7a4a55",
+      "End": "b833beb46bbd4cd9915b79ec684bdc56",
+      "Id": "2a53d6683c6448d9a01e3446b60ce3db",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "ccca40a26de34301baa53702d63aafb0",
+      "End": "c6d808c804e444e6a93f5461e8043499",
+      "Id": "a35f0c02b129494ea962d97526ff2598",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "ccca40a26de34301baa53702d63aafb0",
+      "End": "2126bbc7fbfa41ff9092b29903e14ad7",
+      "Id": "4ed9d195f2f947609546e219cfc8dc52",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "4505e5f30df1473097956b222136b361",
+      "End": "81595bbd3aeb43f3bf44277dfa7d45a5",
+      "Id": "164d574289e44fde8b71f93ae415c1a8",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "9d6d769129f74063b42c82104293f61a",
+      "End": "8172db2cb50f4219a94a937cdccc1533",
+      "Id": "63a43ca0bf8d4a9e935c151d0a6bebe1",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "224d7a788328463eaab2f1fa3663625e",
+      "End": "cf534886647b48c9906bb2174703fc6e",
+      "Id": "a0608fdf5af542aaabde9a733da9e7ce",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "eb56fdd414924cd79d4502718baed5cb",
+      "End": "172bf85ae7cd47cca693ff4237dff3b7",
+      "Id": "f27d7c6f7ac44098958a5146ddc42cc1",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "8543d36bd9aa46f98b1e9a5d8a186d76",
+      "End": "75e004f8ec95412883edb5f9243b60c2",
+      "Id": "2ab70e18c3d94191864ddc9c9f131ced",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "c3ea2b250f95423ead46bdc6c52c141c",
+      "End": "8249f2121a4940e582b9a7113447a8ac",
+      "Id": "1abf2a091f754139bd985511d186ba1b",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "f08e4242ca7542e5802832c3ce4ec885",
+      "End": "7112b79d7ea74a60b3eecafd7b416bc1",
+      "Id": "00ac1300d06040d5bf89453035a96824",
+      "IsHidden": "False"
+    }
+  ],
+  "Dependencies": [],
+  "NodeLibraryDependencies": [],
+  "Thumbnail": "",
+  "GraphDocumentationURL": null,
+  "ExtensionWorkspaceData": [
+    {
+      "ExtensionGuid": "28992e1d-abb9-417f-8b1b-05e053bee670",
+      "Name": "Properties",
+      "Version": "2.16",
+      "Data": {}
+    },
+    {
+      "ExtensionGuid": "DFBD9CC0-DB40-457A-939E-8C8555555A9D",
+      "Name": "Generative Design",
+      "Version": "3.0",
+      "Data": {}
+    }
+  ],
+  "Author": "",
+  "Linting": {
+    "activeLinter": "None",
+    "activeLinterId": "7b75fb44-43fd-4631-a878-29f4d5d8399a",
+    "warningCount": 0,
+    "errorCount": 0
+  },
+  "Bindings": [],
+  "View": {
+    "Dynamo": {
+      "ScaleFactor": 1.0,
+      "HasRunWithoutCrash": true,
+      "IsVisibleInDynamoLibrary": true,
+      "Version": "2.16.2.5624",
+      "RunType": "Manual",
+      "RunPeriod": "1000"
+    },
+    "Camera": {
+      "Name": "Background Preview",
+      "EyeX": -17.0,
+      "EyeY": 24.0,
+      "EyeZ": 50.0,
+      "LookX": 12.0,
+      "LookY": -13.0,
+      "LookZ": -58.0,
+      "UpX": 0.0,
+      "UpY": 1.0,
+      "UpZ": 0.0
+    },
+    "ConnectorPins": [],
+    "NodeViews": [
+      {
+        "Name": "File Path",
+        "ShowGeometry": true,
+        "Id": "35dc14e8cb7a4b1295f8637d6702a3f2",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 2589.1118562843121,
+        "Y": 3577.9648448121256
+      },
+      {
+        "Name": "Magic",
+        "ShowGeometry": true,
+        "Id": "a84168fe4b0b4406a98f0db090aa930d",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 3291.3756334875043,
+        "Y": 3814.241737672251
+      },
+      {
+        "Name": "Code Block",
+        "ShowGeometry": true,
+        "Id": "b7c954c52a21416f9d339dd7289e4679",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 2946.6638280352263,
+        "Y": 3736.92514039839
+      },
+      {
+        "Name": "Code Block",
+        "ShowGeometry": true,
+        "Id": "5d7259f665d04c1ca3bf8bd4dbd10103",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 2946.6638280352263,
+        "Y": 3883.92514039839
+      },
+      {
+        "Name": "Code Block",
+        "ShowGeometry": true,
+        "Id": "c4fd386312554f0b8e6001210018bdd3",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 2946.6638280352263,
+        "Y": 4030.92514039839
+      },
+      {
+        "Name": "Watch",
+        "ShowGeometry": true,
+        "Id": "ef6a43c382664cc48b29f524768c87dc",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 3597.64313087372,
+        "Y": 3300.1238118656665
+      },
+      {
+        "Name": "Select Model Element",
+        "ShowGeometry": true,
+        "Id": "589ced5bde624fa79bb93076dba05161",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 4006.2855292585441,
+        "Y": 3304.86732769442
+      },
+      {
+        "Name": "Element.SetParameterByName",
+        "ShowGeometry": true,
+        "Id": "bbaac55bfe784da88fcd97b85cb06208",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 4467.4999829825338,
+        "Y": 3957.4512625385955
+      },
+      {
+        "Name": "List.GetItemAtIndex",
+        "ShowGeometry": true,
+        "Id": "2e6e3f1f4fd148c1b90e1a0af8b09894",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 3874.7463236412495,
+        "Y": 3815.2769092252233
+      },
+      {
+        "Name": "Code Block",
+        "ShowGeometry": true,
+        "Id": "c7692373ddd54c26b71619eec357cd17",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 3620.7463236412495,
+        "Y": 3849.1044092252237
+      },
+      {
+        "Name": "Watch",
+        "ShowGeometry": true,
+        "Id": "2e6481c724cc4d6e8ae0ae6077530c83",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 4816.0042942267191,
+        "Y": 3945.1897325685372
+      },
+      {
+        "Name": "Code Block",
+        "ShowGeometry": true,
+        "Id": "36d8f4e7b67045aca4e396e842eb86ed",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 3874.7463236412495,
+        "Y": 3993.1044092252237
+      },
+      {
+        "Name": "Code Block",
+        "ShowGeometry": true,
+        "Id": "68a085b9100840c3b199df6399325630",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 3874.7463236412495,
+        "Y": 4141.1044092252232
+      }
+    ],
+    "Annotations": [
+      {
+        "Id": "9224af1f7aad486ba798ec5c757e0a3a",
+        "Title": "\"DSP Comp Ref\" Template Location",
+        "DescriptionText": "<Double click here to edit group description>",
+        "IsExpanded": true,
+        "WidthAdjustment": 0.0,
+        "HeightAdjustment": 0.0,
+        "Nodes": [
+          "35dc14e8cb7a4b1295f8637d6702a3f2"
+        ],
+        "HasNestedGroups": false,
+        "Left": 2579.1118562843121,
+        "Top": 3461.9648448121256,
+        "Width": 341.0,
+        "Height": 257.0,
+        "FontSize": 36.0,
+        "InitialTop": 3577.9648448121256,
+        "InitialHeight": 145.0,
+        "TextblockHeight": 106.0,
+        "Background": "#FFFF7BAC"
+      },
+      {
+        "Id": "ba227c5366ec46a4a8f2adde5d5b80fb",
+        "Title": "<Double click here to edit group title>",
+        "DescriptionText": "<Double click here to edit group description>",
+        "IsExpanded": true,
+        "WidthAdjustment": 0.0,
+        "HeightAdjustment": 0.0,
+        "Nodes": [
+          "bbaac55bfe784da88fcd97b85cb06208",
+          "2e6e3f1f4fd148c1b90e1a0af8b09894",
+          "c7692373ddd54c26b71619eec357cd17",
+          "2e6481c724cc4d6e8ae0ae6077530c83",
+          "36d8f4e7b67045aca4e396e842eb86ed",
+          "68a085b9100840c3b199df6399325630"
+        ],
+        "HasNestedGroups": false,
+        "Left": 3610.7463236412495,
+        "Top": 3742.2769092252233,
+        "Width": 1492.2579705854696,
+        "Height": 530.82749999999987,
+        "FontSize": 36.0,
+        "InitialTop": 3815.2769092252233,
+        "InitialHeight": 470.82749999999987,
+        "TextblockHeight": 63.0,
+        "Background": "#FFC1D676"
+      },
+      {
+        "Id": "3688084b129c4da18a8834e252b245fd",
+        "Title": "Copy \"DSP Comp Ref\" to Current Project and Place on Sheet",
+        "DescriptionText": "<Double click here to edit group description>",
+        "IsExpanded": true,
+        "WidthAdjustment": 0.0,
+        "HeightAdjustment": 0.0,
+        "Nodes": [
+          "a84168fe4b0b4406a98f0db090aa930d",
+          "b7c954c52a21416f9d339dd7289e4679",
+          "5d7259f665d04c1ca3bf8bd4dbd10103",
+          "c4fd386312554f0b8e6001210018bdd3",
+          "9224af1f7aad486ba798ec5c757e0a3a"
+        ],
+        "HasNestedGroups": true,
+        "Left": 2569.1118562843121,
+        "Top": 3345.9648448121256,
+        "Width": 895.26377720319215,
+        "Height": 816.96029558626424,
+        "FontSize": 36.0,
+        "InitialTop": 3461.9648448121256,
+        "InitialHeight": 627.96029558626424,
+        "TextblockHeight": 106.0,
+        "Background": "#FFFFB8D8"
+      }
+    ],
+    "X": -975.54980821666186,
+    "Y": -1276.0471734507955,
+    "Zoom": 0.46583672720525127
+  }
+}
