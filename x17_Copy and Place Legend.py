@@ -16,7 +16,7 @@ template_path = IN[0]  # File path to the Revit template (RVT) file
 legend_name = IN[1]  # Name of the Legend View to extract
 sheet_name = IN[2]   # Name of the sheet to place the legend on
 placement_location = IN[3]  # XYZ coordinates for the placement of the legend (tuple/list)
-new_type_name = "No Label"  # Viewport type name we want to set
+new_type_name = IN[4]  # Viewport type name we want to set (e.g., "No Label")
 
 copied_legend_id = None
 legend_on_sheet_id = None
@@ -112,37 +112,43 @@ try:
         TransactionManager.Instance.TransactionTaskDone()
         debug_info.append("Step: Transaction completed for placing legend")
 
-    # Step 2: Start a new transaction to change the viewport type to "No Label"
+    # Step 2: Start a new transaction to change the viewport type to the input "new_type_name"
     if legend_on_sheet_id:
         try:
             TransactionManager.Instance.EnsureInTransaction(doc)
 
-            # Collect available viewport types and find the "No Label" type
-            collector = FilteredElementCollector(doc).OfClass(FamilySymbol).OfCategory(BuiltInCategory.OST_Viewports)
-            viewport_type = None
+            # Collect available viewport types using the correct approach
+            viewport_type_dict = {}
+            collector = FilteredElementCollector(doc).OfClass(Viewport)
 
-            for symbol in collector:
-                type_name = symbol.get_Parameter(BuiltInParameter.SYMBOL_NAME_PARAM).AsString()
-                if type_name and type_name.lower() == new_type_name.lower():
-                    viewport_type = symbol
-                    break
+            for viewport in collector:
+                type_element = doc.GetElement(viewport.GetTypeId())
+                if type_element:
+                    type_name = type_element.get_Parameter(BuiltInParameter.SYMBOL_NAME_PARAM).AsString()
+                    if type_name and isinstance(type_name, str):
+                        type_name_lower = type_name.lower()
+                        if type_name_lower not in viewport_type_dict:
+                            viewport_type_dict[type_name_lower] = type_element
 
-            if viewport_type is None:
-                debug_info.append(f"Error: Viewport type named '{new_type_name}' not found in the current project.")
+            # List all collected viewport types for debugging
+            collected_types = [key for key in viewport_type_dict.keys()]
+            debug_info.append(f"Collected viewport types: {collected_types}")
+
+            # Find the specified type by name
+            new_type_name_normalized = new_type_name.lower()
+            new_type_element = viewport_type_dict.get(new_type_name_normalized, None)
+
+            if new_type_element is None:
+                debug_info.append(f"Error: Viewport type named '{new_type_name}' not found in the gathered viewport types.")
             else:
-                debug_info.append(f"Viewport type '{new_type_name}' found, ID: {viewport_type.Id}")
+                debug_info.append(f"Viewport type '{new_type_name}' found, ID: {new_type_element.Id}")
 
                 # Get the viewport element that was created
                 viewport = doc.GetElement(legend_on_sheet_id)
 
-                # Activate the viewport type before setting it
-                if not viewport_type.IsActive:
-                    viewport_type.Activate()
-                    doc.Regenerate()
-
                 # Change the type to the desired symbol type (as FamilySymbols control Viewport types)
                 try:
-                    viewport.ChangeTypeId(viewport_type.Id)
+                    viewport.ChangeTypeId(new_type_element.Id)
                     debug_info.append(f"Viewport ID {viewport.Id} type successfully changed to '{new_type_name}'.")
                 except Exception as e:
                     debug_info.append(f"Error changing type of viewport ID {viewport.Id}: {str(e)}")
