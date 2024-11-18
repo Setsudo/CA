@@ -155,7 +155,7 @@
     {
       "Start": "25aaaf7b6cc04ddb835247587d7a4a55",
       "End": "b833beb46bbd4cd9915b79ec684bdc56",
-      "Id": "7ee96d69bfdd466c86a2e2d1e37cf95d",
+      "Id": "601f50a9a97f4ab9b86e482482f4a1dc",
       "IsHidden": "False"
     },
     {
@@ -178,7 +178,15 @@
     }
   ],
   "Dependencies": [],
-  "NodeLibraryDependencies": [],
+  "NodeLibraryDependencies": [
+    {
+      "Name": "ACI_Project_Template.rte",
+      "ReferenceType": "External",
+      "Nodes": [
+        "35dc14e8cb7a4b1295f8637d6702a3f2"
+      ]
+    }
+  ],
   "Thumbnail": "",
   "GraphDocumentationURL": null,
   "ExtensionWorkspaceData": [
@@ -209,7 +217,7 @@
       "HasRunWithoutCrash": true,
       "IsVisibleInDynamoLibrary": true,
       "Version": "2.16.2.5624",
-      "RunType": "Manual",
+      "RunType": "Automatic",
       "RunPeriod": "1000"
     },
     "Camera": {

@@ -8,8 +8,8 @@ clr.AddReference('RevitAPI')
 from Autodesk.Revit.DB import *
 
 # Inputs
-input_data = IN[0]  # Expected to be a dictionary with specific keys
-viewport_to_modify = IN[1]  # The name of the viewport to modify (e.g., "DSP Comp Ref")
+sheet_name = IN[0]  # The name of the sheet to find viewports on
+new_type_name = IN[1]  # The new type name to set (e.g., "no label")
 
 # Output list to store results
 output_data = []
@@ -17,66 +17,113 @@ output_data = []
 # Access the current document
 doc = DocumentManager.Instance.CurrentDBDocument
 
-# Access the dictionary data using appropriate keys
+# Start a transaction to modify Revit data
+TransactionManager.Instance.EnsureInTransaction(doc)
+
 try:
-    # Use `.get()` to access dictionary keys to avoid KeyErrors
-    view_ids = input_data.get('View IDs', [])
-    viewport_ids = input_data.get('Viewport IDs', [])
-    viewport_types = input_data.get('Viewport Types', [])
-    viewport_names = input_data.get('Viewport Names', [])
+    # Find the sheet with the given name
+    sheet = None
+    sheet_collector = FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_Sheets).WhereElementIsNotElementType()
 
-    # Adding detailed debug messages for diagnostics
-    output_data.append(f"View IDs: {view_ids}")
-    output_data.append(f"Viewport IDs: {viewport_ids}")
-    output_data.append(f"Viewport Types: {viewport_types}")
-    output_data.append(f"Viewport Names: {viewport_names}")
-    output_data.append(f"Viewport to Modify: {viewport_to_modify}")
+    for s in sheet_collector:
+        if s.Name == sheet_name:
+            sheet = s
+            break
 
-    # Find the index that matches the viewport to modify
-    matching_indexes = [i for i, name in enumerate(viewport_names) if name == viewport_to_modify]
-    if matching_indexes:
-        output_data.append(f"Matching viewport found for modification at index(es): {matching_indexes}")
+    if sheet is None:
+        output_data.append(f"No sheet found with the name '{sheet_name}'.")
     else:
-        output_data.append(f"No matching viewport found for name '{viewport_to_modify}'")
+        # Get viewports on the sheet
+        viewport_ids = sheet.GetAllViewports()
 
-    # Ensure all lists are of the same length
-    if len(view_ids) == len(viewport_ids) == len(viewport_types) == len(viewport_names):
-        for i in range(len(viewport_names)):
-            # Only proceed if we have a matching index for modification
-            if i in matching_indexes:
-                try:
-                    # Get the viewport element
-                    viewport_id = ElementId(viewport_ids[i])
-                    viewport = doc.GetElement(viewport_id)
+        if len(viewport_ids) == 0:
+            output_data.append(f"No viewports found on sheet '{sheet_name}'.")
+        else:
+            output_data.append(f"Found {len(viewport_ids)} viewports on sheet '{sheet_name}'.")
 
-                    if viewport and isinstance(viewport, Viewport):
-                        # List all parameters of the viewport element
-                        param_info_list = []
-                        for param in viewport.Parameters:
-                            param_name = param.Definition.Name
-                            param_storage_type = param.StorageType
-                            param_value = None
-                            
-                            if param_storage_type == StorageType.String:
-                                param_value = param.AsString()
-                            elif param_storage_type == StorageType.Integer:
-                                param_value = param.AsInteger()
-                            elif param_storage_type == StorageType.Double:
-                                param_value = param.AsDouble()
-                            elif param_storage_type == StorageType.ElementId:
-                                param_value = param.AsElementId().IntegerValue
+            # Iterate over the viewport IDs to find the desired viewport containing the legend view
+            viewport_to_modify = None
+            for vp_id in viewport_ids:
+                viewport = doc.GetElement(vp_id)
+                view_id = viewport.ViewId
+                view = doc.GetElement(view_id)
+                
+                # Check if this is the legend we want to modify
+                if view.Name == "DSP Comp Ref":
+                    output_data.append(f"Found Viewport containing the Legend View named '{view.Name}', Viewport ID: {viewport.Id.IntegerValue}")
+                    viewport_to_modify = viewport
+                    break
 
-                            param_info_list.append(f"Parameter: {param_name}, Storage Type: {param_storage_type}, Value: {param_value}")
+            if viewport_to_modify:
+                # Collect necessary data before deletion
+                bbox = viewport_to_modify.GetBoxCenter()  # Store location of the viewport
+                view_id = viewport_to_modify.ViewId  # Store the view ID
 
-                        output_data.append(f"Parameters of Viewport ID {viewport.Id}: {param_info_list}")
-                    else:
-                        output_data.append(f"Viewport with ID {viewport_ids[i]} not found or not a Viewport.")
-                except Exception as e:
-                    output_data.append(f"Error processing viewport ID {viewport_ids[i]}: {str(e)}")
-    else:
-        output_data.append("Data lists are not of equal length. Unable to proceed.")
+                # Collect the available viewport type information from all viewports
+                viewport_type_dict = {}
+                collector = FilteredElementCollector(doc).OfClass(Viewport)
+
+                # Iterate through collected elements to gather viewport types
+                for viewport in collector:
+                    type_element = doc.GetElement(viewport.GetTypeId())
+                    if type_element:
+                        type_name = type_element.get_Parameter(BuiltInParameter.SYMBOL_NAME_PARAM).AsString()
+                        if type_name and isinstance(type_name, str):
+                            type_name_lower = type_name.lower()
+                            if type_name_lower not in viewport_type_dict:
+                                viewport_type_dict[type_name_lower] = type_element
+
+                # List all collected viewport types for debugging
+                collected_types = [key for key in viewport_type_dict.keys()]
+                output_data.append(f"Collected viewport types: {collected_types}")
+
+                # Normalize new type name for comparison (case insensitive)
+                new_type_name_normalized = new_type_name.lower()
+
+                # Check if the new type name exists in the project
+                new_type_element = viewport_type_dict.get(new_type_name_normalized, None)
+
+                if new_type_element is None:
+                    output_data.append(f"No viewport type with the name '{new_type_name}' was found in the gathered viewport types.")
+                else:
+                    output_data.append(f"Viewport type '{new_type_name}' found, ID: {new_type_element.Id}")
+
+                    # Delete the old viewport
+                    try:
+                        doc.Delete(viewport_to_modify.Id)
+                        output_data.append(f"Deleted original Viewport ID {viewport_to_modify.Id}.")
+                    except Exception as e:
+                        output_data.append(f"Error deleting original viewport ID {viewport_to_modify.Id}: {str(e)}")
+
+                    # Commit the transaction for deletion
+                    TransactionManager.Instance.TransactionTaskDone()
+
+                    # Start a new transaction to create the viewport
+                    TransactionManager.Instance.EnsureInTransaction(doc)
+
+                    # Create a new viewport with the desired type
+                    try:
+                        # Validate the bounding box center
+                        if bbox is None:
+                            bbox = XYZ(0, 0, 0)  # Default location if bbox is invalid
+
+                        new_viewport = Viewport.Create(doc, sheet.Id, view_id, bbox)
+
+                        # Set the new type if applicable
+                        if new_viewport and new_type_element:
+                            new_viewport.ChangeTypeId(new_type_element.Id)
+                            output_data.append(f"Re-created viewport with new type '{new_type_name}' successfully.")
+                        else:
+                            output_data.append(f"Failed to create new viewport or find the appropriate type.")
+
+                    except Exception as e:
+                        output_data.append(f"Error re-creating viewport with new type '{new_type_name}': {str(e)}")
+
 except Exception as e:
-    output_data.append(f"Error accessing input data: {str(e)}")
+    output_data.append(f"General error accessing data: {str(e)}")
+
+# Complete the transaction
+TransactionManager.Instance.TransactionTaskDone()
 
 # Output results
 OUT = output_data
