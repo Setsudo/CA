@@ -132,15 +132,15 @@
       "IsHidden": "False"
     },
     {
-      "Start": "c9b0cc2d354f41648bab14c022c1dde5",
-      "End": "7d715e656c164892bb747f72b1ad9d03",
-      "Id": "17e9fb798e884e6f95f6182560c09733",
+      "Start": "735e035b6b8247afa5c20d313b387fd9",
+      "End": "2672cb1425534b74b138eb2f1ac67e7e",
+      "Id": "c20cd6b5451541099cc137244e2665d3",
       "IsHidden": "False"
     },
     {
       "Start": "735e035b6b8247afa5c20d313b387fd9",
-      "End": "2672cb1425534b74b138eb2f1ac67e7e",
-      "Id": "c20cd6b5451541099cc137244e2665d3",
+      "End": "7d715e656c164892bb747f72b1ad9d03",
+      "Id": "b2dc64aeed174041ae93657f0acb5f1d",
       "IsHidden": "False"
     }
   ],
@@ -176,7 +176,7 @@
       "HasRunWithoutCrash": true,
       "IsVisibleInDynamoLibrary": true,
       "Version": "2.16.2.5624",
-      "RunType": "Manual",
+      "RunType": "Automatic",
       "RunPeriod": "1000"
     },
     "Camera": {
@@ -200,8 +200,8 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 1415.8027900955904,
-        "Y": 633.0
+        "X": 995.3005997706714,
+        "Y": 679.56079616054467
       },
       {
         "Name": "Python Script",
@@ -210,8 +210,8 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 1159.9824793703,
-        "Y": 634.63875044640008
+        "X": 671.0941196845813,
+        "Y": 676.83447196689349
       },
       {
         "Name": "Watch",
@@ -220,8 +220,8 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 767.00024452186017,
-        "Y": 714.83171951727036
+        "X": 662.23845316063466,
+        "Y": 873.42943143912544
       },
       {
         "Name": "Python Script",
@@ -252,13 +252,13 @@
         "Height": 301.0,
         "FontSize": 36.0,
         "InitialTop": 711.5125896237405,
-        "InitialHeight": 162.0,
+        "InitialHeight": 145.0,
         "TextblockHeight": 159.0,
         "Background": "#FFB5B5B5"
       }
     ],
-    "X": -217.41844963901156,
-    "Y": 196.25546274504643,
+    "X": -140.41844963901156,
+    "Y": 194.25546274504643,
     "Zoom": 0.68727347121947668
   }
 }
