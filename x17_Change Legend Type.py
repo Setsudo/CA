@@ -9,6 +9,8 @@ from Autodesk.Revit.DB import *
 
 # Inputs
 input_data = IN[0]  # Expected to be a dictionary with specific keys
+viewport_to_modify = IN[1]  # The name of the viewport to modify (e.g., "DSP Comp Ref")
+new_type = IN[2]  # The new type/label to set (e.g., "No Label")
 
 # Output list to store results
 output_data = []
@@ -29,7 +31,7 @@ try:
     # Ensure all lists are of the same length
     if len(view_ids) == len(viewport_ids) == len(viewport_types) == len(viewport_names):
         for i in range(len(viewport_names)):
-            if viewport_names[i] == "DSP Comp Ref":
+            if viewport_names[i] == viewport_to_modify:
                 try:
                     viewport_id = ElementId(viewport_ids[i])
                     viewport = doc.GetElement(viewport_id)
@@ -39,9 +41,9 @@ try:
                         param = viewport.get_Parameter(BuiltInParameter.VIEWPORT_LABEL)
 
                         if param and not param.IsReadOnly:
-                            # Change the parameter value to "No Label"
-                            param.Set("No Label")
-                            output_data.append(f"Viewport ID {viewport.Id} changed to 'No Label'")
+                            # Change the parameter value to the new_type provided by the user
+                            param.Set(new_type)
+                            output_data.append(f"Viewport ID {viewport.Id} changed to '{new_type}'")
                         else:
                             output_data.append(f"Viewport ID {viewport.Id} has no editable 'VIEWPORT_LABEL' parameter.")
                     else:
