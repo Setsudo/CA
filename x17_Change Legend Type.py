@@ -29,14 +29,27 @@ try:
     viewport_types = input_data.get('Viewport Types', [])
     viewport_names = input_data.get('Viewport Names', [])
 
-    # Adding debug messages for diagnostics
+    # Adding detailed debug messages for diagnostics
     output_data.append(f"View IDs: {view_ids}")
     output_data.append(f"Viewport IDs: {viewport_ids}")
     output_data.append(f"Viewport Types: {viewport_types}")
     output_data.append(f"Viewport Names: {viewport_names}")
+    output_data.append(f"Viewport to Modify: {viewport_to_modify}")
+    output_data.append(f"New Type Name to Set: {new_type_name}")
+
+    # Find the index that matches the viewport to modify
+    matching_indexes = [i for i, name in enumerate(viewport_names) if name == viewport_to_modify]
+    if matching_indexes:
+        output_data.append(f"Matching viewport found for modification at index(es): {matching_indexes}")
+    else:
+        output_data.append(f"No matching viewport found for name '{viewport_to_modify}'")
 
     # Collect all available viewport types in the project
     available_viewport_types = FilteredElementCollector(doc).OfClass(FamilySymbol).OfCategory(BuiltInCategory.OST_Viewports).ToElements()
+
+    # List available viewport types for diagnostics
+    available_type_names = [vt.Name for vt in available_viewport_types]
+    output_data.append(f"Available viewport types in project: {available_type_names}")
 
     # Find the type that matches the desired new type name
     new_type_element = None
@@ -48,10 +61,13 @@ try:
     if new_type_element is None:
         output_data.append(f"No viewport type with the name '{new_type_name}' was found in the project.")
     else:
+        output_data.append(f"Viewport type '{new_type_name}' found, ID: {new_type_element.Id}")
+
         # Ensure all lists are of the same length
         if len(view_ids) == len(viewport_ids) == len(viewport_types) == len(viewport_names):
             for i in range(len(viewport_names)):
-                if viewport_names[i] == viewport_to_modify:
+                # Only proceed if we have a matching index for modification
+                if i in matching_indexes:
                     try:
                         # Get the viewport element
                         viewport_id = ElementId(viewport_ids[i])
