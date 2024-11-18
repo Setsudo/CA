@@ -96,7 +96,7 @@ try:
                 debug_info.append(f"Viewport Element ID: {legend_on_sheet_id.IntegerValue}")
                 debug_info.append("Step: Viewport successfully created")
 
-                OUT = [True, debug_info]
+                OUT = ["Success", debug_info]
         except Exception as e:
             TransactionManager.Instance.ForceCloseTransaction()
             debug_info.append(f"Step: Error during viewport placement: {e}")
