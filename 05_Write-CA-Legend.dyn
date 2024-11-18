@@ -41,7 +41,7 @@
     {
       "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
       "NodeType": "PythonScriptNode",
-      "Code": "# Reference Dynamo nodes and necessary Revit API libraries\r\nimport clr\r\nclr.AddReference('RevitAPI')\r\nclr.AddReference('RevitServices')\r\nfrom RevitServices.Persistence import DocumentManager\r\nfrom Autodesk.Revit.DB import *\r\n\r\n# Get the current Revit document\r\ndoc = DocumentManager.Instance.CurrentDBDocument\r\n\r\n# Input data - using the output from the previous Python script in Dynamo\r\ndata = IN[0]  # Assuming IN[0] is the output from the previous script\r\n\r\n# Start a transaction to make changes to the document\r\nt = Transaction(doc, \"Update Viewport Type\")\r\nt.Start()\r\n\r\ntry:\r\n    # Loop over the data, assuming the viewport type information is in the 4th sublist (index 3)\r\n    view_types = data[0][3]\r\n    \r\n    for index, view_type in enumerate(view_types):\r\n        # If the type is \"DSP Comp Ref\", change it to \"No Label\"\r\n        if view_type == \"DSP Comp Ref\":\r\n            # Update the data structure (for internal consistency)\r\n            view_types[index] = \"No Label\"\r\n\r\n            # Get all Viewport elements in the model\r\n            viewports = FilteredElementCollector(doc).OfClass(Viewport).ToElements()\r\n\r\n            # Find the matching viewport and change its type\r\n            for viewport in viewports:\r\n                # Check if this viewport name matches the one to be updated\r\n                if viewport.Name == \"DSP Comp Ref\":\r\n                    # Change the name to \"No Label\" (or update type if more appropriate)\r\n                    viewport.get_Parameter(BuiltInParameter.VIEWPORT_LABEL).Set(\"No Label\")\r\n                    print(f\"Viewport '{viewport.Id}' updated to 'No Label'.\")\r\n\r\n    # Commit the transaction after successful modification\r\n    t.Commit()\r\n    print(\"Viewport type updated successfully.\")\r\nexcept Exception as e:\r\n    # Rollback if any error occurs\r\n    t.RollBack()\r\n    print(f\"Error updating viewport type: {e}\")\r\n\r\n# Output the modified data structure\r\nOUT = data\r\n",
+      "Code": "# Import Revit and Dynamo modules\r\nimport clr\r\nclr.AddReference('RevitServices')\r\nfrom RevitServices.Persistence import DocumentManager\r\nfrom RevitServices.Transactions import TransactionManager\r\n\r\nclr.AddReference('RevitAPI')\r\nfrom Autodesk.Revit.DB import *\r\n\r\n# Inputs\r\nsheet_name = IN[0]  # The name of the sheet to find viewports on\r\nnew_type_name = IN[1]  # The new type name to set (e.g., \"no label\")\r\n\r\n# Output list to store results\r\noutput_data = []\r\n\r\n# Access the current document\r\ndoc = DocumentManager.Instance.CurrentDBDocument\r\n\r\n# Start a transaction to modify Revit data\r\nTransactionManager.Instance.EnsureInTransaction(doc)\r\n\r\ntry:\r\n    # Find the sheet with the given name\r\n    sheet = None\r\n    sheet_collector = FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_Sheets).WhereElementIsNotElementType()\r\n\r\n    for s in sheet_collector:\r\n        if s.Name == sheet_name:\r\n            sheet = s\r\n            break\r\n\r\n    if sheet is None:\r\n        output_data.append(f\"No sheet found with the name '{sheet_name}'.\")\r\n    else:\r\n        # Get viewports on the sheet\r\n        viewport_ids = sheet.GetAllViewports()\r\n\r\n        if len(viewport_ids) == 0:\r\n            output_data.append(f\"No viewports found on sheet '{sheet_name}'.\")\r\n        else:\r\n            output_data.append(f\"Found {len(viewport_ids)} viewports on sheet '{sheet_name}'.\")\r\n\r\n            # Iterate over the viewport IDs to find the desired viewport containing the legend view\r\n            viewport_to_modify = None\r\n            for vp_id in viewport_ids:\r\n                viewport = doc.GetElement(vp_id)\r\n                view_id = viewport.ViewId\r\n                view = doc.GetElement(view_id)\r\n                \r\n                # Check if this is the legend we want to modify\r\n                if view.Name == \"DSP Comp Ref\":\r\n                    output_data.append(f\"Found Viewport containing the Legend View named '{view.Name}', Viewport ID: {viewport.Id.IntegerValue}\")\r\n                    viewport_to_modify = viewport\r\n                    break\r\n\r\n            if viewport_to_modify:\r\n                # Collect necessary data before deletion\r\n                bbox = viewport_to_modify.GetBoxCenter()  # Store location of the viewport\r\n                view_id = viewport_to_modify.ViewId  # Store the view ID\r\n\r\n                # Collect the available viewport type information from all viewports\r\n                viewport_type_dict = {}\r\n                collector = FilteredElementCollector(doc).OfClass(Viewport)\r\n\r\n                # Iterate through collected elements to gather viewport types\r\n                for viewport in collector:\r\n                    type_element = doc.GetElement(viewport.GetTypeId())\r\n                    if type_element:\r\n                        type_name = type_element.get_Parameter(BuiltInParameter.SYMBOL_NAME_PARAM).AsString()\r\n                        if type_name and isinstance(type_name, str):\r\n                            type_name_lower = type_name.lower()\r\n                            if type_name_lower not in viewport_type_dict:\r\n                                viewport_type_dict[type_name_lower] = type_element\r\n\r\n                # List all collected viewport types for debugging\r\n                collected_types = [key for key in viewport_type_dict.keys()]\r\n                output_data.append(f\"Collected viewport types: {collected_types}\")\r\n\r\n                # Normalize new type name for comparison (case insensitive)\r\n                new_type_name_normalized = new_type_name.lower()\r\n\r\n                # Check if the new type name exists in the project\r\n                new_type_element = viewport_type_dict.get(new_type_name_normalized, None)\r\n\r\n                if new_type_element is None:\r\n                    output_data.append(f\"No viewport type with the name '{new_type_name}' was found in the gathered viewport types.\")\r\n                else:\r\n                    output_data.append(f\"Viewport type '{new_type_name}' found, ID: {new_type_element.Id}\")\r\n\r\n                    # Delete the old viewport\r\n                    try:\r\n                        doc.Delete(viewport_to_modify.Id)\r\n                        output_data.append(f\"Deleted original Viewport ID {viewport_to_modify.Id}.\")\r\n                    except Exception as e:\r\n                        output_data.append(f\"Error deleting original viewport ID {viewport_to_modify.Id}: {str(e)}\")\r\n\r\n                    # Commit the transaction for deletion\r\n                    TransactionManager.Instance.TransactionTaskDone()\r\n\r\n                    # Start a new transaction to create the viewport\r\n                    TransactionManager.Instance.EnsureInTransaction(doc)\r\n\r\n                    # Create a new viewport with the desired type\r\n                    try:\r\n                        # Validate the bounding box center\r\n                        if bbox is None:\r\n                            bbox = XYZ(0, 0, 0)  # Default location if bbox is invalid\r\n\r\n                        new_viewport = Viewport.Create(doc, sheet.Id, view_id, bbox)\r\n\r\n                        # Set the new type if applicable\r\n                        if new_viewport and new_type_element:\r\n                            new_viewport.ChangeTypeId(new_type_element.Id)\r\n                            output_data.append(f\"Re-created viewport with new type '{new_type_name}' successfully.\")\r\n                        else:\r\n                            output_data.append(f\"Failed to create new viewport or find the appropriate type.\")\r\n\r\n                    except Exception as e:\r\n                        output_data.append(f\"Error re-creating viewport with new type '{new_type_name}': {str(e)}\")\r\n\r\nexcept Exception as e:\r\n    output_data.append(f\"General error accessing data: {str(e)}\")\r\n\r\n# Complete the transaction\r\nTransactionManager.Instance.TransactionTaskDone()\r\n\r\n# Output results\r\nOUT = output_data\r\n",
       "Engine": "CPython3",
       "EngineName": "CPython3",
       "VariableInputPorts": true,
@@ -51,6 +51,15 @@
           "Id": "7d715e656c164892bb747f72b1ad9d03",
           "Name": "IN[0]",
           "Description": "Input #0",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "55954be98b3e46fbbf8c6367c253a537",
+          "Name": "IN[1]",
+          "Description": "Input #1",
           "UsingDefaultValue": false,
           "Level": 2,
           "UseLevels": false,
@@ -122,6 +131,116 @@
       ],
       "Replication": "Disabled",
       "Description": "Runs an embedded Python script."
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CodeBlockNodeModel, DynamoCore",
+      "NodeType": "CodeBlockNode",
+      "Code": "\"DSP Comp Ref\";",
+      "Id": "3a4ab9ac25a0468298f570c7654fcdbd",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "fcbf07d7528c43178f53d40273219026",
+          "Name": "",
+          "Description": "Value of expression at line 1",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Allows for DesignScript code to be authored directly"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CodeBlockNodeModel, DynamoCore",
+      "NodeType": "CodeBlockNode",
+      "Code": "\"no label\";",
+      "Id": "03262b6775914ce2bc4a2b52ea649be4",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "12858fb7c295418fbf8f7f9db3629347",
+          "Name": "",
+          "Description": "Value of expression at line 1",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Allows for DesignScript code to be authored directly"
+    },
+    {
+      "ConcreteType": "Dynamo.Nodes.DSModelElementSelection, DSRevitNodesUI",
+      "NodeType": "ExtensionNode",
+      "InstanceId": [
+        "1bdcdaeb-7f88-4554-b994-fead175ef2a1-0045abdb"
+      ],
+      "Id": "bef5cb9475ac46af8e9722bce6c0dbc9",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "29b664824961404aa7f792d50a996754",
+          "Name": "Element",
+          "Description": "The selected elements.",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled"
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Watch, CoreNodeModels",
+      "NodeType": "ExtensionNode",
+      "Id": "f3aecca83a9a48d4b2e409eedf950e0a",
+      "Inputs": [
+        {
+          "Id": "8dd2110a42974972984cdd07eb0e345d",
+          "Name": "",
+          "Description": "Node to show output from",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "b50dd63b9a474c88b16dbf17e972fae6",
+          "Name": "",
+          "Description": "Node output",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Visualize the node's output"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CodeBlockNodeModel, DynamoCore",
+      "NodeType": "CodeBlockNode",
+      "Code": "\"FIXTURE PLAN\";",
+      "Id": "59ad25546c3249658e2c360081bd99c5",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "cf0d43b95dc248b28710af614b24eab9",
+          "Name": "",
+          "Description": "Value of expression at line 1",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Allows for DesignScript code to be authored directly"
     }
   ],
   "Connectors": [
@@ -138,9 +257,21 @@
       "IsHidden": "False"
     },
     {
-      "Start": "735e035b6b8247afa5c20d313b387fd9",
+      "Start": "12858fb7c295418fbf8f7f9db3629347",
+      "End": "55954be98b3e46fbbf8c6367c253a537",
+      "Id": "3cefc491f2f542fa8540029ea43fb417",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "29b664824961404aa7f792d50a996754",
+      "End": "8dd2110a42974972984cdd07eb0e345d",
+      "Id": "4db58404a6664a93be0f0c533ce33181",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "cf0d43b95dc248b28710af614b24eab9",
       "End": "7d715e656c164892bb747f72b1ad9d03",
-      "Id": "b2dc64aeed174041ae93657f0acb5f1d",
+      "Id": "b29b5c7e4a324d58b843662b6faa286c",
       "IsHidden": "False"
     }
   ],
@@ -200,8 +331,8 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 995.3005997706714,
-        "Y": 679.56079616054467
+        "X": 1760.6196475469917,
+        "Y": 1078.7289428855863
       },
       {
         "Name": "Python Script",
@@ -210,8 +341,8 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 671.0941196845813,
-        "Y": 676.83447196689349
+        "X": 1509.5995863866967,
+        "Y": 1091.2919758978203
       },
       {
         "Name": "Watch",
@@ -220,8 +351,8 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 662.23845316063466,
-        "Y": 873.42943143912544
+        "X": 585.40937856494713,
+        "Y": 820.61530316739265
       },
       {
         "Name": "Python Script",
@@ -232,6 +363,56 @@
         "Excluded": false,
         "X": 360.0,
         "Y": 711.5125896237405
+      },
+      {
+        "Name": "Code Block",
+        "ShowGeometry": true,
+        "Id": "3a4ab9ac25a0468298f570c7654fcdbd",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 862.43342601537336,
+        "Y": 614.98291857091851
+      },
+      {
+        "Name": "Code Block",
+        "ShowGeometry": true,
+        "Id": "03262b6775914ce2bc4a2b52ea649be4",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 1239.7871963326268,
+        "Y": 1184.1194758978204
+      },
+      {
+        "Name": "Select Model Element",
+        "ShowGeometry": true,
+        "Id": "bef5cb9475ac46af8e9722bce6c0dbc9",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 913.218566802549,
+        "Y": 875.36704308577782
+      },
+      {
+        "Name": "Watch",
+        "ShowGeometry": true,
+        "Id": "f3aecca83a9a48d4b2e409eedf950e0a",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 1203.2029850005217,
+        "Y": 878.90670322439519
+      },
+      {
+        "Name": "Code Block",
+        "ShowGeometry": true,
+        "Id": "59ad25546c3249658e2c360081bd99c5",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 1213.2676605811612,
+        "Y": 1055.7642714873448
       }
     ],
     "Annotations": [
@@ -255,10 +436,35 @@
         "InitialHeight": 145.0,
         "TextblockHeight": 159.0,
         "Background": "#FFB5B5B5"
+      },
+      {
+        "Id": "547e9e447ad1416d8af0c1382a1be68c",
+        "Title": "Change Viewport Type",
+        "DescriptionText": "<Double click here to edit group description>",
+        "IsExpanded": true,
+        "WidthAdjustment": 0.0,
+        "HeightAdjustment": 0.0,
+        "Nodes": [
+          "f132279cdf664efd89d7fe2ad64ab873",
+          "03262b6775914ce2bc4a2b52ea649be4",
+          "bef5cb9475ac46af8e9722bce6c0dbc9",
+          "f3aecca83a9a48d4b2e409eedf950e0a",
+          "59ad25546c3249658e2c360081bd99c5"
+        ],
+        "HasNestedGroups": false,
+        "Left": 903.218566802549,
+        "Top": 802.36704308577782,
+        "Width": 790.38101958414768,
+        "Height": 513.75243281204257,
+        "FontSize": 36.0,
+        "InitialTop": 875.36704308577782,
+        "InitialHeight": 392.8556848997514,
+        "TextblockHeight": 63.0,
+        "Background": "#FFC1D676"
       }
     ],
-    "X": -140.41844963901156,
-    "Y": 194.25546274504643,
-    "Zoom": 0.68727347121947668
+    "X": -152.90286667652413,
+    "Y": 204.1173745131174,
+    "Zoom": 0.50570400812433314
   }
 }
