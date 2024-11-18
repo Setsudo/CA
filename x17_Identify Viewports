@@ -9,26 +9,42 @@ from Autodesk.Revit.DB import *
 # Get the current Revit document
 doc = DocumentManager.Instance.CurrentDBDocument
 
-# Output lists
-viewport_names = []
-viewport_types = []
+# Inputs from Dynamo
+run_script = IN[0]  # Boolean input to control when the script runs
 
-# Filter to get all Viewports in the document
-collector = FilteredElementCollector(doc).OfClass(Viewport)
+# Check if the script should run
+if not run_script:
+    OUT = "Script did not run because the trigger input was set to False."
+else:
+    # Output lists
+    viewport_ids = []
+    viewport_names = []
+    viewport_types = []
+    view_ids = []
 
-for viewport in collector:
-    # Get the name of the view associated with the viewport
-    view_id = viewport.ViewId
-    view = doc.GetElement(view_id)
-    viewport_name = view.Name if view else "Unknown Name"
+    # Filter to get all Viewports in the document
+    collector = FilteredElementCollector(doc).OfClass(Viewport)
 
-    # Get the type of the viewport by accessing the Element Type Name directly
-    type_element = doc.GetElement(viewport.GetTypeId())
-    viewport_type_name = type_element.get_Parameter(BuiltInParameter.SYMBOL_NAME_PARAM).AsString() if type_element else "Unknown Type"
+    for viewport in collector:
+        # Get the name of the view associated with the viewport
+        view_id = viewport.ViewId
+        view = doc.GetElement(view_id)
+        viewport_name = view.Name if view else "Unknown Name"
 
-    # Append to the output lists
-    viewport_names.append(viewport_name)
-    viewport_types.append(viewport_type_name)
+        # Get the type of the viewport by accessing the Element Type Name directly
+        type_element = doc.GetElement(viewport.GetTypeId())
+        viewport_type_name = type_element.get_Parameter(BuiltInParameter.SYMBOL_NAME_PARAM).AsString() if type_element else "Unknown Type"
 
-# Output results to Dynamo
-OUT = (viewport_names, viewport_types)
+        # Append to the output lists
+        viewport_ids.append(viewport.Id.IntegerValue)
+        viewport_names.append(viewport_name)
+        viewport_types.append(viewport_type_name)
+        view_ids.append(view_id.IntegerValue if view else "Unknown View ID")
+
+    # Output results to Dynamo
+    OUT = {
+        "Viewport IDs": viewport_ids,
+        "Viewport Names": viewport_names,
+        "Viewport Types": viewport_types,
+        "View IDs": view_ids
+    }
