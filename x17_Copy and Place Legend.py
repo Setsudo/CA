@@ -81,11 +81,7 @@ try:
                 OUT = f"Error: Could not place the legend '{legend_name}' on sheet '{sheet_name}'."
             else:
                 legend_on_sheet_id = viewport.Id
-                OUT = [
-                    f"Legend '{legend_name}' successfully placed on sheet '{sheet_name}' at position ({x}, {y}, {z}).",
-                    copied_legend_id.IntegerValue,
-                    legend_on_sheet_id.IntegerValue
-                ]
+                OUT = True
         except Exception as e:
             TransactionManager.Instance.ForceCloseTransaction()
             OUT = f"Error during placement: {e}"

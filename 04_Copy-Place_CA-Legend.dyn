@@ -33,7 +33,7 @@
     {
       "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
       "NodeType": "PythonScriptNode",
-      "Code": "import clr\r\nclr.AddReference('RevitAPI')\r\nclr.AddReference('RevitServices')\r\nclr.AddReference('System')\r\n\r\nfrom System import Guid\r\nfrom System.Collections.Generic import List\r\nfrom Autodesk.Revit.DB import *\r\nfrom RevitServices.Persistence import DocumentManager\r\nfrom RevitServices.Transactions import TransactionManager\r\n\r\n# Get the current Revit document (the active project)\r\ndoc = DocumentManager.Instance.CurrentDBDocument\r\n\r\n# Inputs from Dynamo\r\ntemplate_path = IN[0]  # File path to the Revit template (RVT) file\r\nlegend_name = IN[1]  # Name of the Legend View to extract\r\nsheet_name = IN[2]   # Name of the sheet to place the legend on\r\nplacement_location = IN[3]  # XYZ coordinates for the placement of the legend (tuple/list)\r\n\r\ncopied_legend_id = None\r\nlegend_on_sheet_id = None\r\n\r\ntry:\r\n    # Check if the legend view already exists in the current project\r\n    existing_legend = next((view for view in FilteredElementCollector(doc).OfClass(View)\r\n                            if view.ViewType == ViewType.Legend and view.Name == legend_name), None)\r\n\r\n    if existing_legend:\r\n        copied_legend = existing_legend\r\n    else:\r\n        # Open the Revit template document\r\n        app = doc.Application\r\n        template_doc = app.OpenDocumentFile(template_path)\r\n\r\n        try:\r\n            # Find the legend view by name in the template file\r\n            legend_view = next((view for view in FilteredElementCollector(template_doc).OfClass(View)\r\n                                if view.ViewType == ViewType.Legend and view.Name == legend_name), None)\r\n\r\n            if legend_view is None:\r\n                OUT = f\"Error: Legend view named '{legend_name}' not found in the template.\"\r\n            else:\r\n                # Start a transaction to copy the legend into the current document\r\n                TransactionManager.Instance.EnsureInTransaction(doc)\r\n\r\n                # Copy the legend to the current project\r\n                element_ids = List[ElementId]([legend_view.Id])\r\n                copied_ids = ElementTransformUtils.CopyElements(template_doc, element_ids, doc, Transform.Identity, CopyPasteOptions())\r\n\r\n                TransactionManager.Instance.TransactionTaskDone()\r\n\r\n                # Get the copied legend\r\n                copied_legend_id = copied_ids[0]\r\n                copied_legend = doc.GetElement(copied_legend_id)\r\n        finally:\r\n            # Ensure the template document is closed properly\r\n            if template_doc.IsValidObject:\r\n                template_doc.Close(False)\r\n\r\n    # Locate the sheet where the legend should be placed\r\n    sheet = next((s for s in FilteredElementCollector(doc).OfClass(ViewSheet) if s.Name == sheet_name), None)\r\n\r\n    if sheet is None:\r\n        OUT = f\"Error: Sheet named '{sheet_name}' not found in the current project.\"\r\n    else:\r\n        # Start a transaction to either place or move the legend on the sheet\r\n        TransactionManager.Instance.EnsureInTransaction(doc)\r\n\r\n        # Convert placement_location to XYZ\r\n        x, y, z = placement_location\r\n        position = XYZ(x, y, z)\r\n\r\n        try:\r\n            # Place the legend view on the sheet at the specified location\r\n            viewport = Viewport.Create(doc, sheet.Id, copied_legend.Id, position)\r\n\r\n            if viewport is None:\r\n                OUT = f\"Error: Could not place the legend '{legend_name}' on sheet '{sheet_name}'.\"\r\n            else:\r\n                legend_on_sheet_id = viewport.Id\r\n                OUT = [\r\n                    f\"Legend '{legend_name}' successfully placed on sheet '{sheet_name}' at position ({x}, {y}, {z}).\",\r\n                    copied_legend_id.IntegerValue,\r\n                    legend_on_sheet_id.IntegerValue\r\n                ]\r\n        except Exception as e:\r\n            TransactionManager.Instance.ForceCloseTransaction()\r\n            OUT = f\"Error during placement: {e}\"\r\n\r\n        TransactionManager.Instance.TransactionTaskDone()\r\n\r\nexcept Exception as e:\r\n    OUT = f\"Error: {e}\"\r\n\r\n# Output only the relevant result\r\nOUT = OUT\r\n",
+      "Code": "import clr\r\nclr.AddReference('RevitAPI')\r\nclr.AddReference('RevitServices')\r\nclr.AddReference('System')\r\n\r\nfrom System import Guid\r\nfrom System.Collections.Generic import List\r\nfrom Autodesk.Revit.DB import *\r\nfrom RevitServices.Persistence import DocumentManager\r\nfrom RevitServices.Transactions import TransactionManager\r\n\r\n# Get the current Revit document (the active project)\r\ndoc = DocumentManager.Instance.CurrentDBDocument\r\n\r\n# Inputs from Dynamo\r\ntemplate_path = IN[0]  # File path to the Revit template (RVT) file\r\nlegend_name = IN[1]  # Name of the Legend View to extract\r\nsheet_name = IN[2]   # Name of the sheet to place the legend on\r\nplacement_location = IN[3]  # XYZ coordinates for the placement of the legend (tuple/list)\r\n\r\ncopied_legend_id = None\r\nlegend_on_sheet_id = None\r\n\r\ntry:\r\n    # Start a transaction to remove any existing legend with the same name\r\n    TransactionManager.Instance.EnsureInTransaction(doc)\r\n    existing_legend = next((view for view in FilteredElementCollector(doc).OfClass(View)\r\n                            if view.ViewType == ViewType.Legend and view.Name == legend_name), None)\r\n\r\n    if existing_legend:\r\n        doc.Delete(existing_legend.Id)\r\n    TransactionManager.Instance.TransactionTaskDone()\r\n\r\n    # Open the Revit template document\r\n    app = doc.Application\r\n    template_doc = app.OpenDocumentFile(template_path)\r\n\r\n    try:\r\n        # Find the legend view by name in the template file\r\n        legend_view = next((view for view in FilteredElementCollector(template_doc).OfClass(View)\r\n                            if view.ViewType == ViewType.Legend and view.Name == legend_name), None)\r\n\r\n        if legend_view is None:\r\n            OUT = f\"Error: Legend view named '{legend_name}' not found in the template.\"\r\n        else:\r\n            # Start a transaction to copy the legend into the current document\r\n            TransactionManager.Instance.EnsureInTransaction(doc)\r\n\r\n            # Copy the legend to the current project\r\n            element_ids = List[ElementId]([legend_view.Id])\r\n            copied_ids = ElementTransformUtils.CopyElements(template_doc, element_ids, doc, Transform.Identity, CopyPasteOptions())\r\n\r\n            TransactionManager.Instance.TransactionTaskDone()\r\n\r\n            # Get the copied legend\r\n            copied_legend_id = copied_ids[0]\r\n            copied_legend = doc.GetElement(copied_legend_id)\r\n    finally:\r\n        # Ensure the template document is closed properly\r\n        if template_doc.IsValidObject:\r\n            template_doc.Close(False)\r\n\r\n    # Locate the sheet where the legend should be placed\r\n    sheet = next((s for s in FilteredElementCollector(doc).OfClass(ViewSheet) if s.Name == sheet_name), None)\r\n\r\n    if sheet is None:\r\n        OUT = f\"Error: Sheet named '{sheet_name}' not found in the current project.\"\r\n    else:\r\n        # Start a transaction to either place or move the legend on the sheet\r\n        TransactionManager.Instance.EnsureInTransaction(doc)\r\n\r\n        # Convert placement_location to XYZ\r\n        x, y, z = placement_location\r\n        position = XYZ(x, y, z)\r\n\r\n        try:\r\n            # Place the legend view on the sheet using Viewport.Create\r\n            viewport = Viewport.Create(doc, sheet.Id, copied_legend.Id, position)\r\n\r\n            if viewport is None:\r\n                OUT = f\"Error: Could not place the legend '{legend_name}' on sheet '{sheet_name}'.\"\r\n            else:\r\n                legend_on_sheet_id = viewport.Id\r\n                OUT = [\r\n                    f\"Legend '{legend_name}' successfully placed on sheet '{sheet_name}' at position ({x}, {y}, {z}).\",\r\n                    copied_legend_id.IntegerValue,\r\n                    legend_on_sheet_id.IntegerValue\r\n                ]\r\n        except Exception as e:\r\n            TransactionManager.Instance.ForceCloseTransaction()\r\n            OUT = f\"Error during placement: {e}\"\r\n\r\n        TransactionManager.Instance.TransactionTaskDone()\r\n\r\nexcept Exception as e:\r\n    OUT = f\"Error: {e}\"\r\n\r\n# Output only the relevant result\r\nOUT = OUT\r\n",
       "Engine": "CPython3",
       "EngineName": "CPython3",
       "VariableInputPorts": true,
@@ -241,7 +241,7 @@
     {
       "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
       "NodeType": "PythonScriptNode",
-      "Code": "import clr\r\nclr.AddReference('RevitAPI')\r\nclr.AddReference('RevitServices')\r\n\r\nfrom Autodesk.Revit.DB import *\r\nfrom RevitServices.Persistence import DocumentManager\r\nfrom RevitServices.Transactions import TransactionManager\r\n\r\n# Get the current Revit document\r\ndoc = DocumentManager.Instance.CurrentDBDocument\r\n\r\n# Inputs from Dynamo\r\nlegend_on_sheet_id = IN[0]  # Element ID of the legend on the sheet\r\n\r\ntry:\r\n    # Convert input to ElementId\r\n    legend_on_sheet_element_id = ElementId(legend_on_sheet_id)\r\n    legend_on_sheet = doc.GetElement(legend_on_sheet_element_id)\r\n\r\n    # Verify if the element is found\r\n    if legend_on_sheet is None:\r\n        OUT = f\"Error: No element found with ID {legend_on_sheet_id}.\"\r\n    elif not isinstance(legend_on_sheet, Viewport):\r\n        OUT = f\"Error: Element with ID {legend_on_sheet_id} is not a Viewport.\"\r\n    else:\r\n        # Start a transaction to modify the Viewport type\r\n        TransactionManager.Instance.EnsureInTransaction(doc)\r\n\r\n        try:\r\n            # Gather all viewport types available in the document\r\n            viewport_types = FilteredElementCollector(doc).OfClass(ElementType).OfCategory(BuiltInCategory.OST_Viewports)\r\n            \r\n            # Output all available viewport types for debugging\r\n            available_types = {vt.Id.IntegerValue: vt.Name for vt in viewport_types}\r\n            \r\n            # Find a type named \"No Label\"\r\n            no_label_type = next((vt for vt in viewport_types if \"No Label\" in vt.Name), None)\r\n\r\n            if no_label_type is None:\r\n                OUT = f\"Error: No viewport type named 'No Label' found. Available types: {available_types}\"\r\n            else:\r\n                # Set the Viewport to the found type without labels\r\n                legend_on_sheet.ChangeTypeId(no_label_type.Id)\r\n                OUT = f\"Viewport property for legend with ID {legend_on_sheet_id} set to type 'No Label'.\"\r\n\r\n        except Exception as e:\r\n            OUT = f\"Error: {e}\"\r\n        finally:\r\n            TransactionManager.Instance.TransactionTaskDone()\r\n\r\nexcept Exception as e:\r\n    OUT = f\"Error: {e}\"\r\n\r\n# Output the result\r\nOUT = OUT\r\n",
+      "Code": "import clr\r\nclr.AddReference('RevitAPI')\r\nclr.AddReference('RevitServices')\r\n\r\nfrom Autodesk.Revit.DB import *\r\nfrom RevitServices.Persistence import DocumentManager\r\nfrom RevitServices.Transactions import TransactionManager\r\n\r\n# Get the current Revit document\r\ndoc = DocumentManager.Instance.CurrentDBDocument\r\n\r\n# Inputs from Dynamo\r\nlegend_on_sheet_id = IN[0]  # Element ID of the legend on the sheet\r\n\r\ntry:\r\n    # Convert input to ElementId\r\n    legend_on_sheet_element_id = ElementId(legend_on_sheet_id)\r\n    legend_on_sheet = doc.GetElement(legend_on_sheet_element_id)\r\n\r\n    # Verify if the element is found\r\n    if legend_on_sheet is None:\r\n        OUT = f\"Error: No element found with ID {legend_on_sheet_id}.\"\r\n    elif not isinstance(legend_on_sheet, Viewport):\r\n        OUT = f\"Error: Element with ID {legend_on_sheet_id} is not a Viewport.\"\r\n    else:\r\n        # Start a transaction to inspect the Viewport properties\r\n        TransactionManager.Instance.EnsureInTransaction(doc)\r\n\r\n        try:\r\n            # Debugging: Collect and output all properties of the Viewport\r\n            debug_info = {}\r\n            debug_info['Element ID'] = legend_on_sheet.Id.IntegerValue\r\n            debug_info['View Name'] = doc.GetElement(legend_on_sheet.ViewId).Name if legend_on_sheet.ViewId else \"<None>\"\r\n            debug_info['Sheet Name'] = doc.GetElement(legend_on_sheet.SheetId).Name if legend_on_sheet.SheetId else \"<None>\"\r\n            debug_info['Viewport Type'] = legend_on_sheet.GetType().Name\r\n            debug_info['Category'] = legend_on_sheet.Category.Name if legend_on_sheet.Category else \"<None>\"\r\n\r\n            # Collect all parameters of the Viewport for detailed inspection\r\n            parameters_info = {}\r\n            for param in legend_on_sheet.Parameters:\r\n                try:\r\n                    if param.StorageType == StorageType.String:\r\n                        param_value = param.AsString() if param.HasValue else \"<No Value>\"\r\n                    elif param.StorageType == StorageType.ElementId:\r\n                        element_id = param.AsElementId()\r\n                        param_value = doc.GetElement(element_id).Name if element_id != ElementId.InvalidElementId else \"<No Value>\"\r\n                    elif param.StorageType == StorageType.Double:\r\n                        param_value = param.AsDouble()\r\n                    elif param.StorageType == StorageType.Integer:\r\n                        param_value = param.AsInteger()\r\n                    else:\r\n                        param_value = \"<Unsupported Storage Type>\"\r\n                    \r\n                    parameters_info[param.Definition.Name] = {\r\n                        \"Value\": param_value,\r\n                        \"Is Read Only\": param.IsReadOnly,\r\n                        \"Parameter Type\": param.Definition.ParameterType.ToString()\r\n                    }\r\n                except Exception as e:\r\n                    parameters_info[param.Definition.Name] = f\"<Error reading value: {e}>\"\r\n\r\n            debug_info['Parameters'] = parameters_info\r\n\r\n            OUT = f\"Debug Info: {debug_info}\"\r\n\r\n        except Exception as e:\r\n            OUT = f\"Error: {e}\"\r\n        finally:\r\n            TransactionManager.Instance.TransactionTaskDone()\r\n\r\nexcept Exception as e:\r\n    OUT = f\"Error: {e}\"\r\n\r\n# Output the result\r\nOUT = OUT\r\n",
       "Engine": "CPython3",
       "EngineName": "CPython3",
       "VariableInputPorts": true,
@@ -274,10 +274,10 @@
     {
       "ConcreteType": "CoreNodeModels.Watch, CoreNodeModels",
       "NodeType": "ExtensionNode",
-      "Id": "0667f95f42e04d50bcb4d829232252fd",
+      "Id": "d656509e6a0240f2be284cda48cc90ef",
       "Inputs": [
         {
-          "Id": "d17139609ca64c8989e835d3bee79bbb",
+          "Id": "7cc478a2bcad4566bd03701a020e13ff",
           "Name": "",
           "Description": "Node to show output from",
           "UsingDefaultValue": false,
@@ -288,7 +288,7 @@
       ],
       "Outputs": [
         {
-          "Id": "279eea9669104f449649f319b3590ca4",
+          "Id": "d027635812504e07879ca98fe1d69b23",
           "Name": "",
           "Description": "Node output",
           "UsingDefaultValue": false,
@@ -299,13 +299,117 @@
       ],
       "Replication": "Disabled",
       "Description": "Visualize the node's output"
+    },
+    {
+      "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
+      "NodeType": "PythonScriptNode",
+      "Code": "import clr\r\nclr.AddReference('RevitServices')\r\nclr.AddReference('RevitAPI')\r\nclr.AddReference('RevitNodes')\r\nclr.AddReference('RevitAPIUI')\r\n\r\nfrom RevitServices.Persistence import DocumentManager\r\nfrom Autodesk.Revit.DB import FilteredElementCollector, BuiltInCategory, Viewport, ElementType\r\n\r\n# Get the current Revit document\r\ndoc = DocumentManager.Instance.CurrentDBDocument\r\n\r\n# Collect all elements in the project that belong to the Viewport category\r\nviewport_collector = FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_Viewports).WhereElementIsNotElementType()\r\n\r\n# Initialize list to store viewport family information\r\nviewport_info = []\r\n\r\n# Loop through collected elements and extract relevant information\r\nfor viewport in viewport_collector:\r\n    if isinstance(viewport, Viewport):\r\n        try:\r\n            # Safely get the view name\r\n            view_element = doc.GetElement(viewport.ViewId)\r\n            view_name = view_element.Name if view_element is not None else \"Unknown View\"\r\n        except AttributeError:\r\n            view_name = \"Unknown View - Attribute Error\"\r\n        except Exception as e:\r\n            view_name = f\"Unknown View - Error: {str(e)}\"\r\n        \r\n        try:\r\n            # Get the ElementType (Family Type) for the viewport\r\n            type_id = viewport.GetTypeId()\r\n            family_type = doc.GetElement(type_id)\r\n            \r\n            # Check if family_type is ElementType and assign the correct name\r\n            if family_type is None:\r\n                type_name = \"Unknown - Type ID could not be resolved\"\r\n            elif isinstance(family_type, ElementType):\r\n                type_name = family_type.FamilyName if hasattr(family_type, 'FamilyName') else family_type.Name if hasattr(family_type, 'Name') else \"Unknown Element Type Name\"\r\n            else:\r\n                type_name = f\"Unknown - Retrieved type is {type(family_type)}\"\r\n        except AttributeError:\r\n            type_name = \"Unknown Type - Attribute Error\"\r\n        except Exception as e:\r\n            type_name = f\"Unknown Type - Error: {str(e)}\"\r\n        \r\n        # Append information about the viewport\r\n        viewport_info.append({\r\n            \"Viewport ID\": viewport.Id.IntegerValue,\r\n            \"Viewport Name\": view_name,\r\n            \"Viewport Type\": type_name\r\n        })\r\n\r\n# Output the result\r\nOUT = viewport_info\r\n",
+      "Engine": "CPython3",
+      "EngineName": "CPython3",
+      "VariableInputPorts": true,
+      "Id": "24a17abb8a9d4886886fc690d5f3e6e6",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "027d5368473e4ea9ad95514ac8347ca2",
+          "Name": "OUT",
+          "Description": "Result of the python script",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Runs an embedded Python script."
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Watch, CoreNodeModels",
+      "NodeType": "ExtensionNode",
+      "Id": "c6e6b03110fa4ba49cfd98de50d54033",
+      "Inputs": [
+        {
+          "Id": "7a8c7d6c66d848be8d6fd542a5ab1d79",
+          "Name": "",
+          "Description": "Node to show output from",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "122755f8a4674a51bb907414e10e46e5",
+          "Name": "",
+          "Description": "Node output",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Visualize the node's output"
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Watch, CoreNodeModels",
+      "NodeType": "ExtensionNode",
+      "Id": "a90c8a3a0863400993fde0e959f95ceb",
+      "Inputs": [
+        {
+          "Id": "5a7c754b799f487592ccf858abd65ec0",
+          "Name": "",
+          "Description": "Node to show output from",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "6740712948f64f3e9ae1a4912b79a7c7",
+          "Name": "",
+          "Description": "Node output",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Visualize the node's output"
+    },
+    {
+      "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
+      "NodeType": "PythonScriptNode",
+      "Code": "import clr\r\nclr.AddReference('RevitServices')\r\nclr.AddReference('RevitAPI')\r\nclr.AddReference('RevitNodes')\r\nclr.AddReference('RevitAPIUI')\r\n\r\nfrom RevitServices.Persistence import DocumentManager\r\nfrom Autodesk.Revit.DB import FilteredElementCollector, BuiltInCategory, Viewport, ElementType\r\n\r\n# Get the current Revit document\r\ndoc = DocumentManager.Instance.CurrentDBDocument\r\n\r\n# Collect all elements in the project that belong to the Viewport category\r\nviewport_collector = FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_Viewports).WhereElementIsNotElementType()\r\n\r\n# Collect all element types that belong to the Viewport category\r\nviewport_type_collector = FilteredElementCollector(doc).OfClass(ElementType).OfCategory(BuiltInCategory.OST_Viewports)\r\n\r\n# Initialize list to store viewport family information\r\nviewport_info = []\r\nviewport_types_info = []\r\n\r\n# Loop through collected viewports and extract relevant information\r\nfor viewport in viewport_collector:\r\n    if isinstance(viewport, Viewport):\r\n        try:\r\n            # Safely get the view name\r\n            view_element = doc.GetElement(viewport.ViewId)\r\n            view_name = view_element.Name if view_element is not None else \"Unknown View\"\r\n        except Exception as e:\r\n            view_name = f\"Unknown View - Error: {str(e)}\"\r\n        \r\n        try:\r\n            # Get the ElementType (Family Type) for the viewport\r\n            type_id = viewport.GetTypeId()\r\n            family_type = doc.GetElement(type_id)\r\n            \r\n            # Check if family_type is ElementType and assign the correct name\r\n            if isinstance(family_type, ElementType) and hasattr(family_type, 'Name'):\r\n                type_name = family_type.Name\r\n            else:\r\n                type_name = \"Unknown - Could not resolve type name\"\r\n        except Exception as e:\r\n            type_name = f\"Unknown Type - Error: {str(e)}\"\r\n        \r\n        # Append information about the viewport\r\n        viewport_info.append({\r\n            \"Viewport ID\": viewport.Id.IntegerValue,\r\n            \"Viewport Name\": view_name,\r\n            \"Viewport Type\": type_name\r\n        })\r\n\r\n# Loop through collected viewport types and extract relevant information\r\nfor viewport_type in viewport_type_collector:\r\n    try:\r\n        if hasattr(viewport_type, 'Name'):\r\n            viewport_types_info.append({\r\n                \"Viewport Type ID\": viewport_type.Id.IntegerValue,\r\n                \"Viewport Type Name\": viewport_type.Name\r\n            })\r\n        else:\r\n            viewport_types_info.append({\r\n                \"Viewport Type ID\": \"Unknown\",\r\n                \"Viewport Type Name\": \"Unknown - Property could not be read\"\r\n            })\r\n    except Exception as e:\r\n        viewport_types_info.append({\r\n            \"Viewport Type ID\": \"Error\",\r\n            \"Viewport Type Name\": f\"Error: {str(e)}\"\r\n        })\r\n\r\n# Output the result\r\nOUT = {\r\n    \"Viewports\": viewport_info,\r\n    \"Viewport Types\": viewport_types_info\r\n}",
+      "Engine": "CPython3",
+      "EngineName": "CPython3",
+      "VariableInputPorts": true,
+      "Id": "bf217c31722b4057bfb6fee034e26b0b",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "d709695db47041b588cd2b598de54f06",
+          "Name": "OUT",
+          "Description": "Result of the python script",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Runs an embedded Python script."
     }
   ],
   "Connectors": [
     {
       "Start": "25aaaf7b6cc04ddb835247587d7a4a55",
       "End": "b833beb46bbd4cd9915b79ec684bdc56",
-      "Id": "91fca9073e934708a786f2dfb1f99809",
+      "Id": "bb774554de7044a091f5c341e67aa787",
       "IsHidden": "False"
     },
     {
@@ -352,8 +456,20 @@
     },
     {
       "Start": "61266f239d6441ab9d3127567ffad357",
-      "End": "d17139609ca64c8989e835d3bee79bbb",
-      "Id": "d1bd39e8e5f648239a814906aab6ab20",
+      "End": "7cc478a2bcad4566bd03701a020e13ff",
+      "Id": "96ccb369c1fc44e9b22ce1bec9acddce",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "027d5368473e4ea9ad95514ac8347ca2",
+      "End": "7a8c7d6c66d848be8d6fd542a5ab1d79",
+      "Id": "ee229a1eda84430885094ab9ef593ec0",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "d709695db47041b588cd2b598de54f06",
+      "End": "5a7c754b799f487592ccf858abd65ec0",
+      "Id": "7abc424517b1492d9845c9a6bc3bfcf2",
       "IsHidden": "False"
     }
   ],
@@ -471,8 +587,8 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 3630.0124038957265,
-        "Y": 3609.8757314817235
+        "X": 3628.2015907915948,
+        "Y": 3572.519171126532
       },
       {
         "Name": "List.GetItemAtIndex",
@@ -482,7 +598,7 @@
         "IsSetAsOutput": false,
         "Excluded": false,
         "X": 3885.03085531963,
-        "Y": 4014.3584528709348
+        "Y": 3967.1733413590173
       },
       {
         "Name": "Code Block",
@@ -492,7 +608,7 @@
         "IsSetAsOutput": false,
         "Excluded": false,
         "X": 3631.03085531963,
-        "Y": 4048.1859528709342
+        "Y": 4001.0008413590176
       },
       {
         "Name": "Set Legend Properties",
@@ -502,17 +618,57 @@
         "IsSetAsOutput": false,
         "Excluded": false,
         "X": 4208.03085531963,
-        "Y": 3919.9882298471011
+        "Y": 3967.1733413590173
       },
       {
         "Name": "Watch",
         "ShowGeometry": true,
-        "Id": "0667f95f42e04d50bcb4d829232252fd",
+        "Id": "d656509e6a0240f2be284cda48cc90ef",
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 4540.7726508520755,
-        "Y": 3892.3717085335247
+        "X": 4518.8174411590153,
+        "Y": 3969.2948377200723
+      },
+      {
+        "Name": "Python Script",
+        "ShowGeometry": true,
+        "Id": "24a17abb8a9d4886886fc690d5f3e6e6",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 3530.1202014316145,
+        "Y": 4234.64768743236
+      },
+      {
+        "Name": "Watch",
+        "ShowGeometry": true,
+        "Id": "c6e6b03110fa4ba49cfd98de50d54033",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 3798.5299881100323,
+        "Y": 4236.8069624349964
+      },
+      {
+        "Name": "Watch",
+        "ShowGeometry": true,
+        "Id": "a90c8a3a0863400993fde0e959f95ceb",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 3786.5588470120933,
+        "Y": 4660.1500430803735
+      },
+      {
+        "Name": "Python Script",
+        "ShowGeometry": true,
+        "Id": "bf217c31722b4057bfb6fee034e26b0b",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 3518.1490603336733,
+        "Y": 4657.9907680777333
       }
     ],
     "Annotations": [
@@ -551,11 +707,11 @@
         ],
         "HasNestedGroups": false,
         "Left": 3621.03085531963,
-        "Top": 3846.9882298471011,
+        "Top": 3894.1733413590173,
         "Width": 835.0,
-        "Height": 333.19772302383262,
+        "Height": 238.82750000000033,
         "FontSize": 36.0,
-        "InitialTop": 3919.9882298471011,
+        "InitialTop": 3967.1733413590173,
         "InitialHeight": 470.8275,
         "TextblockHeight": 63.0,
         "Background": "#FFC1D676"
@@ -586,8 +742,8 @@
         "Background": "#FFFFB8D8"
       }
     ],
-    "X": -895.34831618363455,
-    "Y": -1079.2615401699238,
-    "Zoom": 0.36140215341067528
+    "X": -452.20791824007119,
+    "Y": -1344.1078146767597,
+    "Zoom": 0.45626943244119733
   }
 }
