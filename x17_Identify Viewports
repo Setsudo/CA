@@ -9,12 +9,20 @@ from Autodesk.Revit.DB import *
 # Get the current Revit document
 doc = DocumentManager.Instance.CurrentDBDocument
 
-# Inputs from Dynamo
-run_script = IN[0]  # Boolean input to control when the script runs
+# Check if input exists and unwrap if nested
+if 'IN' not in globals() or not isinstance(IN, list) or len(IN) == 0:
+    run_script = False  # Default to False if no valid input is provided
+else:
+    # Unwrap input if it's a nested list
+    input_value = IN[0]
+    if isinstance(input_value, list) and len(input_value) > 0:
+        run_script = input_value[0]  # Extract the first element of the nested list
+    else:
+        run_script = input_value  # Use the direct value if not nested
 
 # Check if the script should run
 if not run_script:
-    OUT = "Script did not run because the trigger input was set to False."
+    OUT = "Script did not run because the trigger input was set to False or not provided."
 else:
     # Output lists
     viewport_ids = []
