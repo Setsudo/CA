@@ -81,7 +81,7 @@ try:
                 OUT = f"Error: Could not place the legend '{legend_name}' on sheet '{sheet_name}'."
             else:
                 legend_on_sheet_id = viewport.Id
-                OUT = True
+                OUT = [True]  # Output in list format for further Python node processing
         except Exception as e:
             TransactionManager.Instance.ForceCloseTransaction()
             OUT = f"Error during placement: {e}"
