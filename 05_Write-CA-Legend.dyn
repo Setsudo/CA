@@ -1,0 +1,264 @@
+{
+  "Uuid": "835f952c-e6fa-4cfc-8ced-085e223da08a",
+  "IsCustomNode": false,
+  "Description": "",
+  "Name": "05_Write-CA-Legend",
+  "ElementResolver": {
+    "ResolutionMap": {}
+  },
+  "Inputs": [],
+  "Outputs": [],
+  "Nodes": [
+    {
+      "ConcreteType": "CoreNodeModels.Watch, CoreNodeModels",
+      "NodeType": "ExtensionNode",
+      "Id": "af74181b2e1546fca249802c73f45ddd",
+      "Inputs": [
+        {
+          "Id": "b9cb13027c5347fa868913a23cbcc240",
+          "Name": "",
+          "Description": "Node to show output from",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "ed89fc1735c345c2b00b92508b3ec09d",
+          "Name": "",
+          "Description": "Node output",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Visualize the node's output"
+    },
+    {
+      "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
+      "NodeType": "PythonScriptNode",
+      "Code": "# Reference Dynamo nodes and necessary Revit API libraries\r\nimport clr\r\nclr.AddReference('RevitAPI')\r\nclr.AddReference('RevitServices')\r\nfrom RevitServices.Persistence import DocumentManager\r\nfrom Autodesk.Revit.DB import *\r\n\r\n# Get the current Revit document\r\ndoc = DocumentManager.Instance.CurrentDBDocument\r\n\r\n# Input data - using the output from the previous Python script in Dynamo\r\ndata = IN[0]  # Assuming IN[0] is the output from the previous script\r\n\r\n# Start a transaction to make changes to the document\r\nt = Transaction(doc, \"Update Viewport Type\")\r\nt.Start()\r\n\r\ntry:\r\n    # Loop over the data, assuming the viewport type information is in the 4th sublist (index 3)\r\n    view_types = data[0][3]\r\n    \r\n    for index, view_type in enumerate(view_types):\r\n        # If the type is \"DSP Comp Ref\", change it to \"No Label\"\r\n        if view_type == \"DSP Comp Ref\":\r\n            # Update the data structure (for internal consistency)\r\n            view_types[index] = \"No Label\"\r\n\r\n            # Get all Viewport elements in the model\r\n            viewports = FilteredElementCollector(doc).OfClass(Viewport).ToElements()\r\n\r\n            # Find the matching viewport and change its type\r\n            for viewport in viewports:\r\n                # Check if this viewport name matches the one to be updated\r\n                if viewport.Name == \"DSP Comp Ref\":\r\n                    # Change the name to \"No Label\" (or update type if more appropriate)\r\n                    viewport.get_Parameter(BuiltInParameter.VIEWPORT_LABEL).Set(\"No Label\")\r\n                    print(f\"Viewport '{viewport.Id}' updated to 'No Label'.\")\r\n\r\n    # Commit the transaction after successful modification\r\n    t.Commit()\r\n    print(\"Viewport type updated successfully.\")\r\nexcept Exception as e:\r\n    # Rollback if any error occurs\r\n    t.RollBack()\r\n    print(f\"Error updating viewport type: {e}\")\r\n\r\n# Output the modified data structure\r\nOUT = data\r\n",
+      "Engine": "CPython3",
+      "EngineName": "CPython3",
+      "VariableInputPorts": true,
+      "Id": "f132279cdf664efd89d7fe2ad64ab873",
+      "Inputs": [
+        {
+          "Id": "7d715e656c164892bb747f72b1ad9d03",
+          "Name": "IN[0]",
+          "Description": "Input #0",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "8719839cfb3f486098e2ba7ad8b0f816",
+          "Name": "OUT",
+          "Description": "Result of the python script",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Runs an embedded Python script."
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Watch, CoreNodeModels",
+      "NodeType": "ExtensionNode",
+      "Id": "ef25309f12e4453cabd7e2738062422c",
+      "Inputs": [
+        {
+          "Id": "2672cb1425534b74b138eb2f1ac67e7e",
+          "Name": "",
+          "Description": "Node to show output from",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "c9b0cc2d354f41648bab14c022c1dde5",
+          "Name": "",
+          "Description": "Node output",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Visualize the node's output"
+    },
+    {
+      "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
+      "NodeType": "PythonScriptNode",
+      "Code": "# Import Revit API and necessary libraries\r\nimport clr\r\nclr.AddReference('RevitServices')\r\nfrom RevitServices.Persistence import DocumentManager\r\n\r\nclr.AddReference('RevitAPI')\r\nfrom Autodesk.Revit.DB import *\r\n\r\n# Ensure the script doesn't crash if `IN` is missing or Revit is not ready\r\ntry:\r\n    # Get the current Revit document\r\n    doc = DocumentManager.Instance.CurrentDBDocument\r\n\r\n    # Main logic: Process all viewports\r\n    viewport_ids = []\r\n    viewport_names = []\r\n    viewport_types = []\r\n    view_ids = []\r\n\r\n    # Filter to get all Viewports in the document\r\n    collector = FilteredElementCollector(doc).OfClass(Viewport)\r\n\r\n    for viewport in collector:\r\n        # Get the name of the view associated with the viewport\r\n        view_id = viewport.ViewId\r\n        view = doc.GetElement(view_id)\r\n        viewport_name = view.Name if view else \"Unknown Name\"\r\n\r\n        # Get the type of the viewport by accessing the Element Type Name directly\r\n        type_element = doc.GetElement(viewport.GetTypeId())\r\n        viewport_type_name = type_element.get_Parameter(BuiltInParameter.SYMBOL_NAME_PARAM).AsString() if type_element else \"Unknown Type\"\r\n\r\n        # Append to the output lists\r\n        viewport_ids.append(viewport.Id.IntegerValue)\r\n        viewport_names.append(viewport_name)\r\n        viewport_types.append(viewport_type_name)\r\n        view_ids.append(view_id.IntegerValue if view else \"Unknown View ID\")\r\n\r\n    # Output results to Dynamo\r\n    OUT = {\r\n        \"Viewport IDs\": viewport_ids,\r\n        \"Viewport Names\": viewport_names,\r\n        \"Viewport Types\": viewport_types,\r\n        \"View IDs\": view_ids\r\n    }\r\n\r\nexcept Exception as e:\r\n    # Gracefully handle errors\r\n    OUT = f\"An error occurred: {e}\"\r\n",
+      "Engine": "CPython3",
+      "EngineName": "CPython3",
+      "VariableInputPorts": true,
+      "Id": "aacef8892520442490ef19bd05722e60",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "735e035b6b8247afa5c20d313b387fd9",
+          "Name": "OUT",
+          "Description": "Result of the python script",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Runs an embedded Python script."
+    }
+  ],
+  "Connectors": [
+    {
+      "Start": "8719839cfb3f486098e2ba7ad8b0f816",
+      "End": "b9cb13027c5347fa868913a23cbcc240",
+      "Id": "88590f07494949aba882eeac5a4fe8cd",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "c9b0cc2d354f41648bab14c022c1dde5",
+      "End": "7d715e656c164892bb747f72b1ad9d03",
+      "Id": "17e9fb798e884e6f95f6182560c09733",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "735e035b6b8247afa5c20d313b387fd9",
+      "End": "2672cb1425534b74b138eb2f1ac67e7e",
+      "Id": "c20cd6b5451541099cc137244e2665d3",
+      "IsHidden": "False"
+    }
+  ],
+  "Dependencies": [],
+  "NodeLibraryDependencies": [],
+  "Thumbnail": "",
+  "GraphDocumentationURL": null,
+  "ExtensionWorkspaceData": [
+    {
+      "ExtensionGuid": "28992e1d-abb9-417f-8b1b-05e053bee670",
+      "Name": "Properties",
+      "Version": "2.16",
+      "Data": {}
+    },
+    {
+      "ExtensionGuid": "DFBD9CC0-DB40-457A-939E-8C8555555A9D",
+      "Name": "Generative Design",
+      "Version": "3.0",
+      "Data": {}
+    }
+  ],
+  "Author": "",
+  "Linting": {
+    "activeLinter": "None",
+    "activeLinterId": "7b75fb44-43fd-4631-a878-29f4d5d8399a",
+    "warningCount": 0,
+    "errorCount": 0
+  },
+  "Bindings": [],
+  "View": {
+    "Dynamo": {
+      "ScaleFactor": 1.0,
+      "HasRunWithoutCrash": true,
+      "IsVisibleInDynamoLibrary": true,
+      "Version": "2.16.2.5624",
+      "RunType": "Manual",
+      "RunPeriod": "1000"
+    },
+    "Camera": {
+      "Name": "Background Preview",
+      "EyeX": -17.0,
+      "EyeY": 24.0,
+      "EyeZ": 50.0,
+      "LookX": 12.0,
+      "LookY": -13.0,
+      "LookZ": -58.0,
+      "UpX": 0.0,
+      "UpY": 1.0,
+      "UpZ": 0.0
+    },
+    "ConnectorPins": [],
+    "NodeViews": [
+      {
+        "Name": "Watch",
+        "ShowGeometry": true,
+        "Id": "af74181b2e1546fca249802c73f45ddd",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 1415.8027900955904,
+        "Y": 633.0
+      },
+      {
+        "Name": "Python Script",
+        "ShowGeometry": true,
+        "Id": "f132279cdf664efd89d7fe2ad64ab873",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 1159.9824793703,
+        "Y": 634.63875044640008
+      },
+      {
+        "Name": "Watch",
+        "ShowGeometry": true,
+        "Id": "ef25309f12e4453cabd7e2738062422c",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 767.00024452186017,
+        "Y": 714.83171951727036
+      },
+      {
+        "Name": "Python Script",
+        "ShowGeometry": true,
+        "Id": "aacef8892520442490ef19bd05722e60",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 360.0,
+        "Y": 711.5125896237405
+      }
+    ],
+    "Annotations": [
+      {
+        "Id": "d1e32b45d9314d2181205c765131fdac",
+        "Title": "Identify Viewports and Types",
+        "DescriptionText": "<Double click here to edit group description>",
+        "IsExpanded": true,
+        "WidthAdjustment": 0.0,
+        "HeightAdjustment": 0.0,
+        "Nodes": [
+          "aacef8892520442490ef19bd05722e60"
+        ],
+        "HasNestedGroups": false,
+        "Left": 350.0,
+        "Top": 542.5125896237405,
+        "Width": 194.0,
+        "Height": 301.0,
+        "FontSize": 36.0,
+        "InitialTop": 711.5125896237405,
+        "InitialHeight": 162.0,
+        "TextblockHeight": 159.0,
+        "Background": "#FFB5B5B5"
+      }
+    ],
+    "X": -217.41844963901156,
+    "Y": 196.25546274504643,
+    "Zoom": 0.68727347121947668
+  }
+}
