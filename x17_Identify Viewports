@@ -6,25 +6,12 @@ from RevitServices.Persistence import DocumentManager
 clr.AddReference('RevitAPI')
 from Autodesk.Revit.DB import *
 
-# Get the current Revit document
-doc = DocumentManager.Instance.CurrentDBDocument
+# Ensure the script doesn't crash if `IN` is missing or Revit is not ready
+try:
+    # Get the current Revit document
+    doc = DocumentManager.Instance.CurrentDBDocument
 
-# Check if input exists and unwrap if nested
-if 'IN' not in globals() or not isinstance(IN, list) or len(IN) == 0:
-    run_script = False  # Default to False if no valid input is provided
-else:
-    # Unwrap input if it's a nested list
-    input_value = IN[0]
-    if isinstance(input_value, list) and len(input_value) > 0:
-        run_script = input_value[0]  # Extract the first element of the nested list
-    else:
-        run_script = input_value  # Use the direct value if not nested
-
-# Check if the script should run
-if not run_script:
-    OUT = "Script did not run because the trigger input was set to False or not provided."
-else:
-    # Output lists
+    # Main logic: Process all viewports
     viewport_ids = []
     viewport_names = []
     viewport_types = []
@@ -56,3 +43,7 @@ else:
         "Viewport Types": viewport_types,
         "View IDs": view_ids
     }
+
+except Exception as e:
+    # Gracefully handle errors
+    OUT = f"An error occurred: {e}"
