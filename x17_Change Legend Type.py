@@ -44,19 +44,21 @@ try:
     else:
         output_data.append(f"No matching viewport found for name '{viewport_to_modify}'")
 
-    # Collect all available viewport types in the project
-    available_viewport_types = FilteredElementCollector(doc).OfClass(FamilySymbol).OfCategory(BuiltInCategory.OST_Viewports).ToElements()
+    # Collect all existing viewport types by iterating over the current viewports
+    available_viewport_types = {}
+    collector = FilteredElementCollector(doc).OfClass(Viewport)
+    for viewport in collector:
+        type_element = doc.GetElement(viewport.GetTypeId())
+        type_name = type_element.get_Parameter(BuiltInParameter.SYMBOL_NAME_PARAM).AsString()
+        if type_name not in available_viewport_types:
+            available_viewport_types[type_name] = type_element
 
     # List available viewport types for diagnostics
-    available_type_names = [vt.Name for vt in available_viewport_types]
+    available_type_names = list(available_viewport_types.keys())
     output_data.append(f"Available viewport types in project: {available_type_names}")
 
     # Find the type that matches the desired new type name
-    new_type_element = None
-    for viewport_type in available_viewport_types:
-        if viewport_type.Name == new_type_name:
-            new_type_element = viewport_type
-            break
+    new_type_element = available_viewport_types.get(new_type_name, None)
 
     if new_type_element is None:
         output_data.append(f"No viewport type with the name '{new_type_name}' was found in the project.")
