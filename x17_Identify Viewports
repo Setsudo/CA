@@ -1,0 +1,34 @@
+# Import Revit API and necessary libraries
+import clr
+clr.AddReference('RevitServices')
+from RevitServices.Persistence import DocumentManager
+
+clr.AddReference('RevitAPI')
+from Autodesk.Revit.DB import *
+
+# Get the current Revit document
+doc = DocumentManager.Instance.CurrentDBDocument
+
+# Output lists
+viewport_names = []
+viewport_types = []
+
+# Filter to get all Viewports in the document
+collector = FilteredElementCollector(doc).OfClass(Viewport)
+
+for viewport in collector:
+    # Get the name of the view associated with the viewport
+    view_id = viewport.ViewId
+    view = doc.GetElement(view_id)
+    viewport_name = view.Name if view else "Unknown Name"
+
+    # Get the type of the viewport by accessing the Element Type Name directly
+    type_element = doc.GetElement(viewport.GetTypeId())
+    viewport_type_name = type_element.get_Parameter(BuiltInParameter.SYMBOL_NAME_PARAM).AsString() if type_element else "Unknown Type"
+
+    # Append to the output lists
+    viewport_names.append(viewport_name)
+    viewport_types.append(viewport_type_name)
+
+# Output results to Dynamo
+OUT = (viewport_names, viewport_types)
