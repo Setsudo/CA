@@ -272,8 +272,8 @@
     },
     {
       "ConcreteType": "CoreNodeModels.Input.Filename, CoreNodeModels",
-      "HintPath": "C:\\_Albertsons\\x17 (Lineal Footage Analysis)\\Oracle Revit Cutsheets-10-10-24 TCS Release.xlsx",
-      "InputValue": ".\\Oracle Revit Cutsheets-10-10-24 TCS Release.xlsx",
+      "HintPath": "C:\\_Albertsons\\x17 (Lineal Footage Analysis)\\Oracle Revit Cutsheets-11-13-24 TCS Release.xlsx",
+      "InputValue": "..\\Oracle Revit Cutsheets-11-13-24 TCS Release.xlsx",
       "NodeType": "ExtensionNode",
       "Id": "1b03e36244c74115a7e1798071ac4b3d",
       "Inputs": [],
@@ -12828,7 +12828,7 @@
   "Dependencies": [],
   "NodeLibraryDependencies": [
     {
-      "Name": "Oracle Revit Cutsheets-10-10-24 TCS Release.xlsx",
+      "Name": "Oracle Revit Cutsheets-11-13-24 TCS Release.xlsx",
       "ReferenceType": "External",
       "Nodes": [
         "1b03e36244c74115a7e1798071ac4b3d"
@@ -12851,7 +12851,7 @@
       ]
     },
     {
-      "Name": "SS_00967_(0967)_Concept_09-11-2024.rvt",
+      "Name": "BasePlan_63K.rvt",
       "ReferenceType": "External",
       "Nodes": [
         "aa37b99e3c5f4108bb6ed698587e0f63"
@@ -17916,8 +17916,8 @@
         "Background": "#FF71C6A8"
       }
     ],
-    "X": 376.69524252191104,
-    "Y": 502.72049054364572,
-    "Zoom": 0.10981474465675017
+    "X": 378.12259216572227,
+    "Y": 543.00461021746014,
+    "Zoom": 0.11780473366564952
   }
 }
