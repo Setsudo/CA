@@ -1957,7 +1957,7 @@
     {
       "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
       "NodeType": "PythonScriptNode",
-      "Code": "# Input from Excel Import Node (flattened data)\r\nexcel_data = IN[0]\r\n\r\n# Initialize an empty list to hold the dictionaries\r\ndictionary_rows = []\r\n\r\ntry:\r\n    # Iterate through each row in the Excel data\r\n    for row in excel_data:\r\n        # Ensure row is a list and has meaningful data in the first six fields (Header, SubHeader, Type, Existing, Proposed, Variation)\r\n        if isinstance(row, list) and len(row) >= 6:\r\n            # Extract and format the required data, providing sensible default values where necessary\r\n            header = row[0] if row[0] is not None else \"N/A\"\r\n            sub_header = row[1] if row[1] is not None else \"N/A\"\r\n            item_type = row[2] if row[2] is not None else \"N/A\"\r\n            existing = row[3] if row[3] is not None else 0\r\n            proposed = row[4] if row[4] is not None else 0\r\n            variation = row[5] if row[5] is not None else 0\r\n\r\n            # Only include rows with meaningful sub-header data (ignore entirely empty rows)\r\n            if sub_header != \"N/A\":\r\n                # Create a dictionary for the row\r\n                row_dict = {\r\n                    \"Header\": header,\r\n                    \"SubHeader\": sub_header,\r\n                    \"Type\": item_type,\r\n                    \"Existing\": existing,\r\n                    \"Proposed\": proposed,\r\n                    \"Variation\": variation\r\n                }\r\n\r\n                # Append the dictionary to the list\r\n                dictionary_rows.append(row_dict)\r\n\r\n    # Set output to the list of dictionaries\r\n    if not dictionary_rows:\r\n        OUT = \"No valid rows found in input data. Check the structure of the input or revise the extraction logic.\"\r\n    else:\r\n        OUT = dictionary_rows\r\n\r\nexcept Exception as e:\r\n    # Output any errors that occur\r\n    OUT = \"Error occurred: {}\".format(str(e))\r\n",
+      "Code": "# Input from Excel Import Node (flattened data)\r\nexcel_data = IN[0]\r\n\r\n# Initialize an empty list to hold the data in the desired list of lists format\r\ndata_rows = []\r\n\r\ntry:\r\n    # Iterate through each row in the Excel data\r\n    for row in excel_data:\r\n        # Ensure row is a list and has meaningful data in the first six fields (Header, SubHeader, Type, Existing, Proposed, Variation)\r\n        if isinstance(row, list) and len(row) >= 6:\r\n            # Extract and format the required data, providing sensible default values where necessary\r\n            header = row[0] if row[0] is not None else \"N/A\"\r\n            sub_header = row[1] if row[1] is not None else \"N/A\"\r\n            item_type = row[2] if row[2] is not None else \"N/A\"\r\n            existing = row[3] if row[3] is not None else 0\r\n            proposed = row[4] if row[4] is not None else 0\r\n            variation = row[5] if row[5] is not None else 0\r\n\r\n            # Only include rows with meaningful sub-header data (ignore entirely empty rows)\r\n            if sub_header != \"N/A\":\r\n                # Create a list for the row, keeping fields in the correct order\r\n                row_list = [header, sub_header, item_type, existing, proposed, variation]\r\n\r\n                # Append the row list to the data rows\r\n                data_rows.append(row_list)\r\n\r\n    # Set output to the list of lists\r\n    if not data_rows:\r\n        OUT = \"No valid rows found in input data. Check the structure of the input or revise the extraction logic.\"\r\n    else:\r\n        OUT = data_rows\r\n\r\nexcept Exception as e:\r\n    # Output any errors that occur\r\n    OUT = \"Error occurred: {}\".format(str(e))\r\n",
       "Engine": "CPython3",
       "EngineName": "CPython3",
       "VariableInputPorts": true,
@@ -2616,7 +2616,23 @@
     }
   ],
   "Dependencies": [],
-  "NodeLibraryDependencies": [],
+  "NodeLibraryDependencies": [
+    {
+      "Name": "02_Master-Check.xlsx",
+      "ReferenceType": "External",
+      "Nodes": [
+        "100500e5e8ca4c4f8074d092046414ff",
+        "636651ca158d43f7a5f22b1311c67c41"
+      ]
+    },
+    {
+      "Name": "BasePlan_63K.rvt",
+      "ReferenceType": "External",
+      "Nodes": [
+        "b03b5de533ad46d1946cfb01737f875c"
+      ]
+    }
+  ],
   "Thumbnail": "",
   "GraphDocumentationURL": null,
   "ExtensionWorkspaceData": [
@@ -3407,7 +3423,7 @@
         "Height": 648.0,
         "FontSize": 36.0,
         "InitialTop": 252.91715128257704,
-        "InitialHeight": 457.0,
+        "InitialHeight": 588.0,
         "TextblockHeight": 63.0,
         "Background": "#FFC1D676"
       },
@@ -3430,7 +3446,7 @@
         "Height": 426.17249999999967,
         "FontSize": 36.0,
         "InitialTop": 196.16120837457856,
-        "InitialHeight": 340.17249999999967,
+        "InitialHeight": 293.17249999999967,
         "TextblockHeight": 106.0,
         "Background": "#FFB9F9E1"
       },
@@ -3455,7 +3471,7 @@
         "Height": 387.0,
         "FontSize": 36.0,
         "InitialTop": 553.6293141105989,
-        "InitialHeight": 344.0,
+        "InitialHeight": 327.0,
         "TextblockHeight": 63.0,
         "Background": "#FFB9F9E1"
       },
@@ -3478,7 +3494,7 @@
         "Height": 214.0,
         "FontSize": 36.0,
         "InitialTop": 708.16557948900845,
-        "InitialHeight": 171.0,
+        "InitialHeight": 145.0,
         "TextblockHeight": 63.0,
         "Background": "#FFBB87C6"
       },
@@ -3504,7 +3520,7 @@
         "Height": 459.0,
         "FontSize": 36.0,
         "InitialTop": 61.339643636139044,
-        "InitialHeight": 416.0,
+        "InitialHeight": 399.0,
         "TextblockHeight": 63.0,
         "Background": "#FFB9F9E1"
       },
@@ -3526,7 +3542,7 @@
         "Height": 205.0,
         "FontSize": 36.0,
         "InitialTop": 138.42727235441907,
-        "InitialHeight": 162.0,
+        "InitialHeight": 145.0,
         "TextblockHeight": 63.0,
         "Background": "#FFD4B6DB"
       },
@@ -3547,7 +3563,7 @@
         "Height": 331.0,
         "FontSize": 36.0,
         "InitialTop": 837.38638274246784,
-        "InitialHeight": 310.0,
+        "InitialHeight": 145.0,
         "TextblockHeight": 159.0,
         "Background": "#FFC1D676"
       },
@@ -3564,13 +3580,13 @@
         ],
         "HasNestedGroups": false,
         "Left": 3984.307729467203,
-        "Top": 2135.36182347333,
+        "Top": 2135.76182347333,
         "Width": 574.0,
-        "Height": 282.22749999999951,
+        "Height": 281.82749999999942,
         "FontSize": 36.0,
         "InitialTop": 2251.76182347333,
-        "InitialHeight": 195.82749999999965,
-        "TextblockHeight": 106.4,
+        "InitialHeight": 178.82749999999942,
+        "TextblockHeight": 106.0,
         "Background": "#FFC1D676"
       },
       {
@@ -3586,13 +3602,13 @@
         ],
         "HasNestedGroups": false,
         "Left": 3963.089300492647,
-        "Top": 5367.606933260372,
+        "Top": 5368.0069332603716,
         "Width": 574.00000000000045,
-        "Height": 282.22749999999996,
+        "Height": 281.82750000000033,
         "FontSize": 36.0,
         "InitialTop": 5484.0069332603716,
-        "InitialHeight": 195.82750000000033,
-        "TextblockHeight": 106.4,
+        "InitialHeight": 178.82750000000033,
+        "TextblockHeight": 106.0,
         "Background": "#FFC1D676"
       },
       {
@@ -3608,13 +3624,13 @@
         ],
         "HasNestedGroups": false,
         "Left": 3970.4810871511918,
-        "Top": 7087.3559343143252,
+        "Top": 7087.7559343143248,
         "Width": 574.0,
-        "Height": 292.22749999999905,
+        "Height": 291.82749999999942,
         "FontSize": 36.0,
         "InitialTop": 7203.7559343143248,
-        "InitialHeight": 195.82749999999987,
-        "TextblockHeight": 106.4,
+        "InitialHeight": 178.82749999999942,
+        "TextblockHeight": 106.0,
         "Background": "#FFC1D676"
       },
       {
@@ -3630,13 +3646,13 @@
         ],
         "HasNestedGroups": false,
         "Left": 3983.1312526003057,
-        "Top": 8092.4521250569906,
+        "Top": 8092.85212505699,
         "Width": 574.0,
-        "Height": 282.22749999999905,
+        "Height": 281.82749999999942,
         "FontSize": 36.0,
         "InitialTop": 8208.85212505699,
-        "InitialHeight": 205.82749999999987,
-        "TextblockHeight": 106.4,
+        "InitialHeight": 178.82749999999942,
+        "TextblockHeight": 106.0,
         "Background": "#FFC1D676"
       },
       {
@@ -3657,7 +3673,7 @@
         "Height": 281.82749999999942,
         "FontSize": 36.0,
         "InitialTop": 7895.0196635880175,
-        "InitialHeight": 195.82749999999987,
+        "InitialHeight": 178.82749999999942,
         "TextblockHeight": 106.0,
         "Background": "#FFC1D676"
       },
@@ -3679,7 +3695,7 @@
         "Height": 281.82749999999942,
         "FontSize": 36.0,
         "InitialTop": 8531.0502778689479,
-        "InitialHeight": 195.82749999999987,
+        "InitialHeight": 178.82749999999942,
         "TextblockHeight": 106.0,
         "Background": "#FFC1D676"
       },
@@ -3696,13 +3712,13 @@
         ],
         "HasNestedGroups": false,
         "Left": 3971.6831932357118,
-        "Top": 6763.1399254054631,
+        "Top": 6763.5399254054628,
         "Width": 574.0,
-        "Height": 282.22749999999996,
+        "Height": 281.82750000000033,
         "FontSize": 36.0,
         "InitialTop": 6879.5399254054628,
-        "InitialHeight": 195.82749999999987,
-        "TextblockHeight": 106.4,
+        "InitialHeight": 178.82750000000033,
+        "TextblockHeight": 106.0,
         "Background": "#FFC1D676"
       },
       {
@@ -3718,13 +3734,13 @@
         ],
         "HasNestedGroups": false,
         "Left": 3974.3245488266311,
-        "Top": 6443.5358989041706,
+        "Top": 6443.93589890417,
         "Width": 574.0,
-        "Height": 282.22749999999905,
+        "Height": 281.82749999999942,
         "FontSize": 36.0,
         "InitialTop": 6559.93589890417,
-        "InitialHeight": 195.82749999999987,
-        "TextblockHeight": 106.4,
+        "InitialHeight": 178.82749999999942,
+        "TextblockHeight": 106.0,
         "Background": "#FFC1D676"
       },
       {
@@ -3745,7 +3761,7 @@
         "Height": 281.82749999999942,
         "FontSize": 36.0,
         "InitialTop": 6240.818338881314,
-        "InitialHeight": 195.82749999999987,
+        "InitialHeight": 178.82749999999942,
         "TextblockHeight": 106.0,
         "Background": "#FFC1D676"
       },
@@ -3762,13 +3778,13 @@
         ],
         "HasNestedGroups": false,
         "Left": 3966.9675701830033,
-        "Top": 5051.5279534963192,
+        "Top": 5051.9279534963189,
         "Width": 574.00000000000045,
-        "Height": 282.22750000000087,
+        "Height": 281.82750000000124,
         "FontSize": 36.0,
         "InitialTop": 5167.9279534963189,
-        "InitialHeight": 195.82750000000033,
-        "TextblockHeight": 106.4,
+        "InitialHeight": 178.82750000000124,
+        "TextblockHeight": 106.0,
         "Background": "#FFC1D676"
       },
       {
@@ -3789,7 +3805,7 @@
         "Height": 281.82750000001033,
         "FontSize": 36.0,
         "InitialTop": 4838.275029816019,
-        "InitialHeight": 195.82750000001033,
+        "InitialHeight": 178.82750000001033,
         "TextblockHeight": 106.0,
         "Background": "#FFC1D676"
       },
@@ -3806,13 +3822,13 @@
         ],
         "HasNestedGroups": false,
         "Left": 4040.0173732523226,
-        "Top": 2776.0193195434117,
+        "Top": 2776.4193195434118,
         "Width": 527.0,
-        "Height": 292.22749999999996,
+        "Height": 291.82749999999987,
         "FontSize": 36.0,
         "InitialTop": 2892.4193195434118,
-        "InitialHeight": 195.82750000000033,
-        "TextblockHeight": 106.4,
+        "InitialHeight": 178.82749999999987,
+        "TextblockHeight": 106.0,
         "Background": "#FFC1D676"
       },
       {
@@ -3828,13 +3844,13 @@
         ],
         "HasNestedGroups": false,
         "Left": 4004.9404902863489,
-        "Top": 3107.2964024092594,
+        "Top": 3107.6964024092595,
         "Width": 574.0,
-        "Height": 282.22750000000042,
+        "Height": 281.82750000000033,
         "FontSize": 36.0,
         "InitialTop": 3223.6964024092595,
-        "InitialHeight": 195.82750000000033,
-        "TextblockHeight": 106.4,
+        "InitialHeight": 178.82750000000033,
+        "TextblockHeight": 106.0,
         "Background": "#FFC1D676"
       },
       {
@@ -3855,7 +3871,7 @@
         "Height": 281.82749999999942,
         "FontSize": 36.0,
         "InitialTop": 4204.4138843048986,
-        "InitialHeight": 195.82749999999942,
+        "InitialHeight": 178.82749999999942,
         "TextblockHeight": 106.0,
         "Background": "#FFC1D676"
       },
@@ -3877,7 +3893,7 @@
         "Height": 281.82749999999987,
         "FontSize": 36.0,
         "InitialTop": 3873.1368014390482,
-        "InitialHeight": 205.82749999999987,
+        "InitialHeight": 178.82749999999987,
         "TextblockHeight": 106.0,
         "Background": "#FFC1D676"
       },
@@ -3898,7 +3914,7 @@
         "Height": 331.0,
         "FontSize": 36.0,
         "InitialTop": 1193.7954199394976,
-        "InitialHeight": 195.8275,
+        "InitialHeight": 145.0,
         "TextblockHeight": 159.0,
         "Background": "#FFC1D676"
       },
@@ -3921,13 +3937,13 @@
         "Height": 775.40903719702976,
         "FontSize": 36.0,
         "InitialTop": 668.38638274246784,
-        "InitialHeight": 162.0,
+        "InitialHeight": 546.40903719702976,
         "TextblockHeight": 63.0,
         "Background": "#FFE8F7AD"
       }
     ],
-    "X": 543.56113598692264,
-    "Y": 393.44806992112274,
-    "Zoom": 0.18493163346074915
+    "X": -1285.557966356866,
+    "Y": -230.31390798072596,
+    "Zoom": 0.63977307306931064
   }
 }

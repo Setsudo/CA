@@ -8768,7 +8768,22 @@
     }
   ],
   "Dependencies": [],
-  "NodeLibraryDependencies": [],
+  "NodeLibraryDependencies": [
+    {
+      "Name": "BasePlan_63K.rvt",
+      "ReferenceType": "External",
+      "Nodes": [
+        "9626a969a3814833bbcf13e5113c68c1"
+      ]
+    },
+    {
+      "Name": "01_Takeoff.xlsx",
+      "ReferenceType": "External",
+      "Nodes": [
+        "0a0cac7796bf43309e0739cda9bf17f8"
+      ]
+    }
+  ],
   "Thumbnail": "",
   "GraphDocumentationURL": null,
   "ExtensionWorkspaceData": [
@@ -8799,7 +8814,7 @@
       "HasRunWithoutCrash": true,
       "IsVisibleInDynamoLibrary": true,
       "Version": "2.16.2.5624",
-      "RunType": "Manual",
+      "RunType": "Automatic",
       "RunPeriod": "1000"
     },
     "Camera": {
