@@ -19,11 +19,14 @@ list_length = len(Indices)
 # Initialize output list with "No" values for each row
 outputList = [no_value] * list_length
 
-# Iterate through Indices and replace the default "No" values with "Yes" at specified positions
+# Iterate through Indices and replace the default "No" values with "Yes" for non-null values
 for i in range(list_length):
     if Indices[i] is not None and i >= drop_rows:
         # Write the "Yes" value at the specified index
         outputList[i] = yes_value
 
-# Output the final list with "Yes" and "No" values based on the indices
+# Output the final list with "Yes" and "No" values based on the indices, excluding the dropped rows
+outputList = outputList[drop_rows:]
+
+# Output the final list
 OUT = outputList
