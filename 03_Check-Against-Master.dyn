@@ -10185,7 +10185,7 @@
     {
       "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
       "NodeType": "PythonScriptNode",
-      "Code": "# Load the Python Standard and DesignScript Libraries\r\nimport sys\r\nimport clr\r\nclr.AddReference('ProtoGeometry')\r\nfrom Autodesk.DesignScript.Geometry import *\r\n\r\n# The inputs to this node will be stored as a list in the IN variables.\r\ndataEnteringNode = IN\r\n\r\n# Inputs\r\nIndices = IN[0]         # Indices with row numbers where \"Yes\" should be written (and None elsewhere)\r\nyes_value = IN[1]       # Value to write for \"Yes\" entries\r\nno_value = IN[2]        # Value to write for \"No\" entries\r\n\r\n# Determine the length of the output list\r\nlist_length = len(Indices)\r\n\r\n# Initialize output list with \"No\" values for each row\r\noutputList = [no_value] * list_length\r\n\r\n# Iterate through Indices and replace the default \"No\" values with \"Yes\" at specified positions\r\nfor i in range(list_length):\r\n    if Indices[i] is not None:\r\n        # Write the \"Yes\" value at the specified index\r\n        outputList[i] = yes_value\r\n\r\n# Output the final list with \"Yes\" and \"No\" values based on the indices\r\nOUT = outputList\r\n",
+      "Code": "# Load the Python Standard and DesignScript Libraries\r\nimport sys\r\nimport clr\r\nclr.AddReference('ProtoGeometry')\r\nfrom Autodesk.DesignScript.Geometry import *\r\n\r\n# The inputs to this node will be stored as a list in the IN variables.\r\ndataEnteringNode = IN\r\n\r\n# Inputs\r\nIndices = IN[0]         # Indices with row numbers where \"Yes\" should be written (and None elsewhere)\r\nyes_value = IN[1]       # Value to write for \"Yes\" entries\r\nno_value = IN[2]        # Value to write for \"No\" entries\r\ndrop_rows = IN[3]       # Number of rows to drop from the beginning\r\n\r\n# Determine the length of the output list\r\nlist_length = len(Indices)\r\n\r\n# Initialize output list with \"No\" values for each row\r\noutputList = [no_value] * list_length\r\n\r\n# Iterate through Indices and replace the default \"No\" values with \"Yes\" at specified positions\r\nfor i in range(list_length):\r\n    if Indices[i] is not None and i >= drop_rows:\r\n        # Write the \"Yes\" value at the specified index\r\n        outputList[i] = yes_value\r\n\r\n# Output the final list with \"Yes\" and \"No\" values based on the indices\r\nOUT = outputList\r\n",
       "Engine": "CPython3",
       "EngineName": "CPython3",
       "VariableInputPorts": true,
@@ -10213,6 +10213,15 @@
           "Id": "86056a387a194a8ebe6b85a5a8a1ba00",
           "Name": "IN[2]",
           "Description": "Input #2",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "c01b3de328164ece83d53cf65d9fbb16",
+          "Name": "IN[3]",
+          "Description": "Input #3",
           "UsingDefaultValue": false,
           "Level": 2,
           "UseLevels": false,
@@ -13034,6 +13043,12 @@
       "Start": "e9e84443b43748bf8342f650ed4b7e67",
       "End": "f42038032b874c5abfc370598fb59ff0",
       "Id": "9c5b7ccea8ad421d81db3d7013901f84",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "e9e84443b43748bf8342f650ed4b7e67",
+      "End": "c01b3de328164ece83d53cf65d9fbb16",
+      "Id": "add26f9d1f524f7aa8c47cd2be57258d",
       "IsHidden": "False"
     }
   ],
@@ -16184,8 +16199,8 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 15577.632330721082,
-        "Y": 2741.6871995625816
+        "X": 15201.993152194515,
+        "Y": 2900.2904082737991
       },
       {
         "Name": "Code Block",
@@ -16194,8 +16209,8 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 15323.632330721082,
-        "Y": 2718.514699562581
+        "X": 14947.993152194515,
+        "Y": 2877.1179082737985
       },
       {
         "Name": "Code Block",
@@ -16204,8 +16219,8 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 15323.632330721082,
-        "Y": 2866.514699562581
+        "X": 14947.993152194515,
+        "Y": 3025.1179082737985
       },
       {
         "Name": "Weights",
@@ -16324,8 +16339,8 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 10344.870880857876,
-        "Y": 1867.9479872588226
+        "X": 10211.453888376338,
+        "Y": 2350.301729307459
       }
     ],
     "Annotations": [
@@ -18132,12 +18147,12 @@
           "c2d6333ad7914ae393e4f3c62665f955"
         ],
         "HasNestedGroups": false,
-        "Left": 15313.632330721082,
-        "Top": 2645.514699562581,
+        "Left": 14937.993152194515,
+        "Top": 2804.1179082737985,
         "Width": 448.0,
         "Height": 353.0,
         "FontSize": 36.0,
-        "InitialTop": 2718.514699562581,
+        "InitialTop": 2877.1179082737985,
         "InitialHeight": 293.0,
         "TextblockHeight": 63.0,
         "Background": "#FFC1D676"
@@ -18188,8 +18203,8 @@
         "Background": "#FF71C6A8"
       }
     ],
-    "X": 381.99246709314582,
-    "Y": 552.92682662624645,
-    "Zoom": 0.11722756867697806
+    "X": 568.83640527350917,
+    "Y": 622.108601877839,
+    "Zoom": 0.069720900626450949
   }
 }
