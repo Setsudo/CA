@@ -33,7 +33,7 @@
     {
       "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
       "NodeType": "PythonScriptNode",
-      "Code": "import clr\r\nclr.AddReference('RevitAPI')\r\nclr.AddReference('RevitServices')\r\nclr.AddReference('System')\r\n\r\nfrom System import Guid\r\nfrom System.Collections.Generic import List\r\nfrom Autodesk.Revit.DB import *\r\nfrom RevitServices.Persistence import DocumentManager\r\nfrom RevitServices.Transactions import TransactionManager\r\n\r\n# Get the current Revit document (the active project)\r\ndoc = DocumentManager.Instance.CurrentDBDocument\r\n\r\n# Inputs from Dynamo\r\ntemplate_path = IN[0]  # File path to the Revit template (RVT) file\r\nlegend_name = IN[1]  # Name of the Legend View to extract\r\nsheet_name = IN[2]  # Name of the sheet to place the legend on\r\nplacement_location = IN[3]  # XYZ coordinates for the placement of the legend (tuple/list)\r\nappend_text = IN[4]  # Text to append when renaming the existing legend\r\nnew_position = IN[5]  # New XYZ coordinates for the existing legend (tuple/list)  # Name of the Legend View to extract\r\n\r\ncopied_legend_id = None\r\nlegend_on_sheet_id = None\r\n\r\ndebug_info = []  # Using a list to make further processing in Dynamo easier\r\n\r\ndebug_info.append(\"Step: Initialization\")\r\n\r\ntry:\r\n    # Start a transaction to remove any existing legend with the same name\r\n    TransactionManager.Instance.EnsureInTransaction(doc)\r\n    \r\n    existing_legend = next((view for view in FilteredElementCollector(doc).OfClass(View)\r\n                            if view.ViewType == ViewType.Legend and view.Name == legend_name), None)\r\n\r\n    if existing_legend:\r\n        # Rename the existing legend to mark it as old\r\n        existing_legend.Name = f\"{existing_legend.Name} {append_text}\"\r\n        \r\n        # Find the viewport associated with the existing legend\r\n        existing_viewport = next((vp for vp in FilteredElementCollector(doc).OfClass(Viewport)\r\n                                  if vp.ViewId == existing_legend.Id), None)\r\n        \r\n        # Move the viewport to the new position if specified\r\n        if existing_viewport:\r\n            x, y, z = new_position\r\n            new_position_xyz = XYZ(x, y, z)\r\n            existing_viewport.SetBoxCenter(new_position_xyz)\r\n        \r\n    TransactionManager.Instance.TransactionTaskDone()\r\n    debug_info.append(\"Step: Removed existing legend (if any)\")\r\n\r\n    # Open the Revit template document\r\n    app = doc.Application\r\n    template_doc = app.OpenDocumentFile(template_path)\r\n    debug_info.append(\"Step: Template document opened\")\r\n\r\n    try:\r\n        # Find the legend view by name in the template file\r\n        legend_view = next((view for view in FilteredElementCollector(template_doc).OfClass(View)\r\n                            if view.ViewType == ViewType.Legend and view.Name == legend_name), None)\r\n\r\n        if legend_view is None:\r\n            OUT = f\"Error: Legend view named '{legend_name}' not found in the template.\"\r\n        else:\r\n            # Start a transaction to copy the legend into the current document\r\n            TransactionManager.Instance.EnsureInTransaction(doc)\r\n\r\n            # Copy the legend to the current project\r\n            element_ids = List[ElementId]([legend_view.Id])\r\n            copied_ids = ElementTransformUtils.CopyElements(template_doc, element_ids, doc, Transform.Identity, CopyPasteOptions())\r\n\r\n            TransactionManager.Instance.TransactionTaskDone()\r\n\r\n            # Get the copied legend\r\n            copied_legend_id = copied_ids[0]\r\n            copied_legend = doc.GetElement(copied_legend_id)\r\n            debug_info.append(\"Step: Copied legend into the current project\")\r\n            debug_info.append(f\"Copied Legend ID: {copied_legend_id.IntegerValue}\")\r\n    finally:\r\n        # Ensure the template document is closed properly\r\n        if template_doc.IsValidObject:\r\n            template_doc.Close(False)\r\n        debug_info.append(\"Step: Template document closed\")\r\n\r\n    # Locate the sheet where the legend should be placed\r\n    sheet = next((s for s in FilteredElementCollector(doc).OfClass(ViewSheet) if s.Name == sheet_name), None)\r\n\r\n    if sheet is None:\r\n        OUT = f\"Error: Sheet named '{sheet_name}' not found in the current project.\"\r\n    else:\r\n        # Start a transaction to either place or move the legend on the sheet\r\n        TransactionManager.Instance.EnsureInTransaction(doc)\r\n        debug_info.append(\"Step: Transaction started for placing legend\")\r\n\r\n        # Convert placement_location to XYZ\r\n        x, y, z = placement_location\r\n        position = XYZ(x, y, z)\r\n\r\n        try:\r\n            # Place the legend view on the sheet using Viewport.Create\r\n            viewport = Viewport.Create(doc, sheet.Id, copied_legend.Id, position)\r\n\r\n            if viewport is None:\r\n                OUT = f\"Error: Could not place the legend '{legend_name}' on sheet '{sheet_name}'.\"\r\n            else:\r\n                legend_on_sheet_id = viewport.Id\r\n\r\n                # Simple output for viewport creation success\r\n                debug_info.append(f\"Viewport Element ID: {legend_on_sheet_id.IntegerValue}\")\r\n                debug_info.append(\"Step: Viewport successfully created\")\r\n\r\n                OUT = debug_info\r\n        except Exception as e:\r\n            TransactionManager.Instance.ForceCloseTransaction()\r\n            debug_info.append(f\"Step: Error during viewport placement: {e}\")\r\n            OUT = f\"Error during placement: {e}\"\r\n\r\n        TransactionManager.Instance.TransactionTaskDone()\r\n        debug_info.append(\"Step: Transaction completed for placing legend\")\r\n\r\nexcept Exception as e:\r\n    debug_info.append(f\"Step: Error: {e}\")\r\n    OUT = f\"Error: {e}\"\r\n\r\n# Output only the relevant result, including debug information\r\nOUT = OUT\r\n",
+      "Code": "import clr\r\nclr.AddReference('RevitAPI')\r\nclr.AddReference('RevitServices')\r\nclr.AddReference('System')\r\n\r\nfrom System import Guid\r\nfrom System.Collections.Generic import List\r\nfrom Autodesk.Revit.DB import *\r\nfrom RevitServices.Persistence import DocumentManager\r\nfrom RevitServices.Transactions import TransactionManager\r\n\r\n# Get the current Revit document (the active project)\r\ndoc = DocumentManager.Instance.CurrentDBDocument\r\n\r\n# Inputs from Dynamo\r\ntemplate_path = IN[0]  # File path to the Revit template (RVT) file\r\nlegend_name = IN[1]  # Name of the Legend View to extract\r\nsheet_name = IN[2]  # Name of the sheet to place the legend on\r\nplacement_location = IN[3]  # XYZ coordinates for the placement of the legend (tuple/list)\r\nappend_text = IN[4]  # Text to append when renaming the existing legend\r\nnew_position = IN[5]  # New XYZ coordinates for the existing legend (tuple/list)  # Name of the Legend View to extract\r\n\r\ncopied_legend_id = None\r\nlegend_on_sheet_id = None\r\n\r\ndebug_info = []  # Using a list to make further processing in Dynamo easier\r\n\r\ndebug_info.append(\"Step: Initialization\")\r\n\r\ntry:\r\n    # Start a transaction to remove any existing legend with the same name\r\n    TransactionManager.Instance.EnsureInTransaction(doc)\r\n    \r\n    existing_legend = next((view for view in FilteredElementCollector(doc).OfClass(View)\r\n                            if view.ViewType == ViewType.Legend and view.Name == legend_name), None)\r\n\r\n    if existing_legend:\r\n        # Rename the existing legend to mark it as old\r\n        existing_legend.Name = f\"{existing_legend.Name} {append_text}\"\r\n        \r\n        # Find the viewport associated with the existing legend\r\n        existing_viewport = next((vp for vp in FilteredElementCollector(doc).OfClass(Viewport)\r\n                                  if vp.ViewId == existing_legend.Id), None)\r\n        \r\n        # Move the viewport to the new position if specified\r\n        if existing_viewport:\r\n            x, y, z = new_position\r\n            new_position_xyz = XYZ(x, y, z)\r\n            existing_viewport.SetBoxCenter(new_position_xyz)\r\n        \r\n    TransactionManager.Instance.TransactionTaskDone()\r\n    debug_info.append(\"Step: Renamed existing legend and moved viewport (if any)\")\r\n\r\n    # Open the Revit template document\r\n    app = doc.Application\r\n    template_doc = app.OpenDocumentFile(template_path)\r\n    debug_info.append(\"Step: Template document opened successfully\")\r\n\r\n    try:\r\n        # Find the legend view by name in the template file\r\n        legend_view = next((view for view in FilteredElementCollector(template_doc).OfClass(View)\r\n                            if view.ViewType == ViewType.Legend and view.Name == legend_name), None)\r\n\r\n        if legend_view is None:\r\n            OUT = f\"Error: Legend view named '{legend_name}' not found in the template.\"\r\n        else:\r\n            # Start a transaction to copy the legend into the current document\r\n            TransactionManager.Instance.EnsureInTransaction(doc)\r\n\r\n            # Copy the legend to the current project\r\n            element_ids = List[ElementId]([legend_view.Id])\r\n            copied_ids = ElementTransformUtils.CopyElements(template_doc, element_ids, doc, Transform.Identity, CopyPasteOptions())\r\n\r\n            TransactionManager.Instance.TransactionTaskDone()\r\n\r\n            # Get the copied legend\r\n            copied_legend_id = copied_ids[0]\r\n            copied_legend = doc.GetElement(copied_legend_id)\r\n            debug_info.append(\"Step: Legend view copied from template into the current project\")\r\n            debug_info.append(f\"Copied Legend ID: {copied_legend_id.IntegerValue}\")\r\n    finally:\r\n        # Ensure the template document is closed properly\r\n        if template_doc.IsValidObject:\r\n            template_doc.Close(False)\r\n        debug_info.append(\"Step: Template document closed\")\r\n\r\n    # Locate the sheet where the legend should be placed\r\n    sheet = next((s for s in FilteredElementCollector(doc).OfClass(ViewSheet) if s.Name == sheet_name), None)\r\n\r\n    if sheet is None:\r\n        OUT = f\"Error: Sheet named '{sheet_name}' not found in the current project.\"\r\n    else:\r\n        # Start a transaction to either place or move the legend on the sheet\r\n        TransactionManager.Instance.EnsureInTransaction(doc)\r\n        debug_info.append(\"Step: Transaction started for placing new legend on the specified sheet\")\r\n\r\n        # Convert placement_location to XYZ\r\n        x, y, z = placement_location\r\n        position = XYZ(x, y, z)\r\n\r\n        try:\r\n            # Place the legend view on the sheet using Viewport.Create\r\n            viewport = Viewport.Create(doc, sheet.Id, copied_legend.Id, position)\r\n\r\n            if viewport is None:\r\n                OUT = f\"Error: Could not place the legend '{legend_name}' on sheet '{sheet_name}'.\"\r\n            else:\r\n                legend_on_sheet_id = viewport.Id\r\n\r\n                # Simple output for viewport creation success\r\n                debug_info.append(f\"Step: Viewport for new legend placed successfully with Element ID: {legend_on_sheet_id.IntegerValue}\")\r\n                debug_info.append(\"Step: New legend viewport created and placed at the specified position\")\r\n\r\n                OUT = debug_info\r\n        except Exception as e:\r\n            TransactionManager.Instance.ForceCloseTransaction()\r\n            debug_info.append(f\"Step: Error during viewport placement: {e}\")\r\n            OUT = f\"Error during placement: {e}\"\r\n\r\n        TransactionManager.Instance.TransactionTaskDone()\r\n        debug_info.append(\"Step: Transaction completed successfully for placing the new legend\")\r\n\r\nexcept Exception as e:\r\n    debug_info.append(f\"Step: An error occurred: {e}\")\r\n    OUT = f\"Error: {e}\"\r\n\r\n# Output only the relevant result, including debug information\r\nOUT = OUT\r\n",
       "Engine": "CPython3",
       "EngineName": "CPython3",
       "VariableInputPorts": true,
@@ -346,8 +346,8 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 2887.1656702205955,
-        "Y": 3617.0504934290429
+        "X": 2527.6254690050919,
+        "Y": 3456.5732307798203
       },
       {
         "Name": "Copy and Place Legend",
@@ -357,7 +357,7 @@
         "IsSetAsOutput": false,
         "Excluded": false,
         "X": 3314.1656702205955,
-        "Y": 3908.0504934290429
+        "Y": 3908.5504934290429
       },
       {
         "Name": "CA to Use",
@@ -366,8 +366,8 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 2887.1656702205955,
-        "Y": 3773.8779934290428
+        "X": 2527.6254690050919,
+        "Y": 3614.40073077982
       },
       {
         "Name": "Sheet to Place CA",
@@ -376,8 +376,8 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 2887.1656702205955,
-        "Y": 3920.8779934290428
+        "X": 2610.4340777776597,
+        "Y": 3905.7283138396583
       },
       {
         "Name": "CA Location",
@@ -386,8 +386,8 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 2887.1656702205955,
-        "Y": 4067.8779934290437
+        "X": 2593.662466114451,
+        "Y": 4058.8702555236173
       },
       {
         "Name": "Append to Existing CA (if Present)",
@@ -396,8 +396,8 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 2887.1656702205955,
-        "Y": 4214.8779934290433
+        "X": 2510.1415772331115,
+        "Y": 4329.8478274528825
       },
       {
         "Name": "New Position of Existing CA",
@@ -406,8 +406,8 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 2887.1656702205955,
-        "Y": 4362.8779934290433
+        "X": 2510.1415772331115,
+        "Y": 4476.8478274528825
       },
       {
         "Name": "Watch",
@@ -416,41 +416,80 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 3669.8989046209767,
-        "Y": 3923.5008426087879
+        "X": 3667.6940714551306,
+        "Y": 3905.862177282017
       }
     ],
     "Annotations": [
       {
-        "Id": "3688084b129c4da18a8834e252b245fd",
-        "Title": "Copy \"DSP Comp Ref\" to Current Project and Place on Sheet",
+        "Id": "4be522e2219f4c2ab937091c7d350bf9",
+        "Title": "CA Template",
         "DescriptionText": "<Double click here to edit group description>",
         "IsExpanded": true,
         "WidthAdjustment": 0.0,
         "HeightAdjustment": 0.0,
         "Nodes": [
-          "a84168fe4b0b4406a98f0db090aa930d",
-          "b7c954c52a21416f9d339dd7289e4679",
-          "5d7259f665d04c1ca3bf8bd4dbd10103",
-          "c4fd386312554f0b8e6001210018bdd3",
           "35dc14e8cb7a4b1295f8637d6702a3f2",
+          "b7c954c52a21416f9d339dd7289e4679"
+        ],
+        "HasNestedGroups": false,
+        "Left": 2517.6254690050919,
+        "Top": 3383.3732307798205,
+        "Width": 341.0,
+        "Height": 363.02749999999969,
+        "FontSize": 36.0,
+        "InitialTop": 3456.5732307798203,
+        "InitialHeight": 319.82749999999987,
+        "TextblockHeight": 63.2,
+        "Background": "#FFC1D676"
+      },
+      {
+        "Id": "0ecb8436de2c4d9a9bc06c4e36bff2f9",
+        "Title": "CA Placement in Project",
+        "DescriptionText": "<Double click here to edit group description>",
+        "IsExpanded": true,
+        "WidthAdjustment": 0.0,
+        "HeightAdjustment": 0.0,
+        "Nodes": [
+          "c4fd386312554f0b8e6001210018bdd3",
+          "5d7259f665d04c1ca3bf8bd4dbd10103"
+        ],
+        "HasNestedGroups": false,
+        "Left": 2583.662466114451,
+        "Top": 3780.7283138396583,
+        "Width": 261.0,
+        "Height": 410.14194168395943,
+        "FontSize": 36.0,
+        "InitialTop": 3905.7283138396583,
+        "InitialHeight": 161.99999999999955,
+        "TextblockHeight": 115.0,
+        "Background": "#FFC1D676"
+      },
+      {
+        "Id": "0a8253c2955f4ac984087f7e4240853b",
+        "Title": "Handle exisitng CA in Project",
+        "DescriptionText": "<Double click here to edit group description>",
+        "IsExpanded": true,
+        "WidthAdjustment": 0.0,
+        "HeightAdjustment": 0.0,
+        "Nodes": [
           "925c6c7984434e64a5d52e0799d7d7ed",
           "b02b5c7b5e3645a8a5efdb23365b737b"
         ],
         "HasNestedGroups": false,
-        "Left": 2877.1656702205955,
-        "Top": 3501.0504934290429,
-        "Width": 691.0,
-        "Height": 993.82750000000033,
+        "Left": 2500.1415772331115,
+        "Top": 4213.8478274528825,
+        "Width": 347.0,
+        "Height": 395.0,
         "FontSize": 36.0,
-        "InitialTop": 3617.0504934290429,
-        "InitialHeight": 742.82750000000124,
+        "InitialTop": 4329.8478274528825,
+        "InitialHeight": 309.0,
         "TextblockHeight": 106.0,
-        "Background": "#FFFFB8D8"
+        "Background": "#FFC1D676"
       }
     ],
-    "X": -2206.1568258029065,
-    "Y": -2776.6236485649515,
-    "Zoom": 0.78950904142568712
+    "X": -1162.167448019529,
+    "Y": -1662.9168163753845,
+    "Zoom": 0.48976738039293732
   }
 }

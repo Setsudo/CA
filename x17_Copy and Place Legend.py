@@ -49,12 +49,12 @@ try:
             existing_viewport.SetBoxCenter(new_position_xyz)
         
     TransactionManager.Instance.TransactionTaskDone()
-    debug_info.append("Step: Removed existing legend (if any)")
+    debug_info.append("Step: Renamed existing legend and moved viewport (if any)")
 
     # Open the Revit template document
     app = doc.Application
     template_doc = app.OpenDocumentFile(template_path)
-    debug_info.append("Step: Template document opened")
+    debug_info.append("Step: Template document opened successfully")
 
     try:
         # Find the legend view by name in the template file
@@ -76,7 +76,7 @@ try:
             # Get the copied legend
             copied_legend_id = copied_ids[0]
             copied_legend = doc.GetElement(copied_legend_id)
-            debug_info.append("Step: Copied legend into the current project")
+            debug_info.append("Step: Legend view copied from template into the current project")
             debug_info.append(f"Copied Legend ID: {copied_legend_id.IntegerValue}")
     finally:
         # Ensure the template document is closed properly
@@ -92,7 +92,7 @@ try:
     else:
         # Start a transaction to either place or move the legend on the sheet
         TransactionManager.Instance.EnsureInTransaction(doc)
-        debug_info.append("Step: Transaction started for placing legend")
+        debug_info.append("Step: Transaction started for placing new legend on the specified sheet")
 
         # Convert placement_location to XYZ
         x, y, z = placement_location
@@ -108,8 +108,8 @@ try:
                 legend_on_sheet_id = viewport.Id
 
                 # Simple output for viewport creation success
-                debug_info.append(f"Viewport Element ID: {legend_on_sheet_id.IntegerValue}")
-                debug_info.append("Step: Viewport successfully created")
+                debug_info.append(f"Step: Viewport for new legend placed successfully with Element ID: {legend_on_sheet_id.IntegerValue}")
+                debug_info.append("Step: New legend viewport created and placed at the specified position")
 
                 OUT = debug_info
         except Exception as e:
@@ -118,10 +118,10 @@ try:
             OUT = f"Error during placement: {e}"
 
         TransactionManager.Instance.TransactionTaskDone()
-        debug_info.append("Step: Transaction completed for placing legend")
+        debug_info.append("Step: Transaction completed successfully for placing the new legend")
 
 except Exception as e:
-    debug_info.append(f"Step: Error: {e}")
+    debug_info.append(f"Step: An error occurred: {e}")
     OUT = f"Error: {e}"
 
 # Output only the relevant result, including debug information
