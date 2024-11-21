@@ -14,9 +14,10 @@ doc = DocumentManager.Instance.CurrentDBDocument
 
 # Inputs from Dynamo
 template_path = IN[0]  # File path to the Revit template (RVT) file
-legend_name = IN[1]  # Name of the Legend View to extract
+legend_name = IN[1]
 sheet_name = IN[2]   # Name of the sheet to place the legend on
 placement_location = IN[3]  # XYZ coordinates for the placement of the legend (tuple/list)
+append_text = IN[4]  # Text to append when renaming the existing legend  # Name of the Legend View to extract
 
 copied_legend_id = None
 legend_on_sheet_id = None
@@ -34,7 +35,7 @@ try:
 
     if existing_legend:
         # Rename the existing legend to mark it as old
-        existing_legend.Name = f"{existing_legend.Name} (Old)"
+        existing_legend.Name = f"{existing_legend.Name} {append_text}"
         
         # Find the viewport associated with the existing legend
         existing_viewport = next((vp for vp in FilteredElementCollector(doc).OfClass(Viewport)
