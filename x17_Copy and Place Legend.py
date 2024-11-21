@@ -3,8 +3,9 @@ clr.AddReference('RevitAPI')
 clr.AddReference('RevitServices')
 clr.AddReference('System')
 
+from System import Guid
 from System.Collections.Generic import List
-from Autodesk.Revit.DB import *  # Import all necessary Revit DB types
+from Autodesk.Revit.DB import *
 from RevitServices.Persistence import DocumentManager
 from RevitServices.Transactions import TransactionManager
 
@@ -17,22 +18,37 @@ legend_name = IN[1]  # Name of the Legend View to extract
 sheet_name = IN[2]   # Name of the sheet to place the legend on
 placement_location = IN[3]  # XYZ coordinates for the placement of the legend (tuple/list)
 
+copied_legend_id = None
+legend_on_sheet_id = None
+
 debug_info = []  # Using a list to make further processing in Dynamo easier
 
 debug_info.append("Step: Initialization")
 
 try:
-    # Step 1: Remove any existing legend from the project
+    # Start a transaction to remove any existing legend with the same name
     TransactionManager.Instance.EnsureInTransaction(doc)
+    
     existing_legend = next((view for view in FilteredElementCollector(doc).OfClass(View)
                             if view.ViewType == ViewType.Legend and view.Name == legend_name), None)
 
     if existing_legend:
-        doc.Delete(existing_legend.Id)
-        debug_info.append("Step: Removed existing legend (if any)")
+        # Rename the existing legend to mark it as old
+        existing_legend.Name = f"{existing_legend.Name} (Old)"
+        
+        # Find the viewport associated with the existing legend
+        existing_viewport = next((vp for vp in FilteredElementCollector(doc).OfClass(Viewport)
+                                  if vp.ViewId == existing_legend.Id), None)
+        
+        # Move the viewport upwards by a few inches (assuming 1 inch = 0.0833 feet)
+        if existing_viewport:
+            move_vector = XYZ(0, 0.5, 0)  # Move upwards by 6 inches (0.5 feet)
+            ElementTransformUtils.MoveElement(doc, existing_viewport.Id, move_vector)
+        
     TransactionManager.Instance.TransactionTaskDone()
+    debug_info.append("Step: Removed existing legend (if any)")
 
-    # Step 2: Open the Revit template document
+    # Open the Revit template document
     app = doc.Application
     template_doc = app.OpenDocumentFile(template_path)
     debug_info.append("Step: Template document opened")
@@ -60,17 +76,18 @@ try:
             debug_info.append("Step: Copied legend into the current project")
             debug_info.append(f"Copied Legend ID: {copied_legend_id.IntegerValue}")
     finally:
+        # Ensure the template document is closed properly
         if template_doc.IsValidObject:
             template_doc.Close(False)
         debug_info.append("Step: Template document closed")
 
-    # Step 3: Locate the sheet where the legend should be placed
+    # Locate the sheet where the legend should be placed
     sheet = next((s for s in FilteredElementCollector(doc).OfClass(ViewSheet) if s.Name == sheet_name), None)
 
     if sheet is None:
         OUT = f"Error: Sheet named '{sheet_name}' not found in the current project."
     else:
-        # Start a transaction to place the legend on the sheet
+        # Start a transaction to either place or move the legend on the sheet
         TransactionManager.Instance.EnsureInTransaction(doc)
         debug_info.append("Step: Transaction started for placing legend")
 
@@ -83,22 +100,26 @@ try:
             viewport = Viewport.Create(doc, sheet.Id, copied_legend.Id, position)
 
             if viewport is None:
-                debug_info.append(f"Error: Could not place the legend '{legend_name}' on sheet '{sheet_name}'. Viewport is None.")
+                OUT = f"Error: Could not place the legend '{legend_name}' on sheet '{sheet_name}'."
             else:
-                # Successfully created the viewport
-                debug_info.append(f"Viewport Element ID: {viewport.Id.IntegerValue}")
+                legend_on_sheet_id = viewport.Id
+
+                # Simple output for viewport creation success
+                debug_info.append(f"Viewport Element ID: {legend_on_sheet_id.IntegerValue}")
                 debug_info.append("Step: Viewport successfully created")
 
+                OUT = debug_info
         except Exception as e:
+            TransactionManager.Instance.ForceCloseTransaction()
             debug_info.append(f"Step: Error during viewport placement: {e}")
+            OUT = f"Error during placement: {e}"
 
-        # Complete the transaction for placing the legend
         TransactionManager.Instance.TransactionTaskDone()
         debug_info.append("Step: Transaction completed for placing legend")
 
 except Exception as e:
-    debug_info.append(f"Step: General error: {e}")
+    debug_info.append(f"Step: Error: {e}")
     OUT = f"Error: {e}"
 
 # Output only the relevant result, including debug information
-OUT = debug_info
+OUT = OUT
