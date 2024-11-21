@@ -14,10 +14,11 @@ doc = DocumentManager.Instance.CurrentDBDocument
 
 # Inputs from Dynamo
 template_path = IN[0]  # File path to the Revit template (RVT) file
-legend_name = IN[1]
-sheet_name = IN[2]   # Name of the sheet to place the legend on
+legend_name = IN[1]  # Name of the Legend View to extract
+sheet_name = IN[2]  # Name of the sheet to place the legend on
 placement_location = IN[3]  # XYZ coordinates for the placement of the legend (tuple/list)
-append_text = IN[4]  # Text to append when renaming the existing legend  # Name of the Legend View to extract
+append_text = IN[4]  # Text to append when renaming the existing legend
+new_position = IN[5]  # New XYZ coordinates for the existing legend (tuple/list)  # Name of the Legend View to extract
 
 copied_legend_id = None
 legend_on_sheet_id = None
@@ -41,10 +42,11 @@ try:
         existing_viewport = next((vp for vp in FilteredElementCollector(doc).OfClass(Viewport)
                                   if vp.ViewId == existing_legend.Id), None)
         
-        # Move the viewport upwards by a few inches (assuming 1 inch = 0.0833 feet)
+        # Move the viewport to the new position if specified
         if existing_viewport:
-            move_vector = XYZ(0, 0.5, 0)  # Move upwards by 6 inches (0.5 feet)
-            ElementTransformUtils.MoveElement(doc, existing_viewport.Id, move_vector)
+            x, y, z = new_position
+            new_position_xyz = XYZ(x, y, z)
+            existing_viewport.SetBoxCenter(new_position_xyz)
         
     TransactionManager.Instance.TransactionTaskDone()
     debug_info.append("Step: Removed existing legend (if any)")
