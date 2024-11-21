@@ -213,15 +213,7 @@
     }
   ],
   "Dependencies": [],
-  "NodeLibraryDependencies": [
-    {
-      "Name": "ACI_Project_Template.rte",
-      "ReferenceType": "External",
-      "Nodes": [
-        "35dc14e8cb7a4b1295f8637d6702a3f2"
-      ]
-    }
-  ],
+  "NodeLibraryDependencies": [],
   "Thumbnail": "",
   "GraphDocumentationURL": null,
   "ExtensionWorkspaceData": [
@@ -252,7 +244,7 @@
       "HasRunWithoutCrash": true,
       "IsVisibleInDynamoLibrary": true,
       "Version": "2.16.2.5624",
-      "RunType": "Automatic",
+      "RunType": "Manual",
       "RunPeriod": "1000"
     },
     "Camera": {
@@ -270,7 +262,7 @@
     "ConnectorPins": [],
     "NodeViews": [
       {
-        "Name": "File Path",
+        "Name": "Location of Template",
         "ShowGeometry": true,
         "Id": "35dc14e8cb7a4b1295f8637d6702a3f2",
         "IsSetAsInput": false,
@@ -290,7 +282,7 @@
         "Y": 3825.3027013171031
       },
       {
-        "Name": "Code Block",
+        "Name": "CA to Use",
         "ShowGeometry": true,
         "Id": "b7c954c52a21416f9d339dd7289e4679",
         "IsSetAsInput": false,
@@ -300,7 +292,7 @@
         "Y": 3748.130201317103
       },
       {
-        "Name": "Code Block",
+        "Name": "Sheet to Place CA",
         "ShowGeometry": true,
         "Id": "5d7259f665d04c1ca3bf8bd4dbd10103",
         "IsSetAsInput": false,
@@ -310,7 +302,7 @@
         "Y": 3895.130201317103
       },
       {
-        "Name": "Code Block",
+        "Name": "CA Location",
         "ShowGeometry": true,
         "Id": "c4fd386312554f0b8e6001210018bdd3",
         "IsSetAsInput": false,
@@ -353,13 +345,13 @@
         "Height": 845.82750000000124,
         "FontSize": 36.0,
         "InitialTop": 3591.3027013171031,
-        "InitialHeight": 595.82750000000033,
+        "InitialHeight": 742.82750000000124,
         "TextblockHeight": 106.0,
         "Background": "#FFFFB8D8"
       }
     ],
-    "X": -3789.0869352501427,
-    "Y": -4738.1342397089729,
-    "Zoom": 1.3774436090225564
+    "X": -3211.2148561454737,
+    "Y": -4519.6878205948033,
+    "Zoom": 1.3460006015037593
   }
 }
