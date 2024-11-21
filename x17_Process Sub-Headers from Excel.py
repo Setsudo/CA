@@ -1,45 +1,36 @@
-import re
+# Input from Excel Import Node (flattened data)
+excel_data = IN[0]
 
-# Input from Excel Import Node
-excel_data = IN[0]  # Input Excel data (deeply nested structure)
-target_sub_header_text = IN[1]  # The sub-header text we are looking for
+# Initialize an empty list to hold the data in the desired list of lists format
+data_rows = []
 
-# Clean the target text to remove extra spaces, normalize line breaks, and convert to upper case
-target_sub_header_text_clean = re.sub(r'\s+', ' ', target_sub_header_text.strip()).upper()
+try:
+    # Iterate through each row in the Excel data
+    for row in excel_data:
+        # Ensure row is a list and has meaningful data in the first six fields (Header, SubHeader, Type, Existing, Proposed, Variation)
+        if isinstance(row, list) and len(row) >= 6:
+            # Extract and format the required data, providing sensible default values where necessary
+            header = row[0] if row[0] is not None else "N/A"
+            sub_header = row[1] if row[1] is not None else "N/A"
+            item_type = row[2] if row[2] is not None else "N/A"
+            existing = row[3] if row[3] is not None else 0
+            proposed = row[4] if row[4] is not None else 0
+            variation = row[5] if row[5] is not None else 0
 
-output_data = []
+            # Only include rows with meaningful sub-header data (ignore entirely empty rows)
+            if sub_header != "N/A":
+                # Create a list for the row, keeping fields in the correct order
+                row_list = [header, sub_header, item_type, existing, proposed, variation]
 
-# Function to flatten nested lists
-def flatten_list(data):
-    flat_list = []
-    if isinstance(data, list):
-        for item in data:
-            flat_list.extend(flatten_list(item))
+                # Append the row list to the data rows
+                data_rows.append(row_list)
+
+    # Set output to the list of lists
+    if not data_rows:
+        OUT = "No valid rows found in input data. Check the structure of the input or revise the extraction logic."
     else:
-        flat_list.append(data)
-    return flat_list
+        OUT = data_rows
 
-# Flatten the deeply nested list structure to access the actual rows
-flattened_data = flatten_list(excel_data)
-
-# Iterate through the flattened data to find rows (each row is a list)
-for row in flattened_data:
-    if isinstance(row, list) and len(row) >= 2:
-        subcategory = row[1]
-
-        # Check if the subcategory is a string and is not None
-        if subcategory is not None and isinstance(subcategory, str):
-            # Normalize the text for consistent comparison
-            subcategory_clean = re.sub(r'\s+', ' ', subcategory.strip()).upper()
-
-            # Debugging: Print the cleaned sub-header to see exactly what we are matching
-            print(f"Sub-Header in Row: '{subcategory_clean}'")
-            print(f"Target Sub-Header: '{target_sub_header_text_clean}'")
-
-            # Final matching check
-            if target_sub_header_text_clean == subcategory_clean:
-                output_data = row
-                break
-
-# Output the transformed data focusing on the specific sub-header
-OUT = output_data if output_data else f"No matching sub-header found for: '{target_sub_header_text_clean}'"
+except Exception as e:
+    # Output any errors that occur
+    OUT = "Error occurred: {}".format(str(e))
