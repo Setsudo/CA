@@ -12,12 +12,12 @@
     {
       "ConcreteType": "Dynamo.Graph.Nodes.CodeBlockNodeModel, DynamoCore",
       "NodeType": "CodeBlockNode",
-      "Code": "\"DSP Comp Ref\";",
+      "Code": "[\"DSP Comp Ref (Portrait)\", \"DSP Comp Ref (Landscape)\"];",
       "Id": "3a938488321347ab831291ade1c35e17",
       "Inputs": [],
       "Outputs": [
         {
-          "Id": "8af77140335f41e18d174df8ac0e5574",
+          "Id": "35a2b9551d4740e889666a0e638ddee8",
           "Name": "",
           "Description": "Value of expression at line 1",
           "UsingDefaultValue": false,
@@ -32,7 +32,7 @@
     {
       "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
       "NodeType": "PythonScriptNode",
-      "Code": "import clr\r\nclr.AddReference(\"RevitAPI\")\r\nclr.AddReference(\"RevitServices\")\r\nfrom Autodesk.Revit.DB import *\r\nfrom RevitServices.Persistence import DocumentManager\r\n\r\n# Inputs\r\ndoc = DocumentManager.Instance.CurrentDBDocument\r\n\r\n# Debugging step: check if input exists and its type\r\nif len(IN) < 1:\r\n    OUT = \"Error: Input list is empty. Please provide an input string for the legend name.\"\r\n    raise SystemExit\r\n\r\n# Attempt to retrieve the legend name, and handle if it fails\r\ntry:\r\n    legend_name = IN[0]\r\n    # Debugging: print input type and content to see what is being received\r\n    OUT = f\"Input received: Type = {type(legend_name)}, Content = {legend_name}\"\r\nexcept IndexError:\r\n    OUT = \"Error: Unable to read input from IN[0]. Please verify the input connection.\"\r\n    raise SystemExit\r\n\r\n# Ensure the input is of the correct type (str)\r\nif not isinstance(legend_name, str):\r\n    OUT = f\"Error: Input must be a string, received type {type(legend_name)}. Please use a string node.\"\r\n    raise SystemExit\r\n\r\n# Get all views in the document\r\ncollector = FilteredElementCollector(doc).OfClass(View)\r\n\r\n# Filter only Legend Views with the specified name\r\nspecific_legend = None\r\nfor view in collector:\r\n    if view.ViewType == ViewType.Legend and view.Name.strip() == legend_name.strip():\r\n        specific_legend = view\r\n        break\r\n\r\n# Check if the legend was found and output the result\r\nif specific_legend is None:\r\n    OUT = f\"Legend with name '{legend_name}' not found.\"\r\nelse:\r\n    OUT = specific_legend\r\n",
+      "Code": "import clr\r\nclr.AddReference(\"RevitAPI\")\r\nclr.AddReference(\"RevitServices\")\r\nfrom Autodesk.Revit.DB import *\r\nfrom RevitServices.Persistence import DocumentManager\r\n\r\n# Inputs\r\ndoc = DocumentManager.Instance.CurrentDBDocument\r\n\r\n# Check if input is received\r\nif len(IN) < 1 or not IN[0]:\r\n    OUT = \"Error: Please provide a list of legend names.\"\r\n    raise SystemExit\r\n\r\n# List of legend names to find\r\nlegend_names = IN[0]\r\n\r\n# Ensure the input is a list of strings\r\nif not isinstance(legend_names, list) or not all(isinstance(name, str) for name in legend_names):\r\n    OUT = \"Error: Input must be a list of strings representing legend names.\"\r\n    raise SystemExit\r\n\r\n# Get all views in the document\r\ncollector = FilteredElementCollector(doc).OfClass(View)\r\n\r\n# Filter only Legend Views with names that match the list provided\r\nmatching_legends = []\r\nfor view in collector:\r\n    if view.ViewType == ViewType.Legend and view.Name.strip() in [name.strip() for name in legend_names]:\r\n        # Append name and Element ID as a list\r\n        matching_legends.append([view.Name, view.Id.IntegerValue])\r\n\r\n# Check if the legend was found and output the result\r\nif not matching_legends:\r\n    OUT = f\"No legends found matching the provided names: {legend_names}\"\r\nelse:\r\n    OUT = matching_legends\r\n",
       "Engine": "CPython3",
       "EngineName": "CPython3",
       "VariableInputPorts": true,
@@ -747,106 +747,6 @@
       "Description": "Get the current document\n\nDocument.Current: Document"
     },
     {
-      "ConcreteType": "CoreNodeModels.Watch, CoreNodeModels",
-      "NodeType": "ExtensionNode",
-      "Id": "1ab8c488dc8d449a867be35376a6604e",
-      "Inputs": [
-        {
-          "Id": "8ac3815b8bf24755b57aede1b38300fd",
-          "Name": "",
-          "Description": "Node to show output from",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        }
-      ],
-      "Outputs": [
-        {
-          "Id": "6a6049ed83534ba9ba133d428397a497",
-          "Name": "",
-          "Description": "Node output",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        }
-      ],
-      "Replication": "Disabled",
-      "Description": "Visualize the node's output"
-    },
-    {
-      "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
-      "NodeType": "PythonScriptNode",
-      "Code": "import clr\r\nclr.AddReference(\"RevitAPI\")\r\nclr.AddReference(\"RevitServices\")\r\nfrom Autodesk.Revit.DB import *\r\nfrom RevitServices.Persistence import DocumentManager\r\nimport re\r\n\r\n# Inputs\r\ndoc = DocumentManager.Instance.CurrentDBDocument\r\nlegend_view = UnwrapElement(IN[0])  # Legend View input\r\ntarget_sub_header_text = IN[1]  # The sub-header text to extract (e.g., \"MULTI-DECK FROZEN FOOD\")\r\n\r\n# Collect all TextNote elements in the Legend View\r\ncollector = FilteredElementCollector(doc, legend_view.Id).OfClass(TextNote)\r\ntext_notes = []\r\n\r\nfor text_note in collector:\r\n    location = text_note.Coord  # XYZ location of the Text Note\r\n    element_data = {\r\n        \"ElementId\": text_note.Id.IntegerValue,\r\n        \"Text\": text_note.Text,\r\n        \"Location\": location\r\n    }\r\n    text_notes.append(element_data)\r\n\r\n# Preprocess the target text to remove extra whitespace and normalize line breaks\r\ntarget_sub_header_text_clean = re.sub(r'\\s+', ' ', target_sub_header_text.strip()).upper()\r\n\r\n# Group text notes by rows (based on Y-coordinate)\r\ntolerance = 0.1  # Tolerance for determining whether two text notes are in the same row\r\nrows = []\r\n\r\nfor text_note in text_notes:\r\n    y_coord = text_note[\"Location\"].Y\r\n    found_row = False\r\n    for row in rows:\r\n        if abs(row[0][\"Location\"].Y - y_coord) < tolerance:\r\n            row.append(text_note)\r\n            found_row = True\r\n            break\r\n    if not found_row:\r\n        rows.append([text_note])\r\n\r\n# Sort rows by Y-coordinate (descending order for top to bottom)\r\nsorted_rows = sorted(rows, key=lambda r: -r[0][\"Location\"].Y)\r\n\r\n# Sort elements within each row by X-coordinate (ascending order for left to right)\r\nfor row in sorted_rows:\r\n    row.sort(key=lambda e: e[\"Location\"].X)\r\n\r\n# Find the row that matches the target sub-header text\r\ntarget_row_data = None\r\n\r\nfor row in sorted_rows:\r\n    # Check each element in the row to find the target text\r\n    for element in row:\r\n        element_text_clean = re.sub(r'\\s+', ' ', element[\"Text\"].strip()).upper()\r\n        if element_text_clean == target_sub_header_text_clean:\r\n            target_row_data = row\r\n            break\r\n    if target_row_data:\r\n        break\r\n\r\n# Output the matched row (sub-header row)\r\nOUT = target_row_data\r\n",
-      "Engine": "CPython3",
-      "EngineName": "CPython3",
-      "VariableInputPorts": true,
-      "Id": "73c9b09e50bb4f1a860c600349c41e13",
-      "Inputs": [
-        {
-          "Id": "424f7130fcbf41229f582c914f1ccee3",
-          "Name": "IN[0]",
-          "Description": "Input #0",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        },
-        {
-          "Id": "67909dc92e3d4d328c360d8c0ff467ee",
-          "Name": "IN[1]",
-          "Description": "Input #1",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        }
-      ],
-      "Outputs": [
-        {
-          "Id": "8fd3002c053f47079f0de7f84cc4bd6f",
-          "Name": "OUT",
-          "Description": "Result of the python script",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        }
-      ],
-      "Replication": "Disabled",
-      "Description": "Runs an embedded Python script."
-    },
-    {
-      "ConcreteType": "CoreNodeModels.Watch, CoreNodeModels",
-      "NodeType": "ExtensionNode",
-      "Id": "285b5387a3ff43529037ef0f868bb348",
-      "Inputs": [
-        {
-          "Id": "d753b1112a11414792749c9f9f25973f",
-          "Name": "",
-          "Description": "Node to show output from",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        }
-      ],
-      "Outputs": [
-        {
-          "Id": "722e6612f1744f7e91c32354491d425a",
-          "Name": "",
-          "Description": "Node output",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        }
-      ],
-      "Replication": "Disabled",
-      "Description": "Visualize the node's output"
-    },
-    {
       "ConcreteType": "Dynamo.Graph.Nodes.CodeBlockNodeModel, DynamoCore",
       "NodeType": "CodeBlockNode",
       "Code": "\"MULTI-DECK PRODUCE\";",
@@ -854,7 +754,7 @@
       "Inputs": [],
       "Outputs": [
         {
-          "Id": "376e5c20c2a64f42bb6706be57ffd549",
+          "Id": "653745e16eab4086beb817098b34e004",
           "Name": "",
           "Description": "Value of expression at line 1",
           "UsingDefaultValue": false,
@@ -865,58 +765,16 @@
       ],
       "Replication": "Disabled",
       "Description": "Allows for DesignScript code to be authored directly"
-    },
-    {
-      "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
-      "NodeType": "PythonScriptNode",
-      "Code": "import clr\r\nclr.AddReference(\"RevitAPI\")\r\nclr.AddReference(\"RevitServices\")\r\nfrom Autodesk.Revit.DB import *\r\nfrom RevitServices.Persistence import DocumentManager\r\nimport re\r\n\r\n# Inputs\r\ndoc = DocumentManager.Instance.CurrentDBDocument\r\nlegend_view = UnwrapElement(IN[0])  # Legend View input\r\ntarget_sub_header_text = IN[1]  # The sub-header text to extract (e.g., \"MULTI-DECK FROZEN FOOD\")\r\n\r\n# Collect all TextNote elements in the Legend View\r\ncollector = FilteredElementCollector(doc, legend_view.Id).OfClass(TextNote)\r\ntext_notes = []\r\n\r\nfor text_note in collector:\r\n    location = text_note.Coord  # XYZ location of the Text Note\r\n    element_data = {\r\n        \"ElementId\": text_note.Id.IntegerValue,\r\n        \"Text\": text_note.Text,\r\n        \"Location\": location\r\n    }\r\n    text_notes.append(element_data)\r\n\r\n# Preprocess the target text to remove extra whitespace and normalize line breaks\r\ntarget_sub_header_text_clean = re.sub(r'\\s+', ' ', target_sub_header_text.strip()).upper()\r\n\r\n# Group text notes by rows (based on Y-coordinate)\r\ntolerance = 0.1  # Tolerance for determining whether two text notes are in the same row\r\nrows = []\r\n\r\nfor text_note in text_notes:\r\n    y_coord = text_note[\"Location\"].Y\r\n    found_row = False\r\n    for row in rows:\r\n        if abs(row[0][\"Location\"].Y - y_coord) < tolerance:\r\n            row.append(text_note)\r\n            found_row = True\r\n            break\r\n    if not found_row:\r\n        rows.append([text_note])\r\n\r\n# Sort rows by Y-coordinate (descending order for top to bottom)\r\nsorted_rows = sorted(rows, key=lambda r: -r[0][\"Location\"].Y)\r\n\r\n# Sort elements within each row by X-coordinate (ascending order for left to right)\r\nfor row in sorted_rows:\r\n    row.sort(key=lambda e: e[\"Location\"].X)\r\n\r\n# Find the row that matches the target sub-header text\r\ntarget_row_data = None\r\n\r\nfor row in sorted_rows:\r\n    # Check each element in the row to find the target text\r\n    for element in row:\r\n        element_text_clean = re.sub(r'\\s+', ' ', element[\"Text\"].strip()).upper()\r\n        if element_text_clean == target_sub_header_text_clean:\r\n            target_row_data = row\r\n            break\r\n    if target_row_data:\r\n        break\r\n\r\n# Output the matched row (sub-header row)\r\nOUT = target_row_data\r\n",
-      "Engine": "CPython3",
-      "EngineName": "CPython3",
-      "VariableInputPorts": true,
-      "Id": "158fe3300c874088b64cf09150e0618f",
-      "Inputs": [
-        {
-          "Id": "1cacd9d1d0104208910c17f91b0b82f8",
-          "Name": "IN[0]",
-          "Description": "Input #0",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        },
-        {
-          "Id": "859ac191ef44439aaccbde733c1053d7",
-          "Name": "IN[1]",
-          "Description": "Input #1",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        }
-      ],
-      "Outputs": [
-        {
-          "Id": "7ffd985e95cd41e299c047a0773e6cf1",
-          "Name": "OUT",
-          "Description": "Result of the python script",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        }
-      ],
-      "Replication": "Disabled",
-      "Description": "Runs an embedded Python script."
     },
     {
       "ConcreteType": "Dynamo.Graph.Nodes.CodeBlockNodeModel, DynamoCore",
       "NodeType": "CodeBlockNode",
-      "Code": "\"MULTI-DECK MEAT DELI\";",
+      "Code": "\"SERVICE DELI HOT CASE\";",
       "Id": "b241039a8e81427eb505a24044e6ca15",
       "Inputs": [],
       "Outputs": [
         {
-          "Id": "d05c05d837cf465691c46a7e480339a2",
+          "Id": "4a0017d14dcf4cf992c7dd4154bde71d",
           "Name": "",
           "Description": "Value of expression at line 1",
           "UsingDefaultValue": false,
@@ -927,48 +785,6 @@
       ],
       "Replication": "Disabled",
       "Description": "Allows for DesignScript code to be authored directly"
-    },
-    {
-      "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
-      "NodeType": "PythonScriptNode",
-      "Code": "import clr\r\nclr.AddReference(\"RevitAPI\")\r\nclr.AddReference(\"RevitServices\")\r\nfrom Autodesk.Revit.DB import *\r\nfrom RevitServices.Persistence import DocumentManager\r\nimport re\r\n\r\n# Inputs\r\ndoc = DocumentManager.Instance.CurrentDBDocument\r\nlegend_view = UnwrapElement(IN[0])  # Legend View input\r\ntarget_sub_header_text = IN[1]  # The sub-header text to extract (e.g., \"MULTI-DECK FROZEN FOOD\")\r\n\r\n# Collect all TextNote elements in the Legend View\r\ncollector = FilteredElementCollector(doc, legend_view.Id).OfClass(TextNote)\r\ntext_notes = []\r\n\r\nfor text_note in collector:\r\n    location = text_note.Coord  # XYZ location of the Text Note\r\n    element_data = {\r\n        \"ElementId\": text_note.Id.IntegerValue,\r\n        \"Text\": text_note.Text,\r\n        \"Location\": location\r\n    }\r\n    text_notes.append(element_data)\r\n\r\n# Preprocess the target text to remove extra whitespace and normalize line breaks\r\ntarget_sub_header_text_clean = re.sub(r'\\s+', ' ', target_sub_header_text.strip()).upper()\r\n\r\n# Group text notes by rows (based on Y-coordinate)\r\ntolerance = 0.1  # Tolerance for determining whether two text notes are in the same row\r\nrows = []\r\n\r\nfor text_note in text_notes:\r\n    y_coord = text_note[\"Location\"].Y\r\n    found_row = False\r\n    for row in rows:\r\n        if abs(row[0][\"Location\"].Y - y_coord) < tolerance:\r\n            row.append(text_note)\r\n            found_row = True\r\n            break\r\n    if not found_row:\r\n        rows.append([text_note])\r\n\r\n# Sort rows by Y-coordinate (descending order for top to bottom)\r\nsorted_rows = sorted(rows, key=lambda r: -r[0][\"Location\"].Y)\r\n\r\n# Sort elements within each row by X-coordinate (ascending order for left to right)\r\nfor row in sorted_rows:\r\n    row.sort(key=lambda e: e[\"Location\"].X)\r\n\r\n# Find the row that matches the target sub-header text\r\ntarget_row_data = None\r\n\r\nfor row in sorted_rows:\r\n    # Check each element in the row to find the target text\r\n    for element in row:\r\n        element_text_clean = re.sub(r'\\s+', ' ', element[\"Text\"].strip()).upper()\r\n        if element_text_clean == target_sub_header_text_clean:\r\n            target_row_data = row\r\n            break\r\n    if target_row_data:\r\n        break\r\n\r\n# Output the matched row (sub-header row)\r\nOUT = target_row_data\r\n",
-      "Engine": "CPython3",
-      "EngineName": "CPython3",
-      "VariableInputPorts": true,
-      "Id": "219dac865c4e4ac49bf83e60b654abdb",
-      "Inputs": [
-        {
-          "Id": "f7040a41c5bd4b1db4c38004260845fb",
-          "Name": "IN[0]",
-          "Description": "Input #0",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        },
-        {
-          "Id": "7f5acc31bfb14b07abe635bd030e14f8",
-          "Name": "IN[1]",
-          "Description": "Input #1",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        }
-      ],
-      "Outputs": [
-        {
-          "Id": "11a82d46fa774a3087393f732d3a6b3d",
-          "Name": "OUT",
-          "Description": "Result of the python script",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        }
-      ],
-      "Replication": "Disabled",
-      "Description": "Runs an embedded Python script."
     },
     {
       "ConcreteType": "Dynamo.Graph.Nodes.CodeBlockNodeModel, DynamoCore",
@@ -991,48 +807,6 @@
       "Description": "Allows for DesignScript code to be authored directly"
     },
     {
-      "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
-      "NodeType": "PythonScriptNode",
-      "Code": "import clr\r\nclr.AddReference(\"RevitAPI\")\r\nclr.AddReference(\"RevitServices\")\r\nfrom Autodesk.Revit.DB import *\r\nfrom RevitServices.Persistence import DocumentManager\r\nimport re\r\n\r\n# Inputs\r\ndoc = DocumentManager.Instance.CurrentDBDocument\r\nlegend_view = UnwrapElement(IN[0])  # Legend View input\r\ntarget_sub_header_text = IN[1]  # The sub-header text to extract (e.g., \"MULTI-DECK FROZEN FOOD\")\r\n\r\n# Collect all TextNote elements in the Legend View\r\ncollector = FilteredElementCollector(doc, legend_view.Id).OfClass(TextNote)\r\ntext_notes = []\r\n\r\nfor text_note in collector:\r\n    location = text_note.Coord  # XYZ location of the Text Note\r\n    element_data = {\r\n        \"ElementId\": text_note.Id.IntegerValue,\r\n        \"Text\": text_note.Text,\r\n        \"Location\": location\r\n    }\r\n    text_notes.append(element_data)\r\n\r\n# Preprocess the target text to remove extra whitespace and normalize line breaks\r\ntarget_sub_header_text_clean = re.sub(r'\\s+', ' ', target_sub_header_text.strip()).upper()\r\n\r\n# Group text notes by rows (based on Y-coordinate)\r\ntolerance = 0.1  # Tolerance for determining whether two text notes are in the same row\r\nrows = []\r\n\r\nfor text_note in text_notes:\r\n    y_coord = text_note[\"Location\"].Y\r\n    found_row = False\r\n    for row in rows:\r\n        if abs(row[0][\"Location\"].Y - y_coord) < tolerance:\r\n            row.append(text_note)\r\n            found_row = True\r\n            break\r\n    if not found_row:\r\n        rows.append([text_note])\r\n\r\n# Sort rows by Y-coordinate (descending order for top to bottom)\r\nsorted_rows = sorted(rows, key=lambda r: -r[0][\"Location\"].Y)\r\n\r\n# Sort elements within each row by X-coordinate (ascending order for left to right)\r\nfor row in sorted_rows:\r\n    row.sort(key=lambda e: e[\"Location\"].X)\r\n\r\n# Find the row that matches the target sub-header text\r\ntarget_row_data = None\r\n\r\nfor row in sorted_rows:\r\n    # Check each element in the row to find the target text\r\n    for element in row:\r\n        element_text_clean = re.sub(r'\\s+', ' ', element[\"Text\"].strip()).upper()\r\n        if element_text_clean == target_sub_header_text_clean:\r\n            target_row_data = row\r\n            break\r\n    if target_row_data:\r\n        break\r\n\r\n# Output the matched row (sub-header row)\r\nOUT = target_row_data\r\n",
-      "Engine": "CPython3",
-      "EngineName": "CPython3",
-      "VariableInputPorts": true,
-      "Id": "2c180ec36e0245b7808a39b371ee0957",
-      "Inputs": [
-        {
-          "Id": "6e451e5478a94e90ba3447190e89fe6e",
-          "Name": "IN[0]",
-          "Description": "Input #0",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        },
-        {
-          "Id": "a6c44b7733c74b74a427dee3c5d6f799",
-          "Name": "IN[1]",
-          "Description": "Input #1",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        }
-      ],
-      "Outputs": [
-        {
-          "Id": "7bf60221f8244d6e98ba7943c988a7a4",
-          "Name": "OUT",
-          "Description": "Result of the python script",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        }
-      ],
-      "Replication": "Disabled",
-      "Description": "Runs an embedded Python script."
-    },
-    {
       "ConcreteType": "Dynamo.Graph.Nodes.CodeBlockNodeModel, DynamoCore",
       "NodeType": "CodeBlockNode",
       "Code": "\"TOTAL FROZEN FOOD\n(NUMBER OF DOORS)\";",
@@ -1051,48 +825,6 @@
       ],
       "Replication": "Disabled",
       "Description": "Allows for DesignScript code to be authored directly"
-    },
-    {
-      "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
-      "NodeType": "PythonScriptNode",
-      "Code": "import clr\r\nclr.AddReference(\"RevitAPI\")\r\nclr.AddReference(\"RevitServices\")\r\nfrom Autodesk.Revit.DB import *\r\nfrom RevitServices.Persistence import DocumentManager\r\nimport re\r\n\r\n# Inputs\r\ndoc = DocumentManager.Instance.CurrentDBDocument\r\nlegend_view = UnwrapElement(IN[0])  # Legend View input\r\ntarget_sub_header_text = IN[1]  # The sub-header text to extract (e.g., \"MULTI-DECK FROZEN FOOD\")\r\n\r\n# Collect all TextNote elements in the Legend View\r\ncollector = FilteredElementCollector(doc, legend_view.Id).OfClass(TextNote)\r\ntext_notes = []\r\n\r\nfor text_note in collector:\r\n    location = text_note.Coord  # XYZ location of the Text Note\r\n    element_data = {\r\n        \"ElementId\": text_note.Id.IntegerValue,\r\n        \"Text\": text_note.Text,\r\n        \"Location\": location\r\n    }\r\n    text_notes.append(element_data)\r\n\r\n# Preprocess the target text to remove extra whitespace and normalize line breaks\r\ntarget_sub_header_text_clean = re.sub(r'\\s+', ' ', target_sub_header_text.strip()).upper()\r\n\r\n# Group text notes by rows (based on Y-coordinate)\r\ntolerance = 0.1  # Tolerance for determining whether two text notes are in the same row\r\nrows = []\r\n\r\nfor text_note in text_notes:\r\n    y_coord = text_note[\"Location\"].Y\r\n    found_row = False\r\n    for row in rows:\r\n        if abs(row[0][\"Location\"].Y - y_coord) < tolerance:\r\n            row.append(text_note)\r\n            found_row = True\r\n            break\r\n    if not found_row:\r\n        rows.append([text_note])\r\n\r\n# Sort rows by Y-coordinate (descending order for top to bottom)\r\nsorted_rows = sorted(rows, key=lambda r: -r[0][\"Location\"].Y)\r\n\r\n# Sort elements within each row by X-coordinate (ascending order for left to right)\r\nfor row in sorted_rows:\r\n    row.sort(key=lambda e: e[\"Location\"].X)\r\n\r\n# Find the row that matches the target sub-header text\r\ntarget_row_data = None\r\n\r\nfor row in sorted_rows:\r\n    # Check each element in the row to find the target text\r\n    for element in row:\r\n        element_text_clean = re.sub(r'\\s+', ' ', element[\"Text\"].strip()).upper()\r\n        if element_text_clean == target_sub_header_text_clean:\r\n            target_row_data = row\r\n            break\r\n    if target_row_data:\r\n        break\r\n\r\n# Output the matched row (sub-header row)\r\nOUT = target_row_data\r\n",
-      "Engine": "CPython3",
-      "EngineName": "CPython3",
-      "VariableInputPorts": true,
-      "Id": "faf87c64ac90437f86a6d3adcbfe672b",
-      "Inputs": [
-        {
-          "Id": "0df789eb261d4d95a3ed88f4d239f067",
-          "Name": "IN[0]",
-          "Description": "Input #0",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        },
-        {
-          "Id": "4f2a5d9ec9c546ebadac6e18bd6c7d9b",
-          "Name": "IN[1]",
-          "Description": "Input #1",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        }
-      ],
-      "Outputs": [
-        {
-          "Id": "3baa3b53edee4ed78c5bcfc2cedd77db",
-          "Name": "OUT",
-          "Description": "Result of the python script",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        }
-      ],
-      "Replication": "Disabled",
-      "Description": "Runs an embedded Python script."
     },
     {
       "ConcreteType": "Dynamo.Graph.Nodes.CodeBlockNodeModel, DynamoCore",
@@ -1115,56 +847,14 @@
       "Description": "Allows for DesignScript code to be authored directly"
     },
     {
-      "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
-      "NodeType": "PythonScriptNode",
-      "Code": "import clr\r\nclr.AddReference(\"RevitAPI\")\r\nclr.AddReference(\"RevitServices\")\r\nfrom Autodesk.Revit.DB import *\r\nfrom RevitServices.Persistence import DocumentManager\r\nimport re\r\n\r\n# Inputs\r\ndoc = DocumentManager.Instance.CurrentDBDocument\r\nlegend_view = UnwrapElement(IN[0])  # Legend View input\r\ntarget_sub_header_text = IN[1]  # The sub-header text to extract (e.g., \"MULTI-DECK FROZEN FOOD\")\r\n\r\n# Collect all TextNote elements in the Legend View\r\ncollector = FilteredElementCollector(doc, legend_view.Id).OfClass(TextNote)\r\ntext_notes = []\r\n\r\nfor text_note in collector:\r\n    location = text_note.Coord  # XYZ location of the Text Note\r\n    element_data = {\r\n        \"ElementId\": text_note.Id.IntegerValue,\r\n        \"Text\": text_note.Text,\r\n        \"Location\": location\r\n    }\r\n    text_notes.append(element_data)\r\n\r\n# Preprocess the target text to remove extra whitespace and normalize line breaks\r\ntarget_sub_header_text_clean = re.sub(r'\\s+', ' ', target_sub_header_text.strip()).upper()\r\n\r\n# Group text notes by rows (based on Y-coordinate)\r\ntolerance = 0.1  # Tolerance for determining whether two text notes are in the same row\r\nrows = []\r\n\r\nfor text_note in text_notes:\r\n    y_coord = text_note[\"Location\"].Y\r\n    found_row = False\r\n    for row in rows:\r\n        if abs(row[0][\"Location\"].Y - y_coord) < tolerance:\r\n            row.append(text_note)\r\n            found_row = True\r\n            break\r\n    if not found_row:\r\n        rows.append([text_note])\r\n\r\n# Sort rows by Y-coordinate (descending order for top to bottom)\r\nsorted_rows = sorted(rows, key=lambda r: -r[0][\"Location\"].Y)\r\n\r\n# Sort elements within each row by X-coordinate (ascending order for left to right)\r\nfor row in sorted_rows:\r\n    row.sort(key=lambda e: e[\"Location\"].X)\r\n\r\n# Find the row that matches the target sub-header text\r\ntarget_row_data = None\r\n\r\nfor row in sorted_rows:\r\n    # Check each element in the row to find the target text\r\n    for element in row:\r\n        element_text_clean = re.sub(r'\\s+', ' ', element[\"Text\"].strip()).upper()\r\n        if element_text_clean == target_sub_header_text_clean:\r\n            target_row_data = row\r\n            break\r\n    if target_row_data:\r\n        break\r\n\r\n# Output the matched row (sub-header row)\r\nOUT = target_row_data\r\n",
-      "Engine": "CPython3",
-      "EngineName": "CPython3",
-      "VariableInputPorts": true,
-      "Id": "70c746f883d345e099b213073de25bf3",
-      "Inputs": [
-        {
-          "Id": "3c786a4ba56f4599b774fc5da1ab73a0",
-          "Name": "IN[0]",
-          "Description": "Input #0",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        },
-        {
-          "Id": "d83af7dfcdbc4dff93f092742ea5c8a9",
-          "Name": "IN[1]",
-          "Description": "Input #1",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        }
-      ],
-      "Outputs": [
-        {
-          "Id": "f824f0104bfd4365bcfa9468171fffc7",
-          "Name": "OUT",
-          "Description": "Result of the python script",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        }
-      ],
-      "Replication": "Disabled",
-      "Description": "Runs an embedded Python script."
-    },
-    {
       "ConcreteType": "Dynamo.Graph.Nodes.CodeBlockNodeModel, DynamoCore",
       "NodeType": "CodeBlockNode",
-      "Code": "\"CENTER STORE\";",
+      "Code": "\"CENTER STORE SHELVING\";",
       "Id": "3439b7cae04146519c968d2a03532a01",
       "Inputs": [],
       "Outputs": [
         {
-          "Id": "1db683f1d4f54bd3a58bd766a1b4fc0b",
+          "Id": "f92e3c32a92949129aecaeeccdcf1f56",
           "Name": "",
           "Description": "Value of expression at line 1",
           "UsingDefaultValue": false,
@@ -1175,48 +865,6 @@
       ],
       "Replication": "Disabled",
       "Description": "Allows for DesignScript code to be authored directly"
-    },
-    {
-      "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
-      "NodeType": "PythonScriptNode",
-      "Code": "import clr\r\nclr.AddReference(\"RevitAPI\")\r\nclr.AddReference(\"RevitServices\")\r\nfrom Autodesk.Revit.DB import *\r\nfrom RevitServices.Persistence import DocumentManager\r\nimport re\r\n\r\n# Inputs\r\ndoc = DocumentManager.Instance.CurrentDBDocument\r\nlegend_view = UnwrapElement(IN[0])  # Legend View input\r\ntarget_sub_header_text = IN[1]  # The sub-header text to extract (e.g., \"MULTI-DECK FROZEN FOOD\")\r\n\r\n# Collect all TextNote elements in the Legend View\r\ncollector = FilteredElementCollector(doc, legend_view.Id).OfClass(TextNote)\r\ntext_notes = []\r\n\r\nfor text_note in collector:\r\n    location = text_note.Coord  # XYZ location of the Text Note\r\n    element_data = {\r\n        \"ElementId\": text_note.Id.IntegerValue,\r\n        \"Text\": text_note.Text,\r\n        \"Location\": location\r\n    }\r\n    text_notes.append(element_data)\r\n\r\n# Preprocess the target text to remove extra whitespace and normalize line breaks\r\ntarget_sub_header_text_clean = re.sub(r'\\s+', ' ', target_sub_header_text.strip()).upper()\r\n\r\n# Group text notes by rows (based on Y-coordinate)\r\ntolerance = 0.1  # Tolerance for determining whether two text notes are in the same row\r\nrows = []\r\n\r\nfor text_note in text_notes:\r\n    y_coord = text_note[\"Location\"].Y\r\n    found_row = False\r\n    for row in rows:\r\n        if abs(row[0][\"Location\"].Y - y_coord) < tolerance:\r\n            row.append(text_note)\r\n            found_row = True\r\n            break\r\n    if not found_row:\r\n        rows.append([text_note])\r\n\r\n# Sort rows by Y-coordinate (descending order for top to bottom)\r\nsorted_rows = sorted(rows, key=lambda r: -r[0][\"Location\"].Y)\r\n\r\n# Sort elements within each row by X-coordinate (ascending order for left to right)\r\nfor row in sorted_rows:\r\n    row.sort(key=lambda e: e[\"Location\"].X)\r\n\r\n# Find the row that matches the target sub-header text\r\ntarget_row_data = None\r\n\r\nfor row in sorted_rows:\r\n    # Check each element in the row to find the target text\r\n    for element in row:\r\n        element_text_clean = re.sub(r'\\s+', ' ', element[\"Text\"].strip()).upper()\r\n        if element_text_clean == target_sub_header_text_clean:\r\n            target_row_data = row\r\n            break\r\n    if target_row_data:\r\n        break\r\n\r\n# Output the matched row (sub-header row)\r\nOUT = target_row_data\r\n",
-      "Engine": "CPython3",
-      "EngineName": "CPython3",
-      "VariableInputPorts": true,
-      "Id": "83b8b14724844cf19fdfdf116d59ab16",
-      "Inputs": [
-        {
-          "Id": "5fc406585d514424843479d7421c9818",
-          "Name": "IN[0]",
-          "Description": "Input #0",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        },
-        {
-          "Id": "befb23bc42b342218bfaba9841edea9e",
-          "Name": "IN[1]",
-          "Description": "Input #1",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        }
-      ],
-      "Outputs": [
-        {
-          "Id": "4c2b3e37932744e6bfbd2f019aa94aaa",
-          "Name": "OUT",
-          "Description": "Result of the python script",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        }
-      ],
-      "Replication": "Disabled",
-      "Description": "Runs an embedded Python script."
     },
     {
       "ConcreteType": "Dynamo.Graph.Nodes.CodeBlockNodeModel, DynamoCore",
@@ -1239,48 +887,6 @@
       "Description": "Allows for DesignScript code to be authored directly"
     },
     {
-      "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
-      "NodeType": "PythonScriptNode",
-      "Code": "import clr\r\nclr.AddReference(\"RevitAPI\")\r\nclr.AddReference(\"RevitServices\")\r\nfrom Autodesk.Revit.DB import *\r\nfrom RevitServices.Persistence import DocumentManager\r\nimport re\r\n\r\n# Inputs\r\ndoc = DocumentManager.Instance.CurrentDBDocument\r\nlegend_view = UnwrapElement(IN[0])  # Legend View input\r\ntarget_sub_header_text = IN[1]  # The sub-header text to extract (e.g., \"MULTI-DECK FROZEN FOOD\")\r\n\r\n# Collect all TextNote elements in the Legend View\r\ncollector = FilteredElementCollector(doc, legend_view.Id).OfClass(TextNote)\r\ntext_notes = []\r\n\r\nfor text_note in collector:\r\n    location = text_note.Coord  # XYZ location of the Text Note\r\n    element_data = {\r\n        \"ElementId\": text_note.Id.IntegerValue,\r\n        \"Text\": text_note.Text,\r\n        \"Location\": location\r\n    }\r\n    text_notes.append(element_data)\r\n\r\n# Preprocess the target text to remove extra whitespace and normalize line breaks\r\ntarget_sub_header_text_clean = re.sub(r'\\s+', ' ', target_sub_header_text.strip()).upper()\r\n\r\n# Group text notes by rows (based on Y-coordinate)\r\ntolerance = 0.1  # Tolerance for determining whether two text notes are in the same row\r\nrows = []\r\n\r\nfor text_note in text_notes:\r\n    y_coord = text_note[\"Location\"].Y\r\n    found_row = False\r\n    for row in rows:\r\n        if abs(row[0][\"Location\"].Y - y_coord) < tolerance:\r\n            row.append(text_note)\r\n            found_row = True\r\n            break\r\n    if not found_row:\r\n        rows.append([text_note])\r\n\r\n# Sort rows by Y-coordinate (descending order for top to bottom)\r\nsorted_rows = sorted(rows, key=lambda r: -r[0][\"Location\"].Y)\r\n\r\n# Sort elements within each row by X-coordinate (ascending order for left to right)\r\nfor row in sorted_rows:\r\n    row.sort(key=lambda e: e[\"Location\"].X)\r\n\r\n# Find the row that matches the target sub-header text\r\ntarget_row_data = None\r\n\r\nfor row in sorted_rows:\r\n    # Check each element in the row to find the target text\r\n    for element in row:\r\n        element_text_clean = re.sub(r'\\s+', ' ', element[\"Text\"].strip()).upper()\r\n        if element_text_clean == target_sub_header_text_clean:\r\n            target_row_data = row\r\n            break\r\n    if target_row_data:\r\n        break\r\n\r\n# Output the matched row (sub-header row)\r\nOUT = target_row_data\r\n",
-      "Engine": "CPython3",
-      "EngineName": "CPython3",
-      "VariableInputPorts": true,
-      "Id": "208b54a4a92e47c4b037eece2d74ced4",
-      "Inputs": [
-        {
-          "Id": "eacdd1fc85ec4a08be03996e297a4aee",
-          "Name": "IN[0]",
-          "Description": "Input #0",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        },
-        {
-          "Id": "1ee1b63d7ef84abbb4dd160205f77c87",
-          "Name": "IN[1]",
-          "Description": "Input #1",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        }
-      ],
-      "Outputs": [
-        {
-          "Id": "8b66e61801994449a3d6829ab9043361",
-          "Name": "OUT",
-          "Description": "Result of the python script",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        }
-      ],
-      "Replication": "Disabled",
-      "Description": "Runs an embedded Python script."
-    },
-    {
       "ConcreteType": "Dynamo.Graph.Nodes.CodeBlockNodeModel, DynamoCore",
       "NodeType": "CodeBlockNode",
       "Code": "\"MULTI-DECK FROZEN PROMO\";",
@@ -1299,48 +905,6 @@
       ],
       "Replication": "Disabled",
       "Description": "Allows for DesignScript code to be authored directly"
-    },
-    {
-      "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
-      "NodeType": "PythonScriptNode",
-      "Code": "import clr\r\nclr.AddReference(\"RevitAPI\")\r\nclr.AddReference(\"RevitServices\")\r\nfrom Autodesk.Revit.DB import *\r\nfrom RevitServices.Persistence import DocumentManager\r\nimport re\r\n\r\n# Inputs\r\ndoc = DocumentManager.Instance.CurrentDBDocument\r\nlegend_view = UnwrapElement(IN[0])  # Legend View input\r\ntarget_sub_header_text = IN[1]  # The sub-header text to extract (e.g., \"MULTI-DECK FROZEN FOOD\")\r\n\r\n# Collect all TextNote elements in the Legend View\r\ncollector = FilteredElementCollector(doc, legend_view.Id).OfClass(TextNote)\r\ntext_notes = []\r\n\r\nfor text_note in collector:\r\n    location = text_note.Coord  # XYZ location of the Text Note\r\n    element_data = {\r\n        \"ElementId\": text_note.Id.IntegerValue,\r\n        \"Text\": text_note.Text,\r\n        \"Location\": location\r\n    }\r\n    text_notes.append(element_data)\r\n\r\n# Preprocess the target text to remove extra whitespace and normalize line breaks\r\ntarget_sub_header_text_clean = re.sub(r'\\s+', ' ', target_sub_header_text.strip()).upper()\r\n\r\n# Group text notes by rows (based on Y-coordinate)\r\ntolerance = 0.1  # Tolerance for determining whether two text notes are in the same row\r\nrows = []\r\n\r\nfor text_note in text_notes:\r\n    y_coord = text_note[\"Location\"].Y\r\n    found_row = False\r\n    for row in rows:\r\n        if abs(row[0][\"Location\"].Y - y_coord) < tolerance:\r\n            row.append(text_note)\r\n            found_row = True\r\n            break\r\n    if not found_row:\r\n        rows.append([text_note])\r\n\r\n# Sort rows by Y-coordinate (descending order for top to bottom)\r\nsorted_rows = sorted(rows, key=lambda r: -r[0][\"Location\"].Y)\r\n\r\n# Sort elements within each row by X-coordinate (ascending order for left to right)\r\nfor row in sorted_rows:\r\n    row.sort(key=lambda e: e[\"Location\"].X)\r\n\r\n# Find the row that matches the target sub-header text\r\ntarget_row_data = None\r\n\r\nfor row in sorted_rows:\r\n    # Check each element in the row to find the target text\r\n    for element in row:\r\n        element_text_clean = re.sub(r'\\s+', ' ', element[\"Text\"].strip()).upper()\r\n        if element_text_clean == target_sub_header_text_clean:\r\n            target_row_data = row\r\n            break\r\n    if target_row_data:\r\n        break\r\n\r\n# Output the matched row (sub-header row)\r\nOUT = target_row_data\r\n",
-      "Engine": "CPython3",
-      "EngineName": "CPython3",
-      "VariableInputPorts": true,
-      "Id": "d6182a2d8bcc4627937619d968935160",
-      "Inputs": [
-        {
-          "Id": "662ea279bd074a3ab7253cb22ba150ee",
-          "Name": "IN[0]",
-          "Description": "Input #0",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        },
-        {
-          "Id": "7349413cc9fd4ee2b2db407a2a1e7881",
-          "Name": "IN[1]",
-          "Description": "Input #1",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        }
-      ],
-      "Outputs": [
-        {
-          "Id": "47354b850d0c46d887996e34c6028607",
-          "Name": "OUT",
-          "Description": "Result of the python script",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        }
-      ],
-      "Replication": "Disabled",
-      "Description": "Runs an embedded Python script."
     },
     {
       "ConcreteType": "Dynamo.Graph.Nodes.CodeBlockNodeModel, DynamoCore",
@@ -1363,48 +927,6 @@
       "Description": "Allows for DesignScript code to be authored directly"
     },
     {
-      "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
-      "NodeType": "PythonScriptNode",
-      "Code": "import clr\r\nclr.AddReference(\"RevitAPI\")\r\nclr.AddReference(\"RevitServices\")\r\nfrom Autodesk.Revit.DB import *\r\nfrom RevitServices.Persistence import DocumentManager\r\nimport re\r\n\r\n# Inputs\r\ndoc = DocumentManager.Instance.CurrentDBDocument\r\nlegend_view = UnwrapElement(IN[0])  # Legend View input\r\ntarget_sub_header_text = IN[1]  # The sub-header text to extract (e.g., \"MULTI-DECK FROZEN FOOD\")\r\n\r\n# Collect all TextNote elements in the Legend View\r\ncollector = FilteredElementCollector(doc, legend_view.Id).OfClass(TextNote)\r\ntext_notes = []\r\n\r\nfor text_note in collector:\r\n    location = text_note.Coord  # XYZ location of the Text Note\r\n    element_data = {\r\n        \"ElementId\": text_note.Id.IntegerValue,\r\n        \"Text\": text_note.Text,\r\n        \"Location\": location\r\n    }\r\n    text_notes.append(element_data)\r\n\r\n# Preprocess the target text to remove extra whitespace and normalize line breaks\r\ntarget_sub_header_text_clean = re.sub(r'\\s+', ' ', target_sub_header_text.strip()).upper()\r\n\r\n# Group text notes by rows (based on Y-coordinate)\r\ntolerance = 0.1  # Tolerance for determining whether two text notes are in the same row\r\nrows = []\r\n\r\nfor text_note in text_notes:\r\n    y_coord = text_note[\"Location\"].Y\r\n    found_row = False\r\n    for row in rows:\r\n        if abs(row[0][\"Location\"].Y - y_coord) < tolerance:\r\n            row.append(text_note)\r\n            found_row = True\r\n            break\r\n    if not found_row:\r\n        rows.append([text_note])\r\n\r\n# Sort rows by Y-coordinate (descending order for top to bottom)\r\nsorted_rows = sorted(rows, key=lambda r: -r[0][\"Location\"].Y)\r\n\r\n# Sort elements within each row by X-coordinate (ascending order for left to right)\r\nfor row in sorted_rows:\r\n    row.sort(key=lambda e: e[\"Location\"].X)\r\n\r\n# Find the row that matches the target sub-header text\r\ntarget_row_data = None\r\n\r\nfor row in sorted_rows:\r\n    # Check each element in the row to find the target text\r\n    for element in row:\r\n        element_text_clean = re.sub(r'\\s+', ' ', element[\"Text\"].strip()).upper()\r\n        if element_text_clean == target_sub_header_text_clean:\r\n            target_row_data = row\r\n            break\r\n    if target_row_data:\r\n        break\r\n\r\n# Output the matched row (sub-header row)\r\nOUT = target_row_data\r\n",
-      "Engine": "CPython3",
-      "EngineName": "CPython3",
-      "VariableInputPorts": true,
-      "Id": "57c53797855c4931996cee0badb4c193",
-      "Inputs": [
-        {
-          "Id": "44d89c51e179479c8b3864a58be27178",
-          "Name": "IN[0]",
-          "Description": "Input #0",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        },
-        {
-          "Id": "09a8b641b49146f698a8b167d4b72cf7",
-          "Name": "IN[1]",
-          "Description": "Input #1",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        }
-      ],
-      "Outputs": [
-        {
-          "Id": "c5f95fda92824406b8b2c0d26acff342",
-          "Name": "OUT",
-          "Description": "Result of the python script",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        }
-      ],
-      "Replication": "Disabled",
-      "Description": "Runs an embedded Python script."
-    },
-    {
       "ConcreteType": "Dynamo.Graph.Nodes.CodeBlockNodeModel, DynamoCore",
       "NodeType": "CodeBlockNode",
       "Code": "\"MULTI-DECK FROZEN FOOD\";",
@@ -1425,56 +947,14 @@
       "Description": "Allows for DesignScript code to be authored directly"
     },
     {
-      "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
-      "NodeType": "PythonScriptNode",
-      "Code": "import clr\r\nclr.AddReference(\"RevitAPI\")\r\nclr.AddReference(\"RevitServices\")\r\nfrom Autodesk.Revit.DB import *\r\nfrom RevitServices.Persistence import DocumentManager\r\nimport re\r\n\r\n# Inputs\r\ndoc = DocumentManager.Instance.CurrentDBDocument\r\nlegend_view = UnwrapElement(IN[0])  # Legend View input\r\ntarget_sub_header_text = IN[1]  # The sub-header text to extract (e.g., \"MULTI-DECK FROZEN FOOD\")\r\n\r\n# Collect all TextNote elements in the Legend View\r\ncollector = FilteredElementCollector(doc, legend_view.Id).OfClass(TextNote)\r\ntext_notes = []\r\n\r\nfor text_note in collector:\r\n    location = text_note.Coord  # XYZ location of the Text Note\r\n    element_data = {\r\n        \"ElementId\": text_note.Id.IntegerValue,\r\n        \"Text\": text_note.Text,\r\n        \"Location\": location\r\n    }\r\n    text_notes.append(element_data)\r\n\r\n# Preprocess the target text to remove extra whitespace and normalize line breaks\r\ntarget_sub_header_text_clean = re.sub(r'\\s+', ' ', target_sub_header_text.strip()).upper()\r\n\r\n# Group text notes by rows (based on Y-coordinate)\r\ntolerance = 0.1  # Tolerance for determining whether two text notes are in the same row\r\nrows = []\r\n\r\nfor text_note in text_notes:\r\n    y_coord = text_note[\"Location\"].Y\r\n    found_row = False\r\n    for row in rows:\r\n        if abs(row[0][\"Location\"].Y - y_coord) < tolerance:\r\n            row.append(text_note)\r\n            found_row = True\r\n            break\r\n    if not found_row:\r\n        rows.append([text_note])\r\n\r\n# Sort rows by Y-coordinate (descending order for top to bottom)\r\nsorted_rows = sorted(rows, key=lambda r: -r[0][\"Location\"].Y)\r\n\r\n# Sort elements within each row by X-coordinate (ascending order for left to right)\r\nfor row in sorted_rows:\r\n    row.sort(key=lambda e: e[\"Location\"].X)\r\n\r\n# Find the row that matches the target sub-header text\r\ntarget_row_data = None\r\n\r\nfor row in sorted_rows:\r\n    # Check each element in the row to find the target text\r\n    for element in row:\r\n        element_text_clean = re.sub(r'\\s+', ' ', element[\"Text\"].strip()).upper()\r\n        if element_text_clean == target_sub_header_text_clean:\r\n            target_row_data = row\r\n            break\r\n    if target_row_data:\r\n        break\r\n\r\n# Output the matched row (sub-header row)\r\nOUT = target_row_data\r\n",
-      "Engine": "CPython3",
-      "EngineName": "CPython3",
-      "VariableInputPorts": true,
-      "Id": "fcdb6fdcacce4f849b104b238d2f9079",
-      "Inputs": [
-        {
-          "Id": "a917354c928345388cdfa0144c8773d8",
-          "Name": "IN[0]",
-          "Description": "Input #0",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        },
-        {
-          "Id": "e65cfefae1aa4dbaaf0c3ad21c31f696",
-          "Name": "IN[1]",
-          "Description": "Input #1",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        }
-      ],
-      "Outputs": [
-        {
-          "Id": "4e07d8ebcbfc404c99b536ce94856ed8",
-          "Name": "OUT",
-          "Description": "Result of the python script",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        }
-      ],
-      "Replication": "Disabled",
-      "Description": "Runs an embedded Python script."
-    },
-    {
       "ConcreteType": "Dynamo.Graph.Nodes.CodeBlockNodeModel, DynamoCore",
       "NodeType": "CodeBlockNode",
-      "Code": "\"MULTI-DECK MEAT DELI\";",
+      "Code": "\"DAIRY COOLER DOORS (DOOR QTY x 2.5)\";",
       "Id": "9f8a12cfa0114077b58d919ddee0c3ce",
       "Inputs": [],
       "Outputs": [
         {
-          "Id": "71156d903df34375bcfcc8caf5ab824d",
+          "Id": "c9fc4bb4835841279124e2300e4a2049",
           "Name": "",
           "Description": "Value of expression at line 1",
           "UsingDefaultValue": false,
@@ -1487,56 +967,14 @@
       "Description": "Allows for DesignScript code to be authored directly"
     },
     {
-      "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
-      "NodeType": "PythonScriptNode",
-      "Code": "import clr\r\nclr.AddReference(\"RevitAPI\")\r\nclr.AddReference(\"RevitServices\")\r\nfrom Autodesk.Revit.DB import *\r\nfrom RevitServices.Persistence import DocumentManager\r\nimport re\r\n\r\n# Inputs\r\ndoc = DocumentManager.Instance.CurrentDBDocument\r\nlegend_view = UnwrapElement(IN[0])  # Legend View input\r\ntarget_sub_header_text = IN[1]  # The sub-header text to extract (e.g., \"MULTI-DECK FROZEN FOOD\")\r\n\r\n# Collect all TextNote elements in the Legend View\r\ncollector = FilteredElementCollector(doc, legend_view.Id).OfClass(TextNote)\r\ntext_notes = []\r\n\r\nfor text_note in collector:\r\n    location = text_note.Coord  # XYZ location of the Text Note\r\n    element_data = {\r\n        \"ElementId\": text_note.Id.IntegerValue,\r\n        \"Text\": text_note.Text,\r\n        \"Location\": location\r\n    }\r\n    text_notes.append(element_data)\r\n\r\n# Preprocess the target text to remove extra whitespace and normalize line breaks\r\ntarget_sub_header_text_clean = re.sub(r'\\s+', ' ', target_sub_header_text.strip()).upper()\r\n\r\n# Group text notes by rows (based on Y-coordinate)\r\ntolerance = 0.1  # Tolerance for determining whether two text notes are in the same row\r\nrows = []\r\n\r\nfor text_note in text_notes:\r\n    y_coord = text_note[\"Location\"].Y\r\n    found_row = False\r\n    for row in rows:\r\n        if abs(row[0][\"Location\"].Y - y_coord) < tolerance:\r\n            row.append(text_note)\r\n            found_row = True\r\n            break\r\n    if not found_row:\r\n        rows.append([text_note])\r\n\r\n# Sort rows by Y-coordinate (descending order for top to bottom)\r\nsorted_rows = sorted(rows, key=lambda r: -r[0][\"Location\"].Y)\r\n\r\n# Sort elements within each row by X-coordinate (ascending order for left to right)\r\nfor row in sorted_rows:\r\n    row.sort(key=lambda e: e[\"Location\"].X)\r\n\r\n# Find the row that matches the target sub-header text\r\ntarget_row_data = None\r\n\r\nfor row in sorted_rows:\r\n    # Check each element in the row to find the target text\r\n    for element in row:\r\n        element_text_clean = re.sub(r'\\s+', ' ', element[\"Text\"].strip()).upper()\r\n        if element_text_clean == target_sub_header_text_clean:\r\n            target_row_data = row\r\n            break\r\n    if target_row_data:\r\n        break\r\n\r\n# Output the matched row (sub-header row)\r\nOUT = target_row_data\r\n",
-      "Engine": "CPython3",
-      "EngineName": "CPython3",
-      "VariableInputPorts": true,
-      "Id": "fc1aca49769d4debb80087cae2b454f4",
-      "Inputs": [
-        {
-          "Id": "d9d3529b4f63477ea379d1521974fe34",
-          "Name": "IN[0]",
-          "Description": "Input #0",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        },
-        {
-          "Id": "1e301d1b9acd476fbbe686961023aef6",
-          "Name": "IN[1]",
-          "Description": "Input #1",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        }
-      ],
-      "Outputs": [
-        {
-          "Id": "22e506486f974117833850df0c6e70e2",
-          "Name": "OUT",
-          "Description": "Result of the python script",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        }
-      ],
-      "Replication": "Disabled",
-      "Description": "Runs an embedded Python script."
-    },
-    {
       "ConcreteType": "Dynamo.Graph.Nodes.CodeBlockNodeModel, DynamoCore",
       "NodeType": "CodeBlockNode",
-      "Code": "\"MULTI-DECK MEAT DELI\";",
+      "Code": "\"MULTI-DECK DELI CASE\";",
       "Id": "c66f92da073741d985d9adc48625e8d6",
       "Inputs": [],
       "Outputs": [
         {
-          "Id": "33211f5def1840e490839fd1bca78761",
+          "Id": "4db20d8b777c4617a2dcef9f08469181",
           "Name": "",
           "Description": "Value of expression at line 1",
           "UsingDefaultValue": false,
@@ -1549,56 +987,14 @@
       "Description": "Allows for DesignScript code to be authored directly"
     },
     {
-      "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
-      "NodeType": "PythonScriptNode",
-      "Code": "import clr\r\nclr.AddReference(\"RevitAPI\")\r\nclr.AddReference(\"RevitServices\")\r\nfrom Autodesk.Revit.DB import *\r\nfrom RevitServices.Persistence import DocumentManager\r\nimport re\r\n\r\n# Inputs\r\ndoc = DocumentManager.Instance.CurrentDBDocument\r\nlegend_view = UnwrapElement(IN[0])  # Legend View input\r\ntarget_sub_header_text = IN[1]  # The sub-header text to extract (e.g., \"MULTI-DECK FROZEN FOOD\")\r\n\r\n# Collect all TextNote elements in the Legend View\r\ncollector = FilteredElementCollector(doc, legend_view.Id).OfClass(TextNote)\r\ntext_notes = []\r\n\r\nfor text_note in collector:\r\n    location = text_note.Coord  # XYZ location of the Text Note\r\n    element_data = {\r\n        \"ElementId\": text_note.Id.IntegerValue,\r\n        \"Text\": text_note.Text,\r\n        \"Location\": location\r\n    }\r\n    text_notes.append(element_data)\r\n\r\n# Preprocess the target text to remove extra whitespace and normalize line breaks\r\ntarget_sub_header_text_clean = re.sub(r'\\s+', ' ', target_sub_header_text.strip()).upper()\r\n\r\n# Group text notes by rows (based on Y-coordinate)\r\ntolerance = 0.1  # Tolerance for determining whether two text notes are in the same row\r\nrows = []\r\n\r\nfor text_note in text_notes:\r\n    y_coord = text_note[\"Location\"].Y\r\n    found_row = False\r\n    for row in rows:\r\n        if abs(row[0][\"Location\"].Y - y_coord) < tolerance:\r\n            row.append(text_note)\r\n            found_row = True\r\n            break\r\n    if not found_row:\r\n        rows.append([text_note])\r\n\r\n# Sort rows by Y-coordinate (descending order for top to bottom)\r\nsorted_rows = sorted(rows, key=lambda r: -r[0][\"Location\"].Y)\r\n\r\n# Sort elements within each row by X-coordinate (ascending order for left to right)\r\nfor row in sorted_rows:\r\n    row.sort(key=lambda e: e[\"Location\"].X)\r\n\r\n# Find the row that matches the target sub-header text\r\ntarget_row_data = None\r\n\r\nfor row in sorted_rows:\r\n    # Check each element in the row to find the target text\r\n    for element in row:\r\n        element_text_clean = re.sub(r'\\s+', ' ', element[\"Text\"].strip()).upper()\r\n        if element_text_clean == target_sub_header_text_clean:\r\n            target_row_data = row\r\n            break\r\n    if target_row_data:\r\n        break\r\n\r\n# Output the matched row (sub-header row)\r\nOUT = target_row_data\r\n",
-      "Engine": "CPython3",
-      "EngineName": "CPython3",
-      "VariableInputPorts": true,
-      "Id": "311ec44902cd41258169dfd7ba5dceb3",
-      "Inputs": [
-        {
-          "Id": "963c99216cc243aaa1394dbf17da848f",
-          "Name": "IN[0]",
-          "Description": "Input #0",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        },
-        {
-          "Id": "131207cb64e14b34917ba2898077befd",
-          "Name": "IN[1]",
-          "Description": "Input #1",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        }
-      ],
-      "Outputs": [
-        {
-          "Id": "b4de15d113c74991ae7fb03cdd8b77c0",
-          "Name": "OUT",
-          "Description": "Result of the python script",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        }
-      ],
-      "Replication": "Disabled",
-      "Description": "Runs an embedded Python script."
-    },
-    {
       "ConcreteType": "Dynamo.Graph.Nodes.CodeBlockNodeModel, DynamoCore",
       "NodeType": "CodeBlockNode",
-      "Code": "\"DAIRY COOLER DOORS\n(DOOR QTY x 2.5)\";",
+      "Code": "\"SUSHI\";",
       "Id": "d461cb57a48c4fb2aa2830708fa87b7f",
       "Inputs": [],
       "Outputs": [
         {
-          "Id": "4bdef30e9fe842528da7c00c12d38bae",
+          "Id": "8e02897e782a487497e5e1b6f02d892c",
           "Name": "",
           "Description": "Value of expression at line 1",
           "UsingDefaultValue": false,
@@ -1611,56 +1007,14 @@
       "Description": "Allows for DesignScript code to be authored directly"
     },
     {
-      "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
-      "NodeType": "PythonScriptNode",
-      "Code": "import clr\r\nclr.AddReference(\"RevitAPI\")\r\nclr.AddReference(\"RevitServices\")\r\nfrom Autodesk.Revit.DB import *\r\nfrom RevitServices.Persistence import DocumentManager\r\nimport re\r\n\r\n# Inputs\r\ndoc = DocumentManager.Instance.CurrentDBDocument\r\nlegend_view = UnwrapElement(IN[0])  # Legend View input\r\ntarget_sub_header_text = IN[1]  # The sub-header text to extract (e.g., \"MULTI-DECK FROZEN FOOD\")\r\n\r\n# Collect all TextNote elements in the Legend View\r\ncollector = FilteredElementCollector(doc, legend_view.Id).OfClass(TextNote)\r\ntext_notes = []\r\n\r\nfor text_note in collector:\r\n    location = text_note.Coord  # XYZ location of the Text Note\r\n    element_data = {\r\n        \"ElementId\": text_note.Id.IntegerValue,\r\n        \"Text\": text_note.Text,\r\n        \"Location\": location\r\n    }\r\n    text_notes.append(element_data)\r\n\r\n# Preprocess the target text to remove extra whitespace and normalize line breaks\r\ntarget_sub_header_text_clean = re.sub(r'\\s+', ' ', target_sub_header_text.strip()).upper()\r\n\r\n# Group text notes by rows (based on Y-coordinate)\r\ntolerance = 0.1  # Tolerance for determining whether two text notes are in the same row\r\nrows = []\r\n\r\nfor text_note in text_notes:\r\n    y_coord = text_note[\"Location\"].Y\r\n    found_row = False\r\n    for row in rows:\r\n        if abs(row[0][\"Location\"].Y - y_coord) < tolerance:\r\n            row.append(text_note)\r\n            found_row = True\r\n            break\r\n    if not found_row:\r\n        rows.append([text_note])\r\n\r\n# Sort rows by Y-coordinate (descending order for top to bottom)\r\nsorted_rows = sorted(rows, key=lambda r: -r[0][\"Location\"].Y)\r\n\r\n# Sort elements within each row by X-coordinate (ascending order for left to right)\r\nfor row in sorted_rows:\r\n    row.sort(key=lambda e: e[\"Location\"].X)\r\n\r\n# Find the row that matches the target sub-header text\r\ntarget_row_data = None\r\n\r\nfor row in sorted_rows:\r\n    # Check each element in the row to find the target text\r\n    for element in row:\r\n        element_text_clean = re.sub(r'\\s+', ' ', element[\"Text\"].strip()).upper()\r\n        if element_text_clean == target_sub_header_text_clean:\r\n            target_row_data = row\r\n            break\r\n    if target_row_data:\r\n        break\r\n\r\n# Output the matched row (sub-header row)\r\nOUT = target_row_data\r\n",
-      "Engine": "CPython3",
-      "EngineName": "CPython3",
-      "VariableInputPorts": true,
-      "Id": "8f27b398eea74dca853a9cc87bdb9816",
-      "Inputs": [
-        {
-          "Id": "0a14875a1f714971ba13ba25945dc1b1",
-          "Name": "IN[0]",
-          "Description": "Input #0",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        },
-        {
-          "Id": "aea25ae4bd5a4142a484b67101cbf4d0",
-          "Name": "IN[1]",
-          "Description": "Input #1",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        }
-      ],
-      "Outputs": [
-        {
-          "Id": "125bb003c421474eab9a5c6fd155df72",
-          "Name": "OUT",
-          "Description": "Result of the python script",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        }
-      ],
-      "Replication": "Disabled",
-      "Description": "Runs an embedded Python script."
-    },
-    {
       "ConcreteType": "Dynamo.Graph.Nodes.CodeBlockNodeModel, DynamoCore",
       "NodeType": "CodeBlockNode",
-      "Code": "\"MULTI-DECK DAIRY\";",
+      "Code": "\"SERVICE SANDWICH\";",
       "Id": "f9b7a517877f40c39a94e6897ef1b640",
       "Inputs": [],
       "Outputs": [
         {
-          "Id": "3485a47a6c32419397a119c4166ef680",
+          "Id": "72ed69fcafff4795b29cd29342e53ff8",
           "Name": "",
           "Description": "Value of expression at line 1",
           "UsingDefaultValue": false,
@@ -1673,85 +1027,14 @@
       "Description": "Allows for DesignScript code to be authored directly"
     },
     {
-      "ConcreteType": "CoreNodeModels.Watch, CoreNodeModels",
-      "NodeType": "ExtensionNode",
-      "Id": "228d0d19a1374cc5b8f862884ea938fe",
-      "Inputs": [
-        {
-          "Id": "62568bdb00b94c0fb7202781e3d5316a",
-          "Name": "",
-          "Description": "Node to show output from",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        }
-      ],
-      "Outputs": [
-        {
-          "Id": "20403a820925492d9594d1adb8353c3d",
-          "Name": "",
-          "Description": "Node output",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        }
-      ],
-      "Replication": "Disabled",
-      "Description": "Visualize the node's output"
-    },
-    {
-      "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
-      "NodeType": "PythonScriptNode",
-      "Code": "import clr\r\nclr.AddReference(\"RevitAPI\")\r\nclr.AddReference(\"RevitServices\")\r\nfrom Autodesk.Revit.DB import *\r\nfrom RevitServices.Persistence import DocumentManager\r\nimport re\r\n\r\n# Inputs\r\ndoc = DocumentManager.Instance.CurrentDBDocument\r\nlegend_view = UnwrapElement(IN[0])  # Legend View input\r\ntarget_sub_header_text = IN[1]  # The sub-header text to extract (e.g., \"MULTI-DECK FROZEN FOOD\")\r\n\r\n# Collect all TextNote elements in the Legend View\r\ncollector = FilteredElementCollector(doc, legend_view.Id).OfClass(TextNote)\r\ntext_notes = []\r\n\r\nfor text_note in collector:\r\n    location = text_note.Coord  # XYZ location of the Text Note\r\n    element_data = {\r\n        \"ElementId\": text_note.Id.IntegerValue,\r\n        \"Text\": text_note.Text,\r\n        \"Location\": location\r\n    }\r\n    text_notes.append(element_data)\r\n\r\n# Preprocess the target text to remove extra whitespace and normalize line breaks\r\ntarget_sub_header_text_clean = re.sub(r'\\s+', ' ', target_sub_header_text.strip()).upper()\r\n\r\n# Group text notes by rows (based on Y-coordinate)\r\ntolerance = 0.1  # Tolerance for determining whether two text notes are in the same row\r\nrows = []\r\n\r\nfor text_note in text_notes:\r\n    y_coord = text_note[\"Location\"].Y\r\n    found_row = False\r\n    for row in rows:\r\n        if abs(row[0][\"Location\"].Y - y_coord) < tolerance:\r\n            row.append(text_note)\r\n            found_row = True\r\n            break\r\n    if not found_row:\r\n        rows.append([text_note])\r\n\r\n# Sort rows by Y-coordinate (descending order for top to bottom)\r\nsorted_rows = sorted(rows, key=lambda r: -r[0][\"Location\"].Y)\r\n\r\n# Sort elements within each row by X-coordinate (ascending order for left to right)\r\nfor row in sorted_rows:\r\n    row.sort(key=lambda e: e[\"Location\"].X)\r\n\r\n# Find the row that matches the target sub-header text\r\ntarget_row_data = None\r\n\r\nfor row in sorted_rows:\r\n    # Check each element in the row to find the target text\r\n    for element in row:\r\n        element_text_clean = re.sub(r'\\s+', ' ', element[\"Text\"].strip()).upper()\r\n        if element_text_clean == target_sub_header_text_clean:\r\n            target_row_data = row\r\n            break\r\n    if target_row_data:\r\n        break\r\n\r\n# Output the matched row (sub-header row)\r\nOUT = target_row_data\r\n",
-      "Engine": "CPython3",
-      "EngineName": "CPython3",
-      "VariableInputPorts": true,
-      "Id": "7780b1378bbb4dcfbd34b5a81abf7a88",
-      "Inputs": [
-        {
-          "Id": "59cf80af784f4902a8387344c7c7108c",
-          "Name": "IN[0]",
-          "Description": "Input #0",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        },
-        {
-          "Id": "ad9713e294ef4eb0a1df5a084082b2f7",
-          "Name": "IN[1]",
-          "Description": "Input #1",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        }
-      ],
-      "Outputs": [
-        {
-          "Id": "027c3189f57b4188a3e95c3b8d1d1487",
-          "Name": "OUT",
-          "Description": "Result of the python script",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        }
-      ],
-      "Replication": "Disabled",
-      "Description": "Runs an embedded Python script."
-    },
-    {
       "ConcreteType": "Dynamo.Graph.Nodes.CodeBlockNodeModel, DynamoCore",
       "NodeType": "CodeBlockNode",
-      "Code": "\"MULTI-DECK MEAT\";",
+      "Code": "\"LOW PROFILE DELI CASE\";",
       "Id": "d619319848c64235a3f11c9bbb3d0865",
       "Inputs": [],
       "Outputs": [
         {
-          "Id": "cd41aeaa8f7c47a1ba232dc9587d3926",
+          "Id": "61018bb64e504b5292f83dfee1d4cdd3",
           "Name": "",
           "Description": "Value of expression at line 1",
           "UsingDefaultValue": false,
@@ -1762,58 +1045,16 @@
       ],
       "Replication": "Disabled",
       "Description": "Allows for DesignScript code to be authored directly"
-    },
-    {
-      "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
-      "NodeType": "PythonScriptNode",
-      "Code": "import clr\r\nclr.AddReference(\"RevitAPI\")\r\nclr.AddReference(\"RevitServices\")\r\nfrom Autodesk.Revit.DB import *\r\nfrom RevitServices.Persistence import DocumentManager\r\nimport re\r\n\r\n# Inputs\r\ndoc = DocumentManager.Instance.CurrentDBDocument\r\nlegend_view = UnwrapElement(IN[0])  # Legend View input\r\ntarget_sub_header_text = IN[1]  # The sub-header text to extract (e.g., \"MULTI-DECK FROZEN FOOD\")\r\n\r\n# Collect all TextNote elements in the Legend View\r\ncollector = FilteredElementCollector(doc, legend_view.Id).OfClass(TextNote)\r\ntext_notes = []\r\n\r\nfor text_note in collector:\r\n    location = text_note.Coord  # XYZ location of the Text Note\r\n    element_data = {\r\n        \"ElementId\": text_note.Id.IntegerValue,\r\n        \"Text\": text_note.Text,\r\n        \"Location\": location\r\n    }\r\n    text_notes.append(element_data)\r\n\r\n# Preprocess the target text to remove extra whitespace and normalize line breaks\r\ntarget_sub_header_text_clean = re.sub(r'\\s+', ' ', target_sub_header_text.strip()).upper()\r\n\r\n# Group text notes by rows (based on Y-coordinate)\r\ntolerance = 0.1  # Tolerance for determining whether two text notes are in the same row\r\nrows = []\r\n\r\nfor text_note in text_notes:\r\n    y_coord = text_note[\"Location\"].Y\r\n    found_row = False\r\n    for row in rows:\r\n        if abs(row[0][\"Location\"].Y - y_coord) < tolerance:\r\n            row.append(text_note)\r\n            found_row = True\r\n            break\r\n    if not found_row:\r\n        rows.append([text_note])\r\n\r\n# Sort rows by Y-coordinate (descending order for top to bottom)\r\nsorted_rows = sorted(rows, key=lambda r: -r[0][\"Location\"].Y)\r\n\r\n# Sort elements within each row by X-coordinate (ascending order for left to right)\r\nfor row in sorted_rows:\r\n    row.sort(key=lambda e: e[\"Location\"].X)\r\n\r\n# Find the row that matches the target sub-header text\r\ntarget_row_data = None\r\n\r\nfor row in sorted_rows:\r\n    # Check each element in the row to find the target text\r\n    for element in row:\r\n        element_text_clean = re.sub(r'\\s+', ' ', element[\"Text\"].strip()).upper()\r\n        if element_text_clean == target_sub_header_text_clean:\r\n            target_row_data = row\r\n            break\r\n    if target_row_data:\r\n        break\r\n\r\n# Output the matched row (sub-header row)\r\nOUT = target_row_data\r\n",
-      "Engine": "CPython3",
-      "EngineName": "CPython3",
-      "VariableInputPorts": true,
-      "Id": "a08244fc71484def9724cd7ee39a6b3a",
-      "Inputs": [
-        {
-          "Id": "396e373a689e48fbb711329ac8ba4e1a",
-          "Name": "IN[0]",
-          "Description": "Input #0",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        },
-        {
-          "Id": "8543805b15dc46c6808b1e93196a2e3f",
-          "Name": "IN[1]",
-          "Description": "Input #1",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        }
-      ],
-      "Outputs": [
-        {
-          "Id": "6284ff89bb1a4990a73efae1caaba60b",
-          "Name": "OUT",
-          "Description": "Result of the python script",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        }
-      ],
-      "Replication": "Disabled",
-      "Description": "Runs an embedded Python script."
     },
     {
       "ConcreteType": "Dynamo.Graph.Nodes.CodeBlockNodeModel, DynamoCore",
       "NodeType": "CodeBlockNode",
-      "Code": "\"SERVICE SEAFOOD & MEAT\";",
+      "Code": "\"SERVICE SEAFOOD\";",
       "Id": "902790c34aa24395a0bc7a3f243e6e87",
       "Inputs": [],
       "Outputs": [
         {
-          "Id": "db269162b1504f498bfb827829338793",
+          "Id": "a6f1bad98a38462c9118c4eaa945c30e",
           "Name": "",
           "Description": "Value of expression at line 1",
           "UsingDefaultValue": false,
@@ -1826,67 +1067,9 @@
       "Description": "Allows for DesignScript code to be authored directly"
     },
     {
-      "ConcreteType": "CoreNodeModels.Watch, CoreNodeModels",
-      "NodeType": "ExtensionNode",
-      "Id": "c4b45831aafd469d82914a31b3203d01",
-      "Inputs": [
-        {
-          "Id": "5d870af658fe41e2a5aee19a3cfa06d7",
-          "Name": "",
-          "Description": "Node to show output from",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        }
-      ],
-      "Outputs": [
-        {
-          "Id": "300c5289399a4b8c9f3b2fadc132f87b",
-          "Name": "",
-          "Description": "Node output",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        }
-      ],
-      "Replication": "Disabled",
-      "Description": "Visualize the node's output"
-    },
-    {
-      "ConcreteType": "CoreNodeModels.Watch, CoreNodeModels",
-      "NodeType": "ExtensionNode",
-      "Id": "e49a7b1567b3401984f7573a8509bcb8",
-      "Inputs": [
-        {
-          "Id": "5b82fb41a164447b8b88ed74c8c42619",
-          "Name": "",
-          "Description": "Node to show output from",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        }
-      ],
-      "Outputs": [
-        {
-          "Id": "cceb9ac6422d4f9984e36ec5e28fca4d",
-          "Name": "",
-          "Description": "Node output",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        }
-      ],
-      "Replication": "Disabled",
-      "Description": "Visualize the node's output"
-    },
-    {
       "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
       "NodeType": "PythonScriptNode",
-      "Code": "import re\r\n\r\n# Input from Excel Import Node\r\nexcel_data = IN[0]  # Input Excel data (deeply nested structure)\r\ntarget_sub_header_text = IN[1]  # The sub-header text we are looking for\r\n\r\n# Clean the target text to remove extra spaces, normalize line breaks, and convert to upper case\r\ntarget_sub_header_text_clean = re.sub(r'\\s+', ' ', target_sub_header_text.strip()).upper()\r\n\r\noutput_data = []\r\n\r\n# Function to flatten nested lists\r\ndef flatten_list(data):\r\n    flat_list = []\r\n    if isinstance(data, list):\r\n        for item in data:\r\n            flat_list.extend(flatten_list(item))\r\n    else:\r\n        flat_list.append(data)\r\n    return flat_list\r\n\r\n# Flatten the deeply nested list structure to access the actual rows\r\nflattened_data = flatten_list(excel_data)\r\n\r\n# Iterate through the flattened data to find rows (each row is a list)\r\nfor row in flattened_data:\r\n    if isinstance(row, list) and len(row) >= 2:\r\n        subcategory = row[1]\r\n\r\n        # Check if the subcategory is a string and is not None\r\n        if subcategory is not None and isinstance(subcategory, str):\r\n            # Normalize the text for consistent comparison\r\n            subcategory_clean = re.sub(r'\\s+', ' ', subcategory.strip()).upper()\r\n\r\n            # Debugging: Print the cleaned sub-header to see exactly what we are matching\r\n            print(f\"Sub-Header in Row: '{subcategory_clean}'\")\r\n            print(f\"Target Sub-Header: '{target_sub_header_text_clean}'\")\r\n\r\n            # Final matching check\r\n            if target_sub_header_text_clean == subcategory_clean:\r\n                output_data = row\r\n                break\r\n\r\n# Output the transformed data focusing on the specific sub-header\r\nOUT = output_data if output_data else f\"No matching sub-header found for: '{target_sub_header_text_clean}'\"\r\n",
+      "Code": "import clr\r\nclr.AddReference(\"RevitAPI\")\r\nclr.AddReference(\"RevitServices\")\r\nfrom Autodesk.Revit.DB import *\r\nfrom RevitServices.Persistence import DocumentManager\r\nimport re\r\n\r\n# Inputs\r\ndoc = DocumentManager.Instance.CurrentDBDocument\r\nlegend_views = IN[0]  # List of Legend View inputs, expected to be a list with one or more elements\r\n\r\n# Check and handle if the input is in the expected format\r\nif isinstance(legend_views, list) and len(legend_views) > 0:\r\n    # Extract the first element (assuming it is a Legend View)\r\n    legend_view = UnwrapElement(legend_views[0])\r\nelse:\r\n    # If the input does not match the expected format, return an error message\r\n    OUT = \"Error: Expected a list with at least one Legend View.\"\r\n    # Prevent the rest of the code from executing if input is incorrect\r\n    import sys\r\n    sys.exit()\r\n\r\n# Proceed with the rest of the script\r\ntarget_sub_header_text = IN[1]  # The sub-header text to extract (e.g., \"MULTI-DECK FROZEN FOOD\")\r\n\r\n# Collect all TextNote elements in the Legend View\r\ncollector = FilteredElementCollector(doc, legend_view.Id).OfClass(TextNote)\r\ntext_notes = []\r\n\r\nfor text_note in collector:\r\n    location = text_note.Coord  # XYZ location of the Text Note\r\n    element_data = {\r\n        \"ElementId\": text_note.Id.IntegerValue,\r\n        \"Text\": text_note.Text,\r\n        \"Location\": location\r\n    }\r\n    text_notes.append(element_data)\r\n\r\n# Preprocess the target text to remove extra whitespace and normalize line breaks\r\ntarget_sub_header_text_clean = re.sub(r'\\s+', ' ', target_sub_header_text.strip()).upper()\r\n\r\n# Group text notes by rows (based on Y-coordinate)\r\ntolerance = 0.1  # Tolerance for determining whether two text notes are in the same row\r\nrows = []\r\n\r\nfor text_note in text_notes:\r\n    y_coord = text_note[\"Location\"].Y\r\n    found_row = False\r\n    for row in rows:\r\n        if abs(row[0][\"Location\"].Y - y_coord) < tolerance:\r\n            row.append(text_note)\r\n            found_row = True\r\n            break\r\n    if not found_row:\r\n        rows.append([text_note])\r\n\r\n# Sort rows by Y-coordinate (descending order for top to bottom)\r\nsorted_rows = sorted(rows, key=lambda r: -r[0][\"Location\"].Y)\r\n\r\n# Sort elements within each row by X-coordinate (ascending order for left to right)\r\nfor row in sorted_rows:\r\n    row.sort(key=lambda e: e[\"Location\"].X)\r\n\r\n# Find the row that matches the target sub-header text\r\ntarget_row_data = None\r\n\r\nfor row in sorted_rows:\r\n    # Check each element in the row to find the target text\r\n    for element in row:\r\n        element_text_clean = re.sub(r'\\s+', ' ', element[\"Text\"].strip()).upper()\r\n        if element_text_clean == target_sub_header_text_clean:\r\n            target_row_data = row\r\n            break\r\n    if target_row_data:\r\n        break\r\n\r\n# Output the matched row (sub-header row) if found, otherwise output a helpful message\r\nif target_row_data:\r\n    OUT = target_row_data\r\nelse:\r\n    OUT = f\"No matching sub-header found for: '{target_sub_header_text}'.\"\r\n",
       "Engine": "CPython3",
       "EngineName": "CPython3",
       "VariableInputPorts": true,
@@ -2037,68 +1220,6 @@
       "Description": "Selection between a true and false."
     },
     {
-      "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
-      "NodeType": "PythonScriptNode",
-      "Code": "# Input from Excel Import Node (with readAsString=True assumed)\r\nraw_excel_data = IN[0]\r\n\r\n# Step 1: Inspect Level 1\r\nif isinstance(raw_excel_data, list):\r\n    OUT = f\"Level 1: {len(raw_excel_data)} elements\"\r\n    OUT = raw_excel_data\r\nelse:\r\n    OUT = \"Unexpected structure at Level 1\"\r\n\r\n# After running this script, please inspect the output and provide some details, such as:\r\n# - The number of elements at Level 1\r\n# - Are they lists or something else?\r\n",
-      "Engine": "CPython3",
-      "EngineName": "CPython3",
-      "VariableInputPorts": true,
-      "Id": "08e09f5d431c48ccb0ffc4604d9807cf",
-      "Inputs": [
-        {
-          "Id": "0d28a8e28d3f4289b25e7410ed20e4d1",
-          "Name": "IN[0]",
-          "Description": "Input #0",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        }
-      ],
-      "Outputs": [
-        {
-          "Id": "d348e8ee811d48139f41865bc76f37b7",
-          "Name": "OUT",
-          "Description": "Result of the python script",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        }
-      ],
-      "Replication": "Disabled",
-      "Description": "Runs an embedded Python script."
-    },
-    {
-      "ConcreteType": "CoreNodeModels.Watch, CoreNodeModels",
-      "NodeType": "ExtensionNode",
-      "Id": "5619f6911e63465695378a5545162b37",
-      "Inputs": [
-        {
-          "Id": "90de3427e28a4c33bec69cf99035e160",
-          "Name": "",
-          "Description": "Node to show output from",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        }
-      ],
-      "Outputs": [
-        {
-          "Id": "63f3aa981e3940dbbf8081c80120a9a2",
-          "Name": "",
-          "Description": "Node output",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        }
-      ],
-      "Replication": "Disabled",
-      "Description": "Visualize the node's output"
-    },
-    {
       "ConcreteType": "Dynamo.Graph.Nodes.ZeroTouch.DSFunction, DynamoCore",
       "NodeType": "FunctionNode",
       "FunctionSignature": "DSCore.List.Flatten@var[]..[],int",
@@ -2185,109 +1306,659 @@
       ],
       "Replication": "Disabled",
       "Description": "Visualize the node's output"
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Watch, CoreNodeModels",
+      "NodeType": "ExtensionNode",
+      "Id": "ddeac9d2c1e04721a8d03a99fc603c71",
+      "Inputs": [
+        {
+          "Id": "024ce6913517447c968f0f83400c695c",
+          "Name": "",
+          "Description": "Node to show output from",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "ef52d78cffdc4c48baacf4731b94de01",
+          "Name": "",
+          "Description": "Node output",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Visualize the node's output"
+    },
+    {
+      "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
+      "NodeType": "PythonScriptNode",
+      "Code": "import clr\r\nclr.AddReference('RevitServices')\r\nclr.AddReference('RevitAPI')\r\nclr.AddReference('RevitNodes')\r\n\r\nimport Revit\r\nfrom RevitServices.Persistence import DocumentManager\r\nfrom RevitServices.Transactions import TransactionManager\r\nimport Revit.Elements as RevitElements\r\nfrom Revit.Elements import TextNote as RevitTextNote\r\nclr.ImportExtensions(Revit.Elements)\r\nclr.AddReference(\"RevitAPIUI\")\r\nfrom Autodesk.Revit.DB import FilteredElementCollector, Viewport, BuiltInCategory, TextNote, View, ViewType, ElementId\r\nimport re\r\n\r\n# Dynamo Inputs\r\ndoc = DocumentManager.Instance.CurrentDBDocument\r\n\r\n# Handle direct input of view_id, ensuring it's treated properly as an integer ElementId\r\nview_id_input = IN[0]\r\n\r\n# Ensure the input is a valid single value (e.g., if it is a list, extract the first element)\r\nif isinstance(view_id_input, list) and len(view_id_input) > 0:\r\n    view_id_input = view_id_input[0]\r\n\r\n# Check if the input is already an integer or can be converted to an integer\r\nif isinstance(view_id_input, ElementId):\r\n    view_id = view_id_input\r\nelif isinstance(view_id_input, int):\r\n    view_id = ElementId(view_id_input)\r\nelif isinstance(view_id_input, str) and view_id_input.isdigit():\r\n    view_id = ElementId(int(view_id_input))\r\nelse:\r\n    raise TypeError(\"view_id_input must be an ElementId, int, or a numeric string\")\r\n\r\n# Collect all TextNote elements in the specified view\r\ncollector = FilteredElementCollector(doc, view_id).OfClass(TextNote)\r\nall_text_notes = []\r\n\r\n# Extract data from each TextNote\r\nfor text_note in collector:\r\n    location = text_note.Coord  # XYZ location of the Text Note\r\n    element_data = {\r\n        \"ElementId\": text_note.Id.IntegerValue,\r\n        \"Text\": text_note.Text.strip(),\r\n        \"Location\": location\r\n    }\r\n    all_text_notes.append(element_data)\r\n\r\n# Step 3: Group TextNotes by rows and columns\r\ntolerance = 0.1  # Tolerance for grouping elements by rows\r\nrows = []\r\n\r\n# Organize text notes into rows based on Y-coordinate\r\nfor text_note in all_text_notes:\r\n    y_coord = text_note[\"Location\"].Y\r\n    found_row = False\r\n    for row in rows:\r\n        if abs(row[0][\"Location\"].Y - y_coord) < tolerance:\r\n            row.append(text_note)\r\n            found_row = True\r\n            break\r\n    if not found_row:\r\n        rows.append([text_note])\r\n\r\n# Sort rows by Y-coordinate (descending order for top-to-bottom)\r\nrows = sorted(rows, key=lambda r: -r[0][\"Location\"].Y)\r\n\r\n# Sort text notes within each row by X-coordinate (ascending order for left-to-right)\r\nfor row in rows:\r\n    row.sort(key=lambda tn: tn[\"Location\"].X)\r\n\r\n# Gather all sub-header inputs dynamically\r\nsub_headers = [str(IN[i]).strip() for i in range(1, len(IN))]  # Strip any leading/trailing whitespace or line breaks\r\nsub_headers_cleaned = [re.sub(r'\\s+', ' ', sh.strip()).upper() for sh in sub_headers]  # Clean sub-header inputs\r\n\r\n# Step 4: Extract data for each sub-header\r\nsub_header_data = []\r\n\r\nfor sub_header in sub_headers_cleaned:\r\n    matched_rows = []\r\n\r\n    # Find all rows that match the sub-header, ensuring we are not mistakenly matching headers\r\n    for row in rows:\r\n        for text_note in row:\r\n            note_text_clean = re.sub(r'\\s+', ' ', text_note[\"Text\"].strip()).upper()\r\n            # Ensure an exact match with the sub-header\r\n            if sub_header == note_text_clean:\r\n                matched_rows.append(row)\r\n                break\r\n\r\n    # If matching rows are found, extract the type, existing, proposed, and variation values for each matched row\r\n    if matched_rows:\r\n        for matched_row in matched_rows:\r\n            # Extract Type, Existing, Proposed, and Variation from the matched row\r\n            type_value = \"Type Not Found\"\r\n            existing_value, proposed_value, variation_value = \"Not Found\", \"Not Found\", \"Not Found\"\r\n            existing_index, proposed_index, variation_index = \"Not Found\", \"Not Found\", \"Not Found\"\r\n\r\n            for text_note in matched_row:\r\n                note_text = text_note[\"Text\"].strip().upper()\r\n\r\n                # Determine Type (e.g., LF, SLF, DR)\r\n                type_match = re.search(r'\\b(LF|SLF|DR)\\b', note_text)\r\n                if type_match:\r\n                    type_value = type_match.group(1)\r\n\r\n                # Determine Existing, Proposed, and Variation Values\r\n                if \"EXISTING\" in note_text:\r\n                    existing_value = note_text\r\n                    existing_index = text_note[\"ElementId\"]\r\n                elif \"PROPOSED\" in note_text:\r\n                    proposed_value = note_text\r\n                    proposed_index = text_note[\"ElementId\"]\r\n                elif \"VARIATION\" in note_text:\r\n                    variation_value = note_text\r\n                    variation_index = text_note[\"ElementId\"]\r\n\r\n            # Compile the extracted information for the sub-header\r\n            sub_header_entry = [\r\n                sub_header,          # Sub-Header\r\n                [\r\n                    matched_row[0][\"Text\"] if matched_row else \"No Matching Sub-Header\",  # The matching TextNote or \"No Matching Sub-Header\"\r\n                    type_value,          # Type\r\n                    existing_value,      # Existing Value\r\n                    existing_index,      # Existing Index\r\n                    proposed_value,      # Proposed Value\r\n                    proposed_index,      # Proposed Index\r\n                    variation_value,     # Variation Value\r\n                    variation_index      # Variation Index\r\n                ]\r\n            ]\r\n            sub_header_data.append(sub_header_entry)\r\n    else:\r\n        # If no matching row is found, append a \"not found\" entry\r\n        sub_header_data.append([\r\n            sub_header,    # Sub-Header\r\n            [\r\n                \"No Matching Sub-Header\",\r\n                \"Type Not Found\",\r\n                \"Existing Value Not Found\",\r\n                \"Existing Index Not Found\",\r\n                \"Proposed Value Not Found\",\r\n                \"Proposed Index Not Found\",\r\n                \"Variation Not Found\",\r\n                \"Variation Index Not Found\"\r\n            ]\r\n        ])\r\n\r\n# Output the collected sub-header data as a list of lists\r\nOUT = sub_header_data\r\n",
+      "Engine": "CPython3",
+      "EngineName": "CPython3",
+      "VariableInputPorts": true,
+      "Id": "b54b254b83814a9daa5a76ef6fe73914",
+      "Inputs": [
+        {
+          "Id": "82ca6d0ef9404db78371fcd9902a5bc3",
+          "Name": "IN[0]",
+          "Description": "Input #0",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "e79ac66b89114eeea6acab641013daca",
+          "Name": "IN[1]",
+          "Description": "Input #1",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "dd9d6275f2874b8bb1815fa524885e95",
+          "Name": "IN[2]",
+          "Description": "Input #2",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "38fbfbae86e94781af16e041f256123f",
+          "Name": "IN[3]",
+          "Description": "Input #3",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "51c776b24f4f433fbae3256f835355e0",
+          "Name": "IN[4]",
+          "Description": "Input #4",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "3c16d5518233472e977ea9c0829aeb20",
+          "Name": "IN[5]",
+          "Description": "Input #5",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "cdcde1b100e1473cb84111980b0996da",
+          "Name": "IN[6]",
+          "Description": "Input #6",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "a01d90de84e544d98676426dc7aad74d",
+          "Name": "IN[7]",
+          "Description": "Input #7",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "6b6e174c48b242268e198746c8c72626",
+          "Name": "IN[8]",
+          "Description": "Input #8",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "6e3dc7ae02754f6eb648b3c434c1cb09",
+          "Name": "IN[9]",
+          "Description": "Input #9",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "798324b9e15549bfae107c67c3eb3c1b",
+          "Name": "IN[10]",
+          "Description": "Input #10",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "ca969a88ac264eb08d5c382857d2cc83",
+          "Name": "IN[11]",
+          "Description": "Input #11",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "8183dfc45f0c4593bfcf399376087600",
+          "Name": "IN[12]",
+          "Description": "Input #12",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "23c7ba53f2754828822061e2c5e1e492",
+          "Name": "IN[13]",
+          "Description": "Input #13",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "1ad3284c44804c4a98f23d5255f73d1c",
+          "Name": "IN[14]",
+          "Description": "Input #14",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "6d3104591d794f96ab8697ebe572140b",
+          "Name": "IN[15]",
+          "Description": "Input #15",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "fe037be420774352a116a01d8f71bf6b",
+          "Name": "IN[16]",
+          "Description": "Input #16",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "2759d33eafb54c79b2475b53f16ec05a",
+          "Name": "IN[17]",
+          "Description": "Input #17",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "367a291bcc6743e0b99e7d41db195d84",
+          "Name": "IN[18]",
+          "Description": "Input #18",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "dee68453bca445ecad3c149ee2db922a",
+          "Name": "IN[19]",
+          "Description": "Input #19",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "8ab9cedd034940f395eeeff01b140612",
+          "Name": "IN[20]",
+          "Description": "Input #20",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "e4a6e9482db34df38f68cf33607bc527",
+          "Name": "IN[21]",
+          "Description": "Input #21",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "3788e15d879a4f0990ccc93311c14657",
+          "Name": "IN[22]",
+          "Description": "Input #22",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "886d3bdf47374b9fb8b7a414394c03ae",
+          "Name": "IN[23]",
+          "Description": "Input #23",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "bf3a76b77e36434d93db6bfe6a7fc18a",
+          "Name": "IN[24]",
+          "Description": "Input #24",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "4756aa9938ba4506b0cf940b0f7652b5",
+          "Name": "IN[25]",
+          "Description": "Input #25",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "82ba2f483d3b4c2b84c1f878b752d00a",
+          "Name": "OUT",
+          "Description": "Result of the python script",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Runs an embedded Python script."
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Watch, CoreNodeModels",
+      "NodeType": "ExtensionNode",
+      "Id": "656d43b8ba9c49f4aceb9ff05f278e95",
+      "Inputs": [
+        {
+          "Id": "1651df4c0ac845359503219174dfa799",
+          "Name": "",
+          "Description": "Node to show output from",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "5fc2a3ef0e124238aafc7f590cd3e8c7",
+          "Name": "",
+          "Description": "Node output",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Visualize the node's output"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CodeBlockNodeModel, DynamoCore",
+      "NodeType": "CodeBlockNode",
+      "Code": "\"MULTI-DECK SINGLE SERVE BEV\";",
+      "Id": "3fccb7f831494c59b042d71d2d597245",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "79f49f6a2472427a87863abc2b7b0c54",
+          "Name": "",
+          "Description": "Value of expression at line 1",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Allows for DesignScript code to be authored directly"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CodeBlockNodeModel, DynamoCore",
+      "NodeType": "CodeBlockNode",
+      "Code": "\"MULTI-DECK PREMIUM WINE\";",
+      "Id": "df0b91556a024b58b543ba738ea5578e",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "37fd76d092e549dbacb439f9546670dc",
+          "Name": "",
+          "Description": "Value of expression at line 1",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Allows for DesignScript code to be authored directly"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CodeBlockNodeModel, DynamoCore",
+      "NodeType": "CodeBlockNode",
+      "Code": "\"TOTAL MULTI-DECK DAIRY & MEAT/DELI\";",
+      "Id": "ebaef8739585496087b116efe2fed28c",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "0c3b2723bc1d486880a4d2a1bdedfd45",
+          "Name": "",
+          "Description": "Value of expression at line 1",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Allows for DesignScript code to be authored directly"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CodeBlockNodeModel, DynamoCore",
+      "NodeType": "CodeBlockNode",
+      "Code": "X;",
+      "Id": "0f9f9970b9094fd1b7ae35b77fdb1c3a",
+      "Inputs": [
+        {
+          "Id": "29d2d1d3c3db4d239c784b00d35ae2b8",
+          "Name": "X",
+          "Description": "X",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "d9ac546eb4174b02bf00de8165e076d9",
+          "Name": "",
+          "Description": "Value of expression at line 1",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Allows for DesignScript code to be authored directly"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CodeBlockNodeModel, DynamoCore",
+      "NodeType": "CodeBlockNode",
+      "Code": "X;",
+      "Id": "2e95efc000ed4104a41c0a3e46144313",
+      "Inputs": [
+        {
+          "Id": "6e1014f652d047d4b81f3c7bb0d9a868",
+          "Name": "X",
+          "Description": "X",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "8ea1cb3edbae4d908acc493f02d3e85b",
+          "Name": "",
+          "Description": "Value of expression at line 1",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Allows for DesignScript code to be authored directly"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CodeBlockNodeModel, DynamoCore",
+      "NodeType": "CodeBlockNode",
+      "Code": "\"MULTI-DECK BEER / WINE\";",
+      "Id": "8bcef8e73f1b456baf6c604c919bae02",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "50a12ab6e4e3470183ea18eabd293594",
+          "Name": "",
+          "Description": "Value of expression at line 1",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Allows for DesignScript code to be authored directly"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CodeBlockNodeModel, DynamoCore",
+      "NodeType": "CodeBlockNode",
+      "Code": "\"SERVICE MEAT\";",
+      "Id": "dc2784132eb4462e86eccc8cc7e068ea",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "c329a1be8bc4498c9aeb12033b9b3852",
+          "Name": "",
+          "Description": "Value of expression at line 1",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Allows for DesignScript code to be authored directly"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CodeBlockNodeModel, DynamoCore",
+      "NodeType": "CodeBlockNode",
+      "Code": "\"MULTI-DECK MEAT\";",
+      "Id": "717a4e86a03c4d81b05b7b5fcb7a3616",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "689650ac73504237a201967e5ffb043f",
+          "Name": "",
+          "Description": "Value of expression at line 1",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Allows for DesignScript code to be authored directly"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CodeBlockNodeModel, DynamoCore",
+      "NodeType": "CodeBlockNode",
+      "Code": "\"SERVICE DELI COLD CASE\";",
+      "Id": "883006e357c54bc3a6b34ee8063554b5",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "7ab6da3f07c04dc78748bcff447f9dbd",
+          "Name": "",
+          "Description": "Value of expression at line 1",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Allows for DesignScript code to be authored directly"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CodeBlockNodeModel, DynamoCore",
+      "NodeType": "CodeBlockNode",
+      "Code": "X;",
+      "Id": "622d98ce1b6641a598fb69095e644ac0",
+      "Inputs": [
+        {
+          "Id": "05a17a9af7b7448087cc8d6c10cd2d6e",
+          "Name": "X",
+          "Description": "X",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "c4fbaa39c28a46908d72327e706a1d52",
+          "Name": "",
+          "Description": "Value of expression at line 1",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Allows for DesignScript code to be authored directly"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.ZeroTouch.DSFunction, DynamoCore",
+      "NodeType": "FunctionNode",
+      "FunctionSignature": "DSCore.List.GetItemAtIndex@var[]..[],int",
+      "Id": "63eef6bce06249bab070daf9c5e1c1e0",
+      "Inputs": [
+        {
+          "Id": "134c1a67b6674d9db8093d61734f6d68",
+          "Name": "list",
+          "Description": "List to fetch an item from.\n\nvar[]..[]",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": true,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "c17a194fa93f4ea7afabcdbd485c041c",
+          "Name": "index",
+          "Description": "Index of the item to be fetched.\n\nint",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "ff22d000a43e45d6b73e84b634d703d6",
+          "Name": "item",
+          "Description": "Item in the list at the given index.",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Auto",
+      "Description": "Returns an item from the given list that's located at the specified index.\n\nList.GetItemAtIndex (list: var[]..[], index: int): var[]..[]"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CodeBlockNodeModel, DynamoCore",
+      "NodeType": "CodeBlockNode",
+      "Code": "1;",
+      "Id": "9b2bec3bc0b8468095e67b9fe3b09468",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "2f8f28c2e7914fc88b2b07046a783330",
+          "Name": "",
+          "Description": "Value of expression at line 1",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Allows for DesignScript code to be authored directly"
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Watch, CoreNodeModels",
+      "NodeType": "ExtensionNode",
+      "Id": "f072918e8f464881a2503be245d847e2",
+      "Inputs": [
+        {
+          "Id": "bd049a6a28de4eddb4a63950c45e9999",
+          "Name": "",
+          "Description": "Node to show output from",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "60d5186254f141a986a6f7357b31a6ba",
+          "Name": "",
+          "Description": "Node output",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Visualize the node's output"
     }
   ],
   "Connectors": [
     {
-      "Start": "8af77140335f41e18d174df8ac0e5574",
+      "Start": "35a2b9551d4740e889666a0e638ddee8",
       "End": "16068f94dad24d9b8e86cf66242121ad",
-      "Id": "fc489a2981fc4230bdade53457f319c2",
+      "Id": "897b127404b04450b9ceb84af72e76dc",
       "IsHidden": "False"
     },
     {
       "Start": "93d9b2a22db147c1a9d88d435429e845",
-      "End": "424f7130fcbf41229f582c914f1ccee3",
-      "Id": "a908ea275a224882abe67767dbb7f6e8",
+      "End": "024ce6913517447c968f0f83400c695c",
+      "Id": "9b24e02e43fc447f966c4de7b8e81dca",
       "IsHidden": "False"
     },
     {
       "Start": "93d9b2a22db147c1a9d88d435429e845",
-      "End": "1cacd9d1d0104208910c17f91b0b82f8",
-      "Id": "cff3486c91354d6ebccc520475142118",
-      "IsHidden": "False"
-    },
-    {
-      "Start": "93d9b2a22db147c1a9d88d435429e845",
-      "End": "f7040a41c5bd4b1db4c38004260845fb",
-      "Id": "58a47f583b5044d09373d780b841dfb3",
-      "IsHidden": "False"
-    },
-    {
-      "Start": "93d9b2a22db147c1a9d88d435429e845",
-      "End": "6e451e5478a94e90ba3447190e89fe6e",
-      "Id": "700e1e1d333940d6a09a0d482d04dd9a",
-      "IsHidden": "False"
-    },
-    {
-      "Start": "93d9b2a22db147c1a9d88d435429e845",
-      "End": "0df789eb261d4d95a3ed88f4d239f067",
-      "Id": "46eb99a52edb465f9aedf27c7129acc8",
-      "IsHidden": "False"
-    },
-    {
-      "Start": "93d9b2a22db147c1a9d88d435429e845",
-      "End": "3c786a4ba56f4599b774fc5da1ab73a0",
-      "Id": "47c71a6899a547c3981b40f2d07744a3",
-      "IsHidden": "False"
-    },
-    {
-      "Start": "93d9b2a22db147c1a9d88d435429e845",
-      "End": "5fc406585d514424843479d7421c9818",
-      "Id": "ce36a8bb1ecc41d8b947b43975118239",
-      "IsHidden": "False"
-    },
-    {
-      "Start": "93d9b2a22db147c1a9d88d435429e845",
-      "End": "eacdd1fc85ec4a08be03996e297a4aee",
-      "Id": "2dcc71fb6b4041e09f8d4069d04de4ca",
-      "IsHidden": "False"
-    },
-    {
-      "Start": "93d9b2a22db147c1a9d88d435429e845",
-      "End": "662ea279bd074a3ab7253cb22ba150ee",
-      "Id": "6b786734f41546fbb6ae0f82d7645f02",
-      "IsHidden": "False"
-    },
-    {
-      "Start": "93d9b2a22db147c1a9d88d435429e845",
-      "End": "44d89c51e179479c8b3864a58be27178",
-      "Id": "846844507ff74f93b5f65923ddff2c31",
-      "IsHidden": "False"
-    },
-    {
-      "Start": "93d9b2a22db147c1a9d88d435429e845",
-      "End": "a917354c928345388cdfa0144c8773d8",
-      "Id": "1b6bd35d555447cfb3bd281b83c06a14",
-      "IsHidden": "False"
-    },
-    {
-      "Start": "93d9b2a22db147c1a9d88d435429e845",
-      "End": "d9d3529b4f63477ea379d1521974fe34",
-      "Id": "786c3512bbca4824afa1e18f7fb77375",
-      "IsHidden": "False"
-    },
-    {
-      "Start": "93d9b2a22db147c1a9d88d435429e845",
-      "End": "963c99216cc243aaa1394dbf17da848f",
-      "Id": "35d4727013a84a2abaa42513978d1944",
-      "IsHidden": "False"
-    },
-    {
-      "Start": "93d9b2a22db147c1a9d88d435429e845",
-      "End": "0a14875a1f714971ba13ba25945dc1b1",
-      "Id": "92b6245f774349b291cd40efaa117545",
-      "IsHidden": "False"
-    },
-    {
-      "Start": "93d9b2a22db147c1a9d88d435429e845",
-      "End": "59cf80af784f4902a8387344c7c7108c",
-      "Id": "8108c300ac4a4983834cec0fddb37952",
-      "IsHidden": "False"
-    },
-    {
-      "Start": "93d9b2a22db147c1a9d88d435429e845",
-      "End": "396e373a689e48fbb711329ac8ba4e1a",
-      "Id": "a575f49dedf647d39299b45267c7a295",
+      "End": "134c1a67b6674d9db8093d61734f6d68",
+      "Id": "920aebb14ead4f269b544484839f0ac7",
       "IsHidden": "False"
     },
     {
@@ -2300,18 +1971,6 @@
       "Start": "2fe93ddf962443598310de08bb3f6d11",
       "End": "7ab0e259cfed4bd1b4e2a8b25d3bcc88",
       "Id": "86c83f210be944d08125da204e4f2a55",
-      "IsHidden": "False"
-    },
-    {
-      "Start": "ea2cd0d3a07944dd9ed531bf6b969614",
-      "End": "8ac3815b8bf24755b57aede1b38300fd",
-      "Id": "a27a4d3f8ff64b4181b4342ae8a8dc93",
-      "IsHidden": "False"
-    },
-    {
-      "Start": "ea2cd0d3a07944dd9ed531bf6b969614",
-      "End": "0d28a8e28d3f4289b25e7410ed20e4d1",
-      "Id": "ccb4f46b9d624ca59314affb5c495fd7",
       "IsHidden": "False"
     },
     {
@@ -2377,7 +2036,7 @@
     {
       "Start": "52450eb6183d438587066cdde5fe45bc",
       "End": "5e74f31659d14bb8bf4ad0e3a051f615",
-      "Id": "239425f6803443bdac2f990c14631982",
+      "Id": "a78b84e090634e0494f9ebd4f46cde98",
       "IsHidden": "False"
     },
     {
@@ -2441,129 +2100,111 @@
       "IsHidden": "False"
     },
     {
-      "Start": "8fd3002c053f47079f0de7f84cc4bd6f",
-      "End": "5b82fb41a164447b8b88ed74c8c42619",
-      "Id": "18dfb1c6bf9049af87aba4af3848d1e7",
+      "Start": "653745e16eab4086beb817098b34e004",
+      "End": "e79ac66b89114eeea6acab641013daca",
+      "Id": "ebfcacaa6b364a47bfeec3be50f24c3f",
       "IsHidden": "False"
     },
     {
-      "Start": "376e5c20c2a64f42bb6706be57ffd549",
-      "End": "67909dc92e3d4d328c360d8c0ff467ee",
-      "Id": "3f60e0c8155548b88db42b6ed3613d09",
-      "IsHidden": "False"
-    },
-    {
-      "Start": "376e5c20c2a64f42bb6706be57ffd549",
-      "End": "6ac2457ba1c241eebdb828ead64db507",
-      "Id": "24b288ceb6dd4391aec87eccb6e1e597",
-      "IsHidden": "False"
-    },
-    {
-      "Start": "d05c05d837cf465691c46a7e480339a2",
-      "End": "859ac191ef44439aaccbde733c1053d7",
-      "Id": "c3b33721a5df4e4b94f4b1f6cc41ed89",
+      "Start": "4a0017d14dcf4cf992c7dd4154bde71d",
+      "End": "51c776b24f4f433fbae3256f835355e0",
+      "Id": "95c0e84f2ff444aba1d1af0ce9442f7b",
       "IsHidden": "False"
     },
     {
       "Start": "8cfc272f21d54a82bc6babc9dc056776",
-      "End": "7f5acc31bfb14b07abe635bd030e14f8",
-      "Id": "c7dd4b69712e43a38772087d18392853",
+      "End": "798324b9e15549bfae107c67c3eb3c1b",
+      "Id": "2f9c9ad364e245cebd774cafb426c5ec",
       "IsHidden": "False"
     },
     {
       "Start": "ba03bd4bb32945efbda2f116c0c979b3",
-      "End": "a6c44b7733c74b74a427dee3c5d6f799",
-      "Id": "1cf5b1f8a7dc4d538c3724e2e1fe535b",
+      "End": "3788e15d879a4f0990ccc93311c14657",
+      "Id": "861919e4f47245a2ac2d85274ff5eccc",
       "IsHidden": "False"
     },
     {
       "Start": "7d1b32703f0b4e7a87f156540f2b757f",
-      "End": "4f2a5d9ec9c546ebadac6e18bd6c7d9b",
-      "Id": "06ed50ad4bf9416c853dd9cb5ecdc420",
+      "End": "29d2d1d3c3db4d239c784b00d35ae2b8",
+      "Id": "d3b2643591cd44baa90fdeeb209248e3",
       "IsHidden": "False"
     },
     {
-      "Start": "1db683f1d4f54bd3a58bd766a1b4fc0b",
-      "End": "d83af7dfcdbc4dff93f092742ea5c8a9",
-      "Id": "bd82bdedace64a229403ba1d44dfe33c",
+      "Start": "7d1b32703f0b4e7a87f156540f2b757f",
+      "End": "6e1014f652d047d4b81f3c7bb0d9a868",
+      "Id": "0be5874332664e26977b58874c28ee19",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "7d1b32703f0b4e7a87f156540f2b757f",
+      "End": "05a17a9af7b7448087cc8d6c10cd2d6e",
+      "Id": "ee6e3444320545c094aef0b45bb20144",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "f92e3c32a92949129aecaeeccdcf1f56",
+      "End": "886d3bdf47374b9fb8b7a414394c03ae",
+      "Id": "7e357d22fcfc4f84bb37a6914996a394",
       "IsHidden": "False"
     },
     {
       "Start": "8e3a139bc56a424791c0398c36924ebb",
-      "End": "befb23bc42b342218bfaba9841edea9e",
-      "Id": "cc07835b592b4d71a9190d6429dca4dc",
+      "End": "4756aa9938ba4506b0cf940b0f7652b5",
+      "Id": "03a88bee1fef493185a07f247c62107a",
       "IsHidden": "False"
     },
     {
       "Start": "47d56151416c424fb332d4ffb3d19fcb",
-      "End": "1ee1b63d7ef84abbb4dd160205f77c87",
-      "Id": "4534fa2b06bd494188072c32a3217470",
+      "End": "8ab9cedd034940f395eeeff01b140612",
+      "Id": "7477422111264ecea2b8d6ba9b2f2f0c",
       "IsHidden": "False"
     },
     {
       "Start": "50a575ef92884c5d9ebdcdfa0fa58ec6",
-      "End": "7349413cc9fd4ee2b2db407a2a1e7881",
-      "Id": "19edb20f88bb4e94bfc3ad87abfc8887",
+      "End": "e4a6e9482db34df38f68cf33607bc527",
+      "Id": "a9e051c488bd4380aa313ea76ea93299",
       "IsHidden": "False"
     },
     {
       "Start": "93a2fbcad8424170a84b8862589fb677",
-      "End": "09a8b641b49146f698a8b167d4b72cf7",
-      "Id": "1e9d15df768c4420923c40d9a5b8c2af",
+      "End": "dee68453bca445ecad3c149ee2db922a",
+      "Id": "a9e81d0c8d4849af99b3ed05a9c660f4",
       "IsHidden": "False"
     },
     {
-      "Start": "71156d903df34375bcfcc8caf5ab824d",
-      "End": "e65cfefae1aa4dbaaf0c3ad21c31f696",
-      "Id": "e5195c85cd5a49cc801fbe8e737d9305",
+      "Start": "c9fc4bb4835841279124e2300e4a2049",
+      "End": "6e3dc7ae02754f6eb648b3c434c1cb09",
+      "Id": "96f05accb1814b40b85d2bbfff6814ca",
       "IsHidden": "False"
     },
     {
-      "Start": "33211f5def1840e490839fd1bca78761",
-      "End": "1e301d1b9acd476fbbe686961023aef6",
-      "Id": "37891901315049108164eb06c3a35cf7",
+      "Start": "4db20d8b777c4617a2dcef9f08469181",
+      "End": "6b6e174c48b242268e198746c8c72626",
+      "Id": "398348ae3f254b99a928d57e51e2f5d4",
       "IsHidden": "False"
     },
     {
-      "Start": "4bdef30e9fe842528da7c00c12d38bae",
-      "End": "131207cb64e14b34917ba2898077befd",
-      "Id": "45189754c2fa406794e2bddd14b15d26",
+      "Start": "8e02897e782a487497e5e1b6f02d892c",
+      "End": "3c16d5518233472e977ea9c0829aeb20",
+      "Id": "1350b4887ea043a4abb719271569040c",
       "IsHidden": "False"
     },
     {
-      "Start": "125bb003c421474eab9a5c6fd155df72",
-      "End": "d753b1112a11414792749c9f9f25973f",
-      "Id": "ce846e0980fc449ba99bb00f713e747c",
+      "Start": "72ed69fcafff4795b29cd29342e53ff8",
+      "End": "cdcde1b100e1473cb84111980b0996da",
+      "Id": "fa41755d922c4c4c8dd63b8168358292",
       "IsHidden": "False"
     },
     {
-      "Start": "3485a47a6c32419397a119c4166ef680",
-      "End": "aea25ae4bd5a4142a484b67101cbf4d0",
-      "Id": "2e75e981a9ae45c6b021d322fe5da8f8",
+      "Start": "61018bb64e504b5292f83dfee1d4cdd3",
+      "End": "a01d90de84e544d98676426dc7aad74d",
+      "Id": "31b3d5a7a0f5465fb73f45b7d79d33f0",
       "IsHidden": "False"
     },
     {
-      "Start": "027c3189f57b4188a3e95c3b8d1d1487",
-      "End": "62568bdb00b94c0fb7202781e3d5316a",
-      "Id": "5750aeb3a2f04133a57b54a146745cc3",
-      "IsHidden": "False"
-    },
-    {
-      "Start": "cd41aeaa8f7c47a1ba232dc9587d3926",
-      "End": "ad9713e294ef4eb0a1df5a084082b2f7",
-      "Id": "4a01ef9f05074fefb075d8d965f6dede",
-      "IsHidden": "False"
-    },
-    {
-      "Start": "6284ff89bb1a4990a73efae1caaba60b",
-      "End": "5d870af658fe41e2a5aee19a3cfa06d7",
-      "Id": "7c34c775b1e1447dad86939317374bba",
-      "IsHidden": "False"
-    },
-    {
-      "Start": "db269162b1504f498bfb827829338793",
-      "End": "8543805b15dc46c6808b1e93196a2e3f",
-      "Id": "305a25ba42c44381b01735c6416412a2",
+      "Start": "a6f1bad98a38462c9118c4eaa945c30e",
+      "End": "8183dfc45f0c4593bfcf399376087600",
+      "Id": "1c4a228e54704ab889aa0a9b57102331",
       "IsHidden": "False"
     },
     {
@@ -2591,12 +2232,6 @@
       "IsHidden": "False"
     },
     {
-      "Start": "d348e8ee811d48139f41865bc76f37b7",
-      "End": "90de3427e28a4c33bec69cf99035e160",
-      "Id": "5a61852368c8461d9c26faef2dde41b9",
-      "IsHidden": "False"
-    },
-    {
       "Start": "e23d8f36bb484e0db8c6726f3dc0ca2a",
       "End": "8261491bc9ae4a8f8a45e2bae54d6f83",
       "Id": "bb56dc69255a42d7ae2a862634bebd34",
@@ -2613,6 +2248,90 @@
       "End": "e768ec966a3f4bfa9e8de75a870839a3",
       "Id": "2d981b7b57fc4280bbbae7461ac3902d",
       "IsHidden": "False"
+    },
+    {
+      "Start": "82ba2f483d3b4c2b84c1f878b752d00a",
+      "End": "1651df4c0ac845359503219174dfa799",
+      "Id": "a6108b155286468ca74cf03fccf877a7",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "79f49f6a2472427a87863abc2b7b0c54",
+      "End": "dd9d6275f2874b8bb1815fa524885e95",
+      "Id": "9d9ad99bffd64855ae43f369b2ef32aa",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "37fd76d092e549dbacb439f9546670dc",
+      "End": "fe037be420774352a116a01d8f71bf6b",
+      "Id": "1dca2f32d74347f88d9e1a6a0ceb9ab6",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "0c3b2723bc1d486880a4d2a1bdedfd45",
+      "End": "ca969a88ac264eb08d5c382857d2cc83",
+      "Id": "ea4d57f70b2f4c8687001b6b245ff686",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "d9ac546eb4174b02bf00de8165e076d9",
+      "End": "bf3a76b77e36434d93db6bfe6a7fc18a",
+      "Id": "3375c599dad74ae99ed163006f66f65d",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "8ea1cb3edbae4d908acc493f02d3e85b",
+      "End": "2759d33eafb54c79b2475b53f16ec05a",
+      "Id": "447bf40fb7c042c6a3179c9cf7e7ec4d",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "50a12ab6e4e3470183ea18eabd293594",
+      "End": "6d3104591d794f96ab8697ebe572140b",
+      "Id": "92d158f9b20346f4b4b264a1cb178270",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "c329a1be8bc4498c9aeb12033b9b3852",
+      "End": "23c7ba53f2754828822061e2c5e1e492",
+      "Id": "a96f17306c1d4a64820a9cad92e3895b",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "689650ac73504237a201967e5ffb043f",
+      "End": "1ad3284c44804c4a98f23d5255f73d1c",
+      "Id": "9b822f37eed146fe8aa2d19807941666",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "7ab6da3f07c04dc78748bcff447f9dbd",
+      "End": "38fbfbae86e94781af16e041f256123f",
+      "Id": "77b6480725ff44398ccd40b0094fb605",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "c4fbaa39c28a46908d72327e706a1d52",
+      "End": "367a291bcc6743e0b99e7d41db195d84",
+      "Id": "c854039603344a25ace89c29d5f24465",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "ff22d000a43e45d6b73e84b634d703d6",
+      "End": "bd049a6a28de4eddb4a63950c45e9999",
+      "Id": "036988d1cdda4e54a1ea3ddbcb0467c8",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "2f8f28c2e7914fc88b2b07046a783330",
+      "End": "c17a194fa93f4ea7afabcdbd485c041c",
+      "Id": "95db06fe24ee48589d43140c02e7047a",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "60d5186254f141a986a6f7357b31a6ba",
+      "End": "82ca6d0ef9404db78371fcd9902a5bc3",
+      "Id": "b04de815713d4373b935f285b9c96e46",
+      "IsHidden": "False"
     }
   ],
   "Dependencies": [],
@@ -2626,7 +2345,7 @@
       ]
     },
     {
-      "Name": "BasePlan_63K.rvt",
+      "Name": "SS_3556_(3556) Concept_11-18-2024.rvt",
       "ReferenceType": "External",
       "Nodes": [
         "b03b5de533ad46d1946cfb01737f875c"
@@ -2662,7 +2381,7 @@
       "ScaleFactor": 1.0,
       "HasRunWithoutCrash": true,
       "IsVisibleInDynamoLibrary": true,
-      "Version": "2.16.2.5624",
+      "Version": "2.16.4.10216",
       "RunType": "Automatic",
       "RunPeriod": "1000"
     },
@@ -2687,8 +2406,8 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 318.13016482311582,
-        "Y": 5424.2778770470459
+        "X": 3984.6906107526415,
+        "Y": 3255.4210082848149
       },
       {
         "Name": "Python Script",
@@ -2697,8 +2416,8 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 589.0328915181401,
-        "Y": 5424.109122250883
+        "X": 4611.5467563625916,
+        "Y": 3257.1504257801448
       },
       {
         "Name": "Boolean",
@@ -2931,54 +2650,14 @@
         "Y": 138.42727235441907
       },
       {
-        "Name": "Watch",
-        "ShowGeometry": true,
-        "Id": "1ab8c488dc8d449a867be35376a6604e",
-        "IsSetAsInput": false,
-        "IsSetAsOutput": false,
-        "Excluded": false,
-        "X": 1972.9978440080749,
-        "Y": -538.90866172677943
-      },
-      {
-        "Name": "Python Script",
-        "ShowGeometry": true,
-        "Id": "73c9b09e50bb4f1a860c600349c41e13",
-        "IsSetAsInput": false,
-        "IsSetAsOutput": false,
-        "Excluded": false,
-        "X": 3953.6685853866593,
-        "Y": 837.38638274246784
-      },
-      {
-        "Name": "Watch",
-        "ShowGeometry": true,
-        "Id": "285b5387a3ff43529037ef0f868bb348",
-        "IsSetAsInput": false,
-        "IsSetAsOutput": false,
-        "Excluded": false,
-        "X": 4707.2755336893915,
-        "Y": 3201.8841503008293
-      },
-      {
         "Name": "Code Block",
         "ShowGeometry": true,
         "Id": "895a19fa868b492ebfc5ec6ac6ebfd70",
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 3511.5256027810492,
-        "Y": 1033.0966901001775
-      },
-      {
-        "Name": "Python Script",
-        "ShowGeometry": true,
-        "Id": "158fe3300c874088b64cf09150e0618f",
-        "IsSetAsInput": false,
-        "IsSetAsOutput": false,
-        "Excluded": false,
-        "X": 4374.307729467203,
-        "Y": 2251.76182347333
+        "X": 3973.03538612042,
+        "Y": 3912.03019883408
       },
       {
         "Name": "Code Block",
@@ -2987,18 +2666,8 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 3994.307729467203,
-        "Y": 2285.5893234733294
-      },
-      {
-        "Name": "Python Script",
-        "ShowGeometry": true,
-        "Id": "219dac865c4e4ac49bf83e60b654abdb",
-        "IsSetAsInput": false,
-        "IsSetAsOutput": false,
-        "Excluded": false,
-        "X": 4353.0893004926475,
-        "Y": 5484.0069332603716
+        "X": 3987.9779660451495,
+        "Y": 4683.7674396874709
       },
       {
         "Name": "Code Block",
@@ -3007,18 +2676,8 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 3973.089300492647,
-        "Y": 5517.834433260372
-      },
-      {
-        "Name": "Python Script",
-        "ShowGeometry": true,
-        "Id": "2c180ec36e0245b7808a39b371ee0957",
-        "IsSetAsInput": false,
-        "IsSetAsOutput": false,
-        "Excluded": false,
-        "X": 4360.4810871511918,
-        "Y": 7203.7559343143248
+        "X": 3987.7983293014545,
+        "Y": 5688.5797964182429
       },
       {
         "Name": "Code Block",
@@ -3027,18 +2686,8 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 3980.4810871511918,
-        "Y": 7237.5834343143242
-      },
-      {
-        "Name": "Python Script",
-        "ShowGeometry": true,
-        "Id": "faf87c64ac90437f86a6d3adcbfe672b",
-        "IsSetAsInput": false,
-        "IsSetAsOutput": false,
-        "Excluded": false,
-        "X": 4373.1312526003057,
-        "Y": 8208.85212505699
+        "X": 3994.4701559619443,
+        "Y": 7842.1659128596721
       },
       {
         "Name": "Code Block",
@@ -3047,18 +2696,8 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 3993.1312526003057,
-        "Y": 8242.67962505699
-      },
-      {
-        "Name": "Python Script",
-        "ShowGeometry": true,
-        "Id": "70c746f883d345e099b213073de25bf3",
-        "IsSetAsInput": false,
-        "IsSetAsOutput": false,
-        "Excluded": false,
-        "X": 4364.5980436781892,
-        "Y": 7895.0196635880175
+        "X": 3046.9801872258768,
+        "Y": 7705.3776365457634
       },
       {
         "Name": "Code Block",
@@ -3067,18 +2706,8 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 3984.5980436781892,
-        "Y": 7928.8471635880169
-      },
-      {
-        "Name": "Python Script",
-        "ShowGeometry": true,
-        "Id": "83b8b14724844cf19fdfdf116d59ab16",
-        "IsSetAsInput": false,
-        "IsSetAsOutput": false,
-        "Excluded": false,
-        "X": 4373.1312526003057,
-        "Y": 8531.0502778689479
+        "X": 3994.8073957072793,
+        "Y": 8123.3371846043156
       },
       {
         "Name": "Code Block",
@@ -3087,18 +2716,8 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 3993.1312526003057,
-        "Y": 8564.8777778689473
-      },
-      {
-        "Name": "Python Script",
-        "ShowGeometry": true,
-        "Id": "208b54a4a92e47c4b037eece2d74ced4",
-        "IsSetAsInput": false,
-        "IsSetAsOutput": false,
-        "Excluded": false,
-        "X": 4361.6831932357118,
-        "Y": 6879.5399254054628
+        "X": 3994.8073957072793,
+        "Y": 8428.5079462505855
       },
       {
         "Name": "Code Block",
@@ -3107,18 +2726,8 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 3981.6831932357118,
-        "Y": 6913.3674254054631
-      },
-      {
-        "Name": "Python Script",
-        "ShowGeometry": true,
-        "Id": "d6182a2d8bcc4627937619d968935160",
-        "IsSetAsInput": false,
-        "IsSetAsOutput": false,
-        "Excluded": false,
-        "X": 4364.3245488266311,
-        "Y": 6559.93589890417
+        "X": 3994.4701559619443,
+        "Y": 7539.5644788249683
       },
       {
         "Name": "Code Block",
@@ -3127,18 +2736,8 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 3984.3245488266311,
-        "Y": 6593.76339890417
-      },
-      {
-        "Name": "Python Script",
-        "ShowGeometry": true,
-        "Id": "57c53797855c4931996cee0badb4c193",
-        "IsSetAsInput": false,
-        "IsSetAsOutput": false,
-        "Excluded": false,
-        "X": 4368.1693387064242,
-        "Y": 6240.818338881314
+        "X": 3994.4701559619443,
+        "Y": 7689.2822781482419
       },
       {
         "Name": "Code Block",
@@ -3147,18 +2746,8 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 3988.1693387064247,
-        "Y": 6274.6458388813135
-      },
-      {
-        "Name": "Python Script",
-        "ShowGeometry": true,
-        "Id": "fcdb6fdcacce4f849b104b238d2f9079",
-        "IsSetAsInput": false,
-        "IsSetAsOutput": false,
-        "Excluded": false,
-        "X": 4356.9675701830038,
-        "Y": 5167.9279534963189
+        "X": 3994.4701559619443,
+        "Y": 7388.8180412101674
       },
       {
         "Name": "Code Block",
@@ -3167,18 +2756,8 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 3976.9675701830033,
-        "Y": 5201.75545349632
-      },
-      {
-        "Name": "Python Script",
-        "ShowGeometry": true,
-        "Id": "fc1aca49769d4debb80087cae2b454f4",
-        "IsSetAsInput": false,
-        "IsSetAsOutput": false,
-        "Excluded": false,
-        "X": 4360.84583987336,
-        "Y": 4838.275029816019
+        "X": 3987.7983293014545,
+        "Y": 5546.0333233036645
       },
       {
         "Name": "Code Block",
@@ -3187,18 +2766,8 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 3980.84583987336,
-        "Y": 4872.1025298160293
-      },
-      {
-        "Name": "Python Script",
-        "ShowGeometry": true,
-        "Id": "311ec44902cd41258169dfd7ba5dceb3",
-        "IsSetAsInput": false,
-        "IsSetAsOutput": false,
-        "Excluded": false,
-        "X": 4383.0173732523226,
-        "Y": 2892.4193195434118
+        "X": 3987.9779660451495,
+        "Y": 5284.4688482099655
       },
       {
         "Name": "Code Block",
@@ -3207,18 +2776,8 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 4050.0173732523226,
-        "Y": 2926.2468195434117
-      },
-      {
-        "Name": "Python Script",
-        "ShowGeometry": true,
-        "Id": "8f27b398eea74dca853a9cc87bdb9816",
-        "IsSetAsInput": false,
-        "IsSetAsOutput": false,
-        "Excluded": false,
-        "X": 4394.9404902863489,
-        "Y": 3223.6964024092595
+        "X": 3987.9779660451495,
+        "Y": 4832.6927918180945
       },
       {
         "Name": "Code Block",
@@ -3227,28 +2786,8 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 4014.9404902863489,
-        "Y": 3257.52390240926
-      },
-      {
-        "Name": "Watch",
-        "ShowGeometry": true,
-        "Id": "228d0d19a1374cc5b8f862884ea938fe",
-        "IsSetAsInput": false,
-        "IsSetAsOutput": false,
-        "Excluded": false,
-        "X": 4698.1667025881907,
-        "Y": 4182.601632196468
-      },
-      {
-        "Name": "Python Script",
-        "ShowGeometry": true,
-        "Id": "7780b1378bbb4dcfbd34b5a81abf7a88",
-        "IsSetAsInput": false,
-        "IsSetAsOutput": false,
-        "Excluded": false,
-        "X": 4385.8316591851508,
-        "Y": 4204.4138843048986
+        "X": 3987.9779660451495,
+        "Y": 4986.6181439487182
       },
       {
         "Name": "Code Block",
@@ -3257,18 +2796,8 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 4005.8316591851508,
-        "Y": 4238.241384304898
-      },
-      {
-        "Name": "Python Script",
-        "ShowGeometry": true,
-        "Id": "a08244fc71484def9724cd7ee39a6b3a",
-        "IsSetAsInput": false,
-        "IsSetAsOutput": false,
-        "Excluded": false,
-        "X": 4373.9085421511209,
-        "Y": 3873.1368014390482
+        "X": 3987.9779660451495,
+        "Y": 5135.5434960793418
       },
       {
         "Name": "Code Block",
@@ -3277,28 +2806,8 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 4040.9085421511209,
-        "Y": 3906.9643014390481
-      },
-      {
-        "Name": "Watch",
-        "ShowGeometry": true,
-        "Id": "c4b45831aafd469d82914a31b3203d01",
-        "IsSetAsInput": false,
-        "IsSetAsOutput": false,
-        "Excluded": false,
-        "X": 4699.5341779668788,
-        "Y": 3751.8468879098491
-      },
-      {
-        "Name": "Watch",
-        "ShowGeometry": true,
-        "Id": "e49a7b1567b3401984f7573a8509bcb8",
-        "IsSetAsInput": false,
-        "IsSetAsOutput": false,
-        "Excluded": false,
-        "X": 4239.4127655870006,
-        "Y": 840.17955059085318
+        "X": 3989.0841938702411,
+        "Y": 6132.108621776797
       },
       {
         "Name": "Python Script",
@@ -3306,7 +2815,7 @@
         "Id": "8026e15f504041d6bdead0d32f5b556f",
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
-        "Excluded": false,
+        "Excluded": true,
         "X": 3954.5198793922527,
         "Y": 1193.7954199394976
       },
@@ -3317,8 +2826,8 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 4246.36719068164,
-        "Y": 1192.3958878387816
+        "X": 4320.1409548956281,
+        "Y": 1194.4740220419926
       },
       {
         "Name": "Python Script",
@@ -3351,26 +2860,6 @@
         "Y": 548.917151282577
       },
       {
-        "Name": "Python Script",
-        "ShowGeometry": true,
-        "Id": "08e09f5d431c48ccb0ffc4604d9807cf",
-        "IsSetAsInput": false,
-        "IsSetAsOutput": false,
-        "Excluded": false,
-        "X": 1984.109332715168,
-        "Y": -722.86691976634438
-      },
-      {
-        "Name": "Watch",
-        "ShowGeometry": true,
-        "Id": "5619f6911e63465695378a5545162b37",
-        "IsSetAsInput": false,
-        "IsSetAsOutput": false,
-        "Excluded": false,
-        "X": 2293.927939824051,
-        "Y": -721.74292832102469
-      },
-      {
         "Name": "List.Flatten",
         "ShowGeometry": true,
         "Id": "f1b0c997360a429f9c0f48b05e14bb45",
@@ -3399,6 +2888,166 @@
         "Excluded": false,
         "X": 2350.4219834375549,
         "Y": 881.92015457936679
+      },
+      {
+        "Name": "Watch",
+        "ShowGeometry": true,
+        "Id": "ddeac9d2c1e04721a8d03a99fc603c71",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 4835.9656167388912,
+        "Y": 3524.1706377497949
+      },
+      {
+        "Name": "Process Revit Legend",
+        "ShowGeometry": true,
+        "Id": "b54b254b83814a9daa5a76ef6fe73914",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 6964.0675798342581,
+        "Y": 5833.914272302788
+      },
+      {
+        "Name": "Watch",
+        "ShowGeometry": true,
+        "Id": "656d43b8ba9c49f4aceb9ff05f278e95",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 7440.2586527958592,
+        "Y": 5891.82556874998
+      },
+      {
+        "Name": "Code Block",
+        "ShowGeometry": true,
+        "Id": "3fccb7f831494c59b042d71d2d597245",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 3979.8229787669738,
+        "Y": 4251.4481638692623
+      },
+      {
+        "Name": "Code Block",
+        "ShowGeometry": true,
+        "Id": "df0b91556a024b58b543ba738ea5578e",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 3988.408055896015,
+        "Y": 6844.4158968621468
+      },
+      {
+        "Name": "Code Block",
+        "ShowGeometry": true,
+        "Id": "ebaef8739585496087b116efe2fed28c",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 3987.7983293014545,
+        "Y": 5831.1262695328214
+      },
+      {
+        "Name": "WINE / LIQUOR LF",
+        "ShowGeometry": true,
+        "Id": "0f9f9970b9094fd1b7ae35b77fdb1c3a",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 3994.8073957072793,
+        "Y": 8275.6683215174671
+      },
+      {
+        "Name": "WINE / LIQUOR LF",
+        "ShowGeometry": true,
+        "Id": "2e95efc000ed4104a41c0a3e46144313",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 3995.5722635790421,
+        "Y": 6995.3482499088259
+      },
+      {
+        "Name": "Code Block",
+        "ShowGeometry": true,
+        "Id": "8bcef8e73f1b456baf6c604c919bae02",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 3988.408055896015,
+        "Y": 6689.5771419512212
+      },
+      {
+        "Name": "Code Block",
+        "ShowGeometry": true,
+        "Id": "dc2784132eb4462e86eccc8cc7e068ea",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 3989.0841938702411,
+        "Y": 6275.645674974071
+      },
+      {
+        "Name": "Code Block",
+        "ShowGeometry": true,
+        "Id": "717a4e86a03c4d81b05b7b5fcb7a3616",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 3989.0841938702411,
+        "Y": 6423.0911390427409
+      },
+      {
+        "Name": "Code Block",
+        "ShowGeometry": true,
+        "Id": "883006e357c54bc3a6b34ee8063554b5",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 3987.9779660451495,
+        "Y": 4534.8420875568472
+      },
+      {
+        "Name": "WINE / LIQUOR SLF",
+        "ShowGeometry": true,
+        "Id": "622d98ce1b6641a598fb69095e644ac0",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 4002.477569380143,
+        "Y": 7130.0017130302649
+      },
+      {
+        "Name": "List.GetItemAtIndex",
+        "ShowGeometry": true,
+        "Id": "63eef6bce06249bab070daf9c5e1c1e0",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 5345.0277971579271,
+        "Y": 3210.5325238325236
+      },
+      {
+        "Name": "Code Block",
+        "ShowGeometry": true,
+        "Id": "9b2bec3bc0b8468095e67b9fe3b09468",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 5066.8822366574614,
+        "Y": 3318.5168745574529
+      },
+      {
+        "Name": "Watch",
+        "ShowGeometry": true,
+        "Id": "f072918e8f464881a2503be245d847e2",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 6460.1979131362268,
+        "Y": 5433.027479485977
       }
     ],
     "Annotations": [
@@ -3547,357 +3196,6 @@
         "Background": "#FFD4B6DB"
       },
       {
-        "Id": "e106528229b24a3eab7ba452717194b0",
-        "Title": "Sub-Header in Legend",
-        "DescriptionText": "<Double click here to edit group description>",
-        "IsExpanded": true,
-        "WidthAdjustment": 0.0,
-        "HeightAdjustment": 0.0,
-        "Nodes": [
-          "73c9b09e50bb4f1a860c600349c41e13"
-        ],
-        "HasNestedGroups": false,
-        "Left": 3943.6685853866593,
-        "Top": 668.38638274246784,
-        "Width": 210.30666666666667,
-        "Height": 331.0,
-        "FontSize": 36.0,
-        "InitialTop": 837.38638274246784,
-        "InitialHeight": 145.0,
-        "TextblockHeight": 159.0,
-        "Background": "#FFC1D676"
-      },
-      {
-        "Id": "432db4a6d9e7444cb8d635a018681701",
-        "Title": "Process Legend Sub-Header on Sheet",
-        "DescriptionText": "<Double click here to edit group description>",
-        "IsExpanded": true,
-        "WidthAdjustment": 0.0,
-        "HeightAdjustment": 0.0,
-        "Nodes": [
-          "158fe3300c874088b64cf09150e0618f",
-          "b241039a8e81427eb505a24044e6ca15"
-        ],
-        "HasNestedGroups": false,
-        "Left": 3984.307729467203,
-        "Top": 2135.76182347333,
-        "Width": 574.0,
-        "Height": 281.82749999999942,
-        "FontSize": 36.0,
-        "InitialTop": 2251.76182347333,
-        "InitialHeight": 178.82749999999942,
-        "TextblockHeight": 106.0,
-        "Background": "#FFC1D676"
-      },
-      {
-        "Id": "8ccd3a43284746d4a6304808fab7b108",
-        "Title": "Process Legend Sub-Header on Sheet",
-        "DescriptionText": "<Double click here to edit group description>",
-        "IsExpanded": true,
-        "WidthAdjustment": 0.0,
-        "HeightAdjustment": 0.0,
-        "Nodes": [
-          "219dac865c4e4ac49bf83e60b654abdb",
-          "34a3988ce124471f951c49e595d7bc53"
-        ],
-        "HasNestedGroups": false,
-        "Left": 3963.089300492647,
-        "Top": 5368.0069332603716,
-        "Width": 574.00000000000045,
-        "Height": 281.82750000000033,
-        "FontSize": 36.0,
-        "InitialTop": 5484.0069332603716,
-        "InitialHeight": 178.82750000000033,
-        "TextblockHeight": 106.0,
-        "Background": "#FFC1D676"
-      },
-      {
-        "Id": "b6eb1ac2f60f47f7870bfdd44c97ab37",
-        "Title": "Process Legend Sub-Header on Sheet",
-        "DescriptionText": "<Double click here to edit group description>",
-        "IsExpanded": true,
-        "WidthAdjustment": 0.0,
-        "HeightAdjustment": 0.0,
-        "Nodes": [
-          "2c180ec36e0245b7808a39b371ee0957",
-          "cc1ff340404c4c0da8366fd1cbc0d741"
-        ],
-        "HasNestedGroups": false,
-        "Left": 3970.4810871511918,
-        "Top": 7087.7559343143248,
-        "Width": 574.0,
-        "Height": 291.82749999999942,
-        "FontSize": 36.0,
-        "InitialTop": 7203.7559343143248,
-        "InitialHeight": 178.82749999999942,
-        "TextblockHeight": 106.0,
-        "Background": "#FFC1D676"
-      },
-      {
-        "Id": "beae7c89591d400cb2d2ac76d8acbbea",
-        "Title": "Process Legend Sub-Header on Sheet",
-        "DescriptionText": "<Double click here to edit group description>",
-        "IsExpanded": true,
-        "WidthAdjustment": 0.0,
-        "HeightAdjustment": 0.0,
-        "Nodes": [
-          "faf87c64ac90437f86a6d3adcbfe672b",
-          "b3a40c8b8b95415aa97e7c0e38806cc2"
-        ],
-        "HasNestedGroups": false,
-        "Left": 3983.1312526003057,
-        "Top": 8092.85212505699,
-        "Width": 574.0,
-        "Height": 281.82749999999942,
-        "FontSize": 36.0,
-        "InitialTop": 8208.85212505699,
-        "InitialHeight": 178.82749999999942,
-        "TextblockHeight": 106.0,
-        "Background": "#FFC1D676"
-      },
-      {
-        "Id": "a87db7ef27b149948f1faa6d9c227175",
-        "Title": "Process Legend Sub-Header on Sheet",
-        "DescriptionText": "<Double click here to edit group description>",
-        "IsExpanded": true,
-        "WidthAdjustment": 0.0,
-        "HeightAdjustment": 0.0,
-        "Nodes": [
-          "70c746f883d345e099b213073de25bf3",
-          "3439b7cae04146519c968d2a03532a01"
-        ],
-        "HasNestedGroups": false,
-        "Left": 3974.5980436781892,
-        "Top": 7779.0196635880175,
-        "Width": 574.0,
-        "Height": 281.82749999999942,
-        "FontSize": 36.0,
-        "InitialTop": 7895.0196635880175,
-        "InitialHeight": 178.82749999999942,
-        "TextblockHeight": 106.0,
-        "Background": "#FFC1D676"
-      },
-      {
-        "Id": "ee1cd89ee0a84dd3bbc41be70968af2c",
-        "Title": "Process Legend Sub-Header on Sheet",
-        "DescriptionText": "<Double click here to edit group description>",
-        "IsExpanded": true,
-        "WidthAdjustment": 0.0,
-        "HeightAdjustment": 0.0,
-        "Nodes": [
-          "83b8b14724844cf19fdfdf116d59ab16",
-          "8783637cb75b4225804feecbec433590"
-        ],
-        "HasNestedGroups": false,
-        "Left": 3983.1312526003057,
-        "Top": 8415.0502778689479,
-        "Width": 574.0,
-        "Height": 281.82749999999942,
-        "FontSize": 36.0,
-        "InitialTop": 8531.0502778689479,
-        "InitialHeight": 178.82749999999942,
-        "TextblockHeight": 106.0,
-        "Background": "#FFC1D676"
-      },
-      {
-        "Id": "f7f99e2a226d4c618e479218e73596d2",
-        "Title": "Process Legend Sub-Header on Sheet",
-        "DescriptionText": "<Double click here to edit group description>",
-        "IsExpanded": true,
-        "WidthAdjustment": 0.0,
-        "HeightAdjustment": 0.0,
-        "Nodes": [
-          "208b54a4a92e47c4b037eece2d74ced4",
-          "e8a5bcfd88254296abda623fa10b7087"
-        ],
-        "HasNestedGroups": false,
-        "Left": 3971.6831932357118,
-        "Top": 6763.5399254054628,
-        "Width": 574.0,
-        "Height": 281.82750000000033,
-        "FontSize": 36.0,
-        "InitialTop": 6879.5399254054628,
-        "InitialHeight": 178.82750000000033,
-        "TextblockHeight": 106.0,
-        "Background": "#FFC1D676"
-      },
-      {
-        "Id": "a17105df9d7942729ef2713645084c7e",
-        "Title": "Process Legend Sub-Header on Sheet",
-        "DescriptionText": "<Double click here to edit group description>",
-        "IsExpanded": true,
-        "WidthAdjustment": 0.0,
-        "HeightAdjustment": 0.0,
-        "Nodes": [
-          "d6182a2d8bcc4627937619d968935160",
-          "3f0262d8bdb14c2c8cfe40a685b20d4a"
-        ],
-        "HasNestedGroups": false,
-        "Left": 3974.3245488266311,
-        "Top": 6443.93589890417,
-        "Width": 574.0,
-        "Height": 281.82749999999942,
-        "FontSize": 36.0,
-        "InitialTop": 6559.93589890417,
-        "InitialHeight": 178.82749999999942,
-        "TextblockHeight": 106.0,
-        "Background": "#FFC1D676"
-      },
-      {
-        "Id": "d39a8b33170a4942aea3f85e5e23686a",
-        "Title": "Process Legend Sub-Header on Sheet",
-        "DescriptionText": "<Double click here to edit group description>",
-        "IsExpanded": true,
-        "WidthAdjustment": 0.0,
-        "HeightAdjustment": 0.0,
-        "Nodes": [
-          "57c53797855c4931996cee0badb4c193",
-          "0b90f619fc0f4292b3205be94b6c7a71"
-        ],
-        "HasNestedGroups": false,
-        "Left": 3978.1693387064247,
-        "Top": 6124.818338881314,
-        "Width": 573.99999999999955,
-        "Height": 281.82749999999942,
-        "FontSize": 36.0,
-        "InitialTop": 6240.818338881314,
-        "InitialHeight": 178.82749999999942,
-        "TextblockHeight": 106.0,
-        "Background": "#FFC1D676"
-      },
-      {
-        "Id": "3c27184a03f24508bcfa44060fd10047",
-        "Title": "Process Legend Sub-Header on Sheet",
-        "DescriptionText": "<Double click here to edit group description>",
-        "IsExpanded": true,
-        "WidthAdjustment": 0.0,
-        "HeightAdjustment": 0.0,
-        "Nodes": [
-          "fcdb6fdcacce4f849b104b238d2f9079",
-          "9f8a12cfa0114077b58d919ddee0c3ce"
-        ],
-        "HasNestedGroups": false,
-        "Left": 3966.9675701830033,
-        "Top": 5051.9279534963189,
-        "Width": 574.00000000000045,
-        "Height": 281.82750000000124,
-        "FontSize": 36.0,
-        "InitialTop": 5167.9279534963189,
-        "InitialHeight": 178.82750000000124,
-        "TextblockHeight": 106.0,
-        "Background": "#FFC1D676"
-      },
-      {
-        "Id": "59689b10f87f4151a26afbbd7a96b41f",
-        "Title": "Process Legend Sub-Header on Sheet",
-        "DescriptionText": "<Double click here to edit group description>",
-        "IsExpanded": true,
-        "WidthAdjustment": 0.0,
-        "HeightAdjustment": 0.0,
-        "Nodes": [
-          "fc1aca49769d4debb80087cae2b454f4",
-          "c66f92da073741d985d9adc48625e8d6"
-        ],
-        "HasNestedGroups": false,
-        "Left": 3970.84583987336,
-        "Top": 4722.275029816019,
-        "Width": 574.0,
-        "Height": 281.82750000001033,
-        "FontSize": 36.0,
-        "InitialTop": 4838.275029816019,
-        "InitialHeight": 178.82750000001033,
-        "TextblockHeight": 106.0,
-        "Background": "#FFC1D676"
-      },
-      {
-        "Id": "b285094d64ea4b5ea2de027e4883932e",
-        "Title": "Process Legend Sub-Header on Sheet",
-        "DescriptionText": "<Double click here to edit group description>",
-        "IsExpanded": true,
-        "WidthAdjustment": 0.0,
-        "HeightAdjustment": 0.0,
-        "Nodes": [
-          "311ec44902cd41258169dfd7ba5dceb3",
-          "d461cb57a48c4fb2aa2830708fa87b7f"
-        ],
-        "HasNestedGroups": false,
-        "Left": 4040.0173732523226,
-        "Top": 2776.4193195434118,
-        "Width": 527.0,
-        "Height": 291.82749999999987,
-        "FontSize": 36.0,
-        "InitialTop": 2892.4193195434118,
-        "InitialHeight": 178.82749999999987,
-        "TextblockHeight": 106.0,
-        "Background": "#FFC1D676"
-      },
-      {
-        "Id": "e75ca649ac5147d8984a0ec3a22ae100",
-        "Title": "Process Legend Sub-Header on Sheet",
-        "DescriptionText": "<Double click here to edit group description>",
-        "IsExpanded": true,
-        "WidthAdjustment": 0.0,
-        "HeightAdjustment": 0.0,
-        "Nodes": [
-          "8f27b398eea74dca853a9cc87bdb9816",
-          "f9b7a517877f40c39a94e6897ef1b640"
-        ],
-        "HasNestedGroups": false,
-        "Left": 4004.9404902863489,
-        "Top": 3107.6964024092595,
-        "Width": 574.0,
-        "Height": 281.82750000000033,
-        "FontSize": 36.0,
-        "InitialTop": 3223.6964024092595,
-        "InitialHeight": 178.82750000000033,
-        "TextblockHeight": 106.0,
-        "Background": "#FFC1D676"
-      },
-      {
-        "Id": "03fb69e2007f4992b7c14ed4f58fb315",
-        "Title": "Process Legend Sub-Header on Sheet",
-        "DescriptionText": "<Double click here to edit group description>",
-        "IsExpanded": true,
-        "WidthAdjustment": 0.0,
-        "HeightAdjustment": 0.0,
-        "Nodes": [
-          "7780b1378bbb4dcfbd34b5a81abf7a88",
-          "d619319848c64235a3f11c9bbb3d0865"
-        ],
-        "HasNestedGroups": false,
-        "Left": 3995.8316591851508,
-        "Top": 4088.4138843048986,
-        "Width": 574.0,
-        "Height": 281.82749999999942,
-        "FontSize": 36.0,
-        "InitialTop": 4204.4138843048986,
-        "InitialHeight": 178.82749999999942,
-        "TextblockHeight": 106.0,
-        "Background": "#FFC1D676"
-      },
-      {
-        "Id": "95bda9de04234b70a0fd1b33ac886ff2",
-        "Title": "Process Legend Sub-Header on Sheet",
-        "DescriptionText": "<Double click here to edit group description>",
-        "IsExpanded": true,
-        "WidthAdjustment": 0.0,
-        "HeightAdjustment": 0.0,
-        "Nodes": [
-          "a08244fc71484def9724cd7ee39a6b3a",
-          "902790c34aa24395a0bc7a3f243e6e87"
-        ],
-        "HasNestedGroups": false,
-        "Left": 4030.9085421511209,
-        "Top": 3757.1368014390482,
-        "Width": 527.0,
-        "Height": 281.82749999999987,
-        "FontSize": 36.0,
-        "InitialTop": 3873.1368014390482,
-        "InitialHeight": 178.82749999999987,
-        "TextblockHeight": 106.0,
-        "Background": "#FFC1D676"
-      },
-      {
         "Id": "864eb8e0d4db4069bafdb9d9198b7d94",
         "Title": "Sub-Header in Excel",
         "DescriptionText": "<Double click here to edit group description>",
@@ -3919,31 +3217,193 @@
         "Background": "#FFC1D676"
       },
       {
-        "Id": "8cb2c5c333044adeb80916ea4204b446",
-        "Title": "MULTI-DECK PRODUCE",
+        "Id": "0cc87fc402aa48f0bb0d3ed5c08492b2",
+        "Title": "SHELVING",
         "DescriptionText": "<Double click here to edit group description>",
         "IsExpanded": true,
         "WidthAdjustment": 0.0,
         "HeightAdjustment": 0.0,
         "Nodes": [
-          "895a19fa868b492ebfc5ec6ac6ebfd70",
-          "e106528229b24a3eab7ba452717194b0",
-          "864eb8e0d4db4069bafdb9d9198b7d94"
+          "3439b7cae04146519c968d2a03532a01",
+          "8783637cb75b4225804feecbec433590",
+          "0f9f9970b9094fd1b7ae35b77fdb1c3a"
         ],
-        "HasNestedGroups": true,
-        "Left": 3501.5256027810492,
-        "Top": 595.38638274246784,
-        "Width": 663.30094327786992,
-        "Height": 775.40903719702976,
+        "HasNestedGroups": false,
+        "Left": 3984.8073957072793,
+        "Top": 8050.3371846043156,
+        "Width": 292.0,
+        "Height": 510.17076164626997,
         "FontSize": 36.0,
-        "InitialTop": 668.38638274246784,
-        "InitialHeight": 546.40903719702976,
+        "InitialTop": 8123.3371846043156,
+        "InitialHeight": 457.17076164626997,
         "TextblockHeight": 63.0,
-        "Background": "#FFE8F7AD"
+        "Background": "#FFC1D676"
+      },
+      {
+        "Id": "0ca9780a5cf74f1ca87b66a71374ea85",
+        "Title": "FROZEN FOOD",
+        "DescriptionText": "<Double click here to edit group description>",
+        "IsExpanded": true,
+        "WidthAdjustment": 0.0,
+        "HeightAdjustment": 0.0,
+        "Nodes": [
+          "cc1ff340404c4c0da8366fd1cbc0d741",
+          "e8a5bcfd88254296abda623fa10b7087",
+          "3f0262d8bdb14c2c8cfe40a685b20d4a",
+          "0b90f619fc0f4292b3205be94b6c7a71"
+        ],
+        "HasNestedGroups": false,
+        "Left": 3984.4701559619443,
+        "Top": 7315.8180412101674,
+        "Width": 323.0,
+        "Height": 668.34787164950467,
+        "FontSize": 36.0,
+        "InitialTop": 7388.8180412101674,
+        "InitialHeight": 605.34787164950467,
+        "TextblockHeight": 63.0,
+        "Background": "#FFC1D676"
+      },
+      {
+        "Id": "7cea8a0c707e411288e330589edc77bc",
+        "Title": "TAB",
+        "DescriptionText": "<Double click here to edit group description>",
+        "IsExpanded": true,
+        "WidthAdjustment": 0.0,
+        "HeightAdjustment": 0.0,
+        "Nodes": [
+          "df0b91556a024b58b543ba738ea5578e",
+          "8bcef8e73f1b456baf6c604c919bae02",
+          "2e95efc000ed4104a41c0a3e46144313",
+          "622d98ce1b6641a598fb69095e644ac0"
+        ],
+        "HasNestedGroups": false,
+        "Left": 3978.408055896015,
+        "Top": 6616.5771419512212,
+        "Width": 308.0,
+        "Height": 645.42457107904374,
+        "FontSize": 36.0,
+        "InitialTop": 6689.5771419512212,
+        "InitialHeight": 471.67750982185044,
+        "TextblockHeight": 63.0,
+        "Background": "#FFC1D676"
+      },
+      {
+        "Id": "cefcce596b9b4d84851dc5db32748895",
+        "Title": "SEAFOOD & MEAT",
+        "DescriptionText": "<Double click here to edit group description>",
+        "IsExpanded": true,
+        "WidthAdjustment": 0.0,
+        "HeightAdjustment": 0.0,
+        "Nodes": [
+          "902790c34aa24395a0bc7a3f243e6e87",
+          "dc2784132eb4462e86eccc8cc7e068ea",
+          "717a4e86a03c4d81b05b7b5fcb7a3616"
+        ],
+        "HasNestedGroups": false,
+        "Left": 3979.0841938702411,
+        "Top": 6007.108621776797,
+        "Width": 245.00000000000045,
+        "Height": 547.9825172659439,
+        "FontSize": 36.0,
+        "InitialTop": 6132.108621776797,
+        "InitialHeight": 452.9825172659439,
+        "TextblockHeight": 115.0,
+        "Background": "#FFC1D676"
+      },
+      {
+        "Id": "4119c770a956443d8ebfdca43a97d446",
+        "Title": "DAIRY & MEAT / DELI",
+        "DescriptionText": "<Double click here to edit group description>",
+        "IsExpanded": true,
+        "WidthAdjustment": 0.0,
+        "HeightAdjustment": 0.0,
+        "Nodes": [
+          "34a3988ce124471f951c49e595d7bc53",
+          "9f8a12cfa0114077b58d919ddee0c3ce",
+          "ebaef8739585496087b116efe2fed28c"
+        ],
+        "HasNestedGroups": false,
+        "Left": 3977.7983293014545,
+        "Top": 5473.0333233036645,
+        "Width": 401.00000000000045,
+        "Height": 490.09294622915695,
+        "FontSize": 36.0,
+        "InitialTop": 5546.0333233036645,
+        "InitialHeight": 447.09294622915695,
+        "TextblockHeight": 63.0,
+        "Background": "#FFC1D676"
+      },
+      {
+        "Id": "b7f3576b6d4443c4ba07feef8982717b",
+        "Title": "SERVICE DELI",
+        "DescriptionText": "<Double click here to edit group description>",
+        "IsExpanded": true,
+        "WidthAdjustment": 0.0,
+        "HeightAdjustment": 0.0,
+        "Nodes": [
+          "b241039a8e81427eb505a24044e6ca15",
+          "c66f92da073741d985d9adc48625e8d6",
+          "d461cb57a48c4fb2aa2830708fa87b7f",
+          "f9b7a517877f40c39a94e6897ef1b640",
+          "d619319848c64235a3f11c9bbb3d0865",
+          "883006e357c54bc3a6b34ee8063554b5"
+        ],
+        "HasNestedGroups": false,
+        "Left": 3977.9779660451495,
+        "Top": 4461.8420875568472,
+        "Width": 300.0,
+        "Height": 954.62676065311825,
+        "FontSize": 36.0,
+        "InitialTop": 4534.8420875568472,
+        "InitialHeight": 993.24769980551719,
+        "TextblockHeight": 63.0,
+        "Background": "#FFC1D676"
+      },
+      {
+        "Id": "e75bc08115584640ad448f569478488e",
+        "Title": "BEVERAGE",
+        "DescriptionText": "<Double click here to edit group description>",
+        "IsExpanded": true,
+        "WidthAdjustment": 0.0,
+        "HeightAdjustment": 0.0,
+        "Nodes": [
+          "3fccb7f831494c59b042d71d2d597245"
+        ],
+        "HasNestedGroups": false,
+        "Left": 3969.8229787669738,
+        "Top": 4178.4481638692623,
+        "Width": 338.99999999999955,
+        "Height": 205.0,
+        "FontSize": 36.0,
+        "InitialTop": 4251.4481638692623,
+        "InitialHeight": 162.0,
+        "TextblockHeight": 63.0,
+        "Background": "#FFC1D676"
+      },
+      {
+        "Id": "24b353d5a2f344a9afb7d6cd0851f920",
+        "Title": "PRODUCE",
+        "DescriptionText": "<Double click here to edit group description>",
+        "IsExpanded": true,
+        "WidthAdjustment": 0.0,
+        "HeightAdjustment": 0.0,
+        "Nodes": [
+          "895a19fa868b492ebfc5ec6ac6ebfd70"
+        ],
+        "HasNestedGroups": false,
+        "Left": 3963.03538612042,
+        "Top": 3830.03019883408,
+        "Width": 269.00000000000045,
+        "Height": 214.0,
+        "FontSize": 36.0,
+        "InitialTop": 3912.03019883408,
+        "InitialHeight": 162.0,
+        "TextblockHeight": 72.0,
+        "Background": "#FFC1D676"
       }
     ],
-    "X": -1285.557966356866,
-    "Y": -230.31390798072596,
-    "Zoom": 0.63977307306931064
+    "X": 252.64248847301207,
+    "Y": 31.763801878554375,
+    "Zoom": 0.061669257443709206
   }
 }
