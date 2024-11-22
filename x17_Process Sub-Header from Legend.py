@@ -1,81 +1,166 @@
 import clr
-clr.AddReference("RevitAPI")
-clr.AddReference("RevitServices")
-from Autodesk.Revit.DB import *
+clr.AddReference('RevitServices')
+clr.AddReference('RevitAPI')
+clr.AddReference('RevitNodes')
+
+import Revit
 from RevitServices.Persistence import DocumentManager
+from RevitServices.Transactions import TransactionManager
+import Revit.Elements as RevitElements
+from Revit.Elements import TextNote as RevitTextNote
+clr.ImportExtensions(Revit.Elements)
+clr.AddReference("RevitAPIUI")
+from Autodesk.Revit.DB import FilteredElementCollector, Viewport, BuiltInCategory, TextNote, View, ViewType, ElementId
 import re
 
-# Inputs
+# Dynamo Inputs
 doc = DocumentManager.Instance.CurrentDBDocument
-legend_views_data = IN[0]  # List of lists with "Name" and "ElementId"
-target_sub_header_text = IN[1]  # The sub-header text to extract (e.g., "MULTI-DECK FROZEN FOOD")
 
-# Collect all the TextNote elements from the given Legend Views using their IDs
-all_text_notes = []
+# Handle direct input of view_id, ensuring it's treated properly as an integer ElementId
+view_id_input = IN[0]
 
-# Iterate through each legend data (each being a list of [name, ElementId])
-for legend_data in legend_views_data:
-    # Ensure the legend_data contains name and ID
-    if isinstance(legend_data, list) and len(legend_data) == 2:
-        legend_id_value = legend_data[1]
-        
-        # Ensure that the ID is an integer before creating an ElementId
-        if isinstance(legend_id_value, int):
-            legend_id = ElementId(legend_id_value)
-            legend_element = doc.GetElement(legend_id)
-            
-            # Verify the legend_element is not None
-            if legend_element is None:
-                continue
+# Ensure the input is a valid single value (e.g., if it is a list, extract the first element)
+if isinstance(view_id_input, list) and len(view_id_input) > 0:
+    view_id_input = view_id_input[0]
 
-            # Get all TextNote elements within the legend view
-            collector = FilteredElementCollector(doc, legend_element.Id).OfClass(TextNote)
-            for text_note in collector:
-                location = text_note.Coord  # XYZ location of the Text Note
-                element_data = {
-                    "ElementId": text_note.Id.IntegerValue,
-                    "Text": text_note.Text,
-                    "Location": location
-                }
-                all_text_notes.append(element_data)
+# Check if the input is already an integer or can be converted to an integer
+if isinstance(view_id_input, ElementId):
+    view_id = view_id_input
+elif isinstance(view_id_input, int):
+    view_id = ElementId(view_id_input)
+elif isinstance(view_id_input, str) and view_id_input.isdigit():
+    view_id = ElementId(int(view_id_input))
+else:
+    raise TypeError("view_id_input must be an ElementId, an integer, or a string representing a valid ID.")
 
-# Preprocess the target text to remove extra whitespace and normalize line breaks
-target_sub_header_text_clean = re.sub(r'\s+', ' ', target_sub_header_text.strip()).upper()
+# Gather all sub-header inputs dynamically
+sub_headers = [str(IN[i]).strip() for i in range(1, len(IN))]  # Strip any leading/trailing whitespace or line breaks
+sub_headers_cleaned = [re.sub(r'\s+', ' ', sh.strip()).upper() for sh in sub_headers]  # Clean sub-header inputs
 
-# Group text notes by rows (based on Y-coordinate)
-tolerance = 0.1  # Tolerance for determining whether two text notes are in the same row
+# Step 1: Find the Legend View in Revit using its ID
+legend_view = doc.GetElement(view_id)
+
+if legend_view is None or legend_view.ViewType != ViewType.Legend:
+    raise ValueError("Legend view with ID '{}' was not found in the document.".format(view_id_input))
+
+# Step 2: Collect All Text Notes in the Legend View
+text_notes = FilteredElementCollector(doc, legend_view.Id).OfClass(TextNote).ToElements()
+
+# Step 3: Group TextNotes by rows and columns
+tolerance = 0.1  # Tolerance for grouping elements by rows
 rows = []
 
-for text_note in all_text_notes:
-    y_coord = text_note["Location"].Y
+# Organize text notes into rows based on Y-coordinate
+for text_note in text_notes:
+    y_coord = text_note.Coord.Y
     found_row = False
     for row in rows:
-        if abs(row[0]["Location"].Y - y_coord) < tolerance:
+        if abs(row[0].Coord.Y - y_coord) < tolerance:
             row.append(text_note)
             found_row = True
             break
     if not found_row:
         rows.append([text_note])
 
-# Sort rows by Y-coordinate (descending order for top to bottom)
-sorted_rows = sorted(rows, key=lambda r: -r[0]["Location"].Y)
+# Sort rows by Y-coordinate (descending order for top-to-bottom)
+rows = sorted(rows, key=lambda r: -r[0].Coord.Y)
 
-# Sort elements within each row by X-coordinate (ascending order for left to right)
-for row in sorted_rows:
-    row.sort(key=lambda e: e["Location"].X)
+# Sort text notes within each row by X-coordinate (ascending order for left-to-right)
+for row in rows:
+    row.sort(key=lambda tn: tn.Coord.X)
 
-# Find the row that matches the target sub-header text
-target_row_data = None
+# Step 4: Extract data for each sub-header
+sub_header_data = []
 
-for row in sorted_rows:
-    # Check each element in the row to find the target text
-    for element in row:
-        element_text_clean = re.sub(r'\s+', ' ', element["Text"].strip()).upper()
-        if element_text_clean == target_sub_header_text_clean:
-            target_row_data = row
+for sub_header in sub_headers_cleaned:
+    matched_row = None
+
+    # Find the row that matches the sub-header
+    for row in rows:
+        for text_note in row:
+            note_text_clean = re.sub(r'\s+', ' ', text_note.Text.strip()).upper()
+            if sub_header == note_text_clean:
+                matched_row = row
+                break
+        if matched_row:
             break
-    if target_row_data:
-        break
 
-# Output the matched row (sub-header row)
-OUT = target_row_data
+    # If a matching row is found, extract the type, existing, proposed, and variation values
+    if matched_row:
+        # Extract Type, Existing, Proposed, and Variation from the matched row
+        type_value = "Type Not Found"
+        existing_value, proposed_value, variation_value = "Not Found", "Not Found", "Not Found"
+        existing_index, proposed_index, variation_index = "Not Found", "Not Found", "Not Found"
+
+        for text_note in matched_row:
+            note_text = text_note.Text.strip().upper()
+
+            # Determine Type (e.g., LF, SLF, DR)
+            type_match = re.search(r'\b(LF|SLF|DR)\b', note_text)
+            if type_match:
+                type_value = type_match.group(1)
+
+            # Determine Existing, Proposed, and Variation Values
+            if "EXISTING" in note_text:
+                existing_value = note_text
+                existing_index = text_note.Id.IntegerValue
+            elif "PROPOSED" in note_text:
+                proposed_value = note_text
+                proposed_index = text_note.Id.IntegerValue
+            elif "VARIATION" in note_text:
+                variation_value = note_text
+                variation_index = text_note.Id.IntegerValue
+
+        # Compile the extracted information for the sub-header
+        sub_header_entry = [
+            sub_header,          # Sub-Header
+            [
+                matched_row[0].Text if matched_row else "No Matching Sub-Header",  # The matching TextNote or "No Matching Sub-Header"
+                type_value,          # Type
+                existing_value,      # Existing Value
+                existing_index,      # Existing Index
+                proposed_value,      # Proposed Value
+                proposed_index,      # Proposed Index
+                variation_value,     # Variation Value
+                variation_index      # Variation Index
+            ]
+        ]
+        sub_header_data.append(sub_header_entry)
+    else:
+        # If no matching row is found, append a "not found" entry
+        sub_header_data.append([
+            sub_header,    # Sub-Header
+            [
+                "No Matching Sub-Header",
+                "Type Not Found",
+                "Existing Value Not Found",
+                "Existing Index Not Found",
+                "Proposed Value Not Found",
+                "Proposed Index Not Found",
+                "Variation Not Found",
+                "Variation Index Not Found"
+            ]
+        ])
+
+# Ensure each sub-header input results in an output in the final list
+final_data = []
+for i, sub_header in enumerate(sub_headers_cleaned):
+    if i < len(sub_header_data):
+        final_data.append(sub_header_data[i])
+    else:
+        final_data.append([
+            sub_header,    # Sub-Header
+            [
+                "No Matching Sub-Header",
+                "Type Not Found",
+                "Existing Value Not Found",
+                "Existing Index Not Found",
+                "Proposed Value Not Found",
+                "Proposed Index Not Found",
+                "Variation Not Found",
+                "Variation Index Not Found"
+            ]
+        ])
+
+# Output the collected sub-header data as a list of lists
+OUT = final_data
