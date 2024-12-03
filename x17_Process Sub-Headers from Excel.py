@@ -20,23 +20,18 @@ try:
         # Check if the row is a valid list and has at least 6 fields
         if isinstance(row, list) and len(row) >= 6:
             # Extract and format the required data, providing sensible default values where necessary
-            header = row[0] if row[0] else "N/A"
             sub_header = row[1] if row[1] else "N/A"
             item_type = row[2] if row[2] else "N/A"
-            try:
-                existing = float(row[3]) if row[3] else 0  # Convert to float if applicable
-                proposed = float(row[4]) if row[4] else 0
-                variation = float(row[5]) if row[5] else 0
-            except ValueError:
-                # Handle case where numerical values are not valid numbers
-                existing, proposed, variation = 0, 0, 0
+            existing = row[3] if row[3] is not None and row[3] != "" else 0
+            proposed = row[4] if row[4] is not None and row[4] != "" else 0
+            variation = row[5] if row[5] is not None and row[5] != "" else 0
 
             # Only include rows with meaningful sub-header data that matches the provided list
             if sub_header in sub_headers_to_match:
                 # Remove matched sub-header from unmatched list
                 unmatched_sub_headers.discard(sub_header)
-                # Create a list for the row, keeping fields in the correct order
-                row_list = [header, sub_header, item_type, existing, proposed, variation]
+                # Create a list for the row, formatted to match the desired output structure
+                row_list = [sub_header, [item_type, existing, proposed, variation]]
 
                 # Append the row list to the data rows
                 data_rows.append(row_list)

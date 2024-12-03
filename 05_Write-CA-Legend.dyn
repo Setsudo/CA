@@ -1069,7 +1069,7 @@
     {
       "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
       "NodeType": "PythonScriptNode",
-      "Code": "# Input from Excel Import Node (flattened data)\r\nexcel_data = IN[0]\r\n\r\n# Input list of Sub-Headers to be matched\r\nsub_headers_to_match = IN[1]\r\n\r\n# Initialize an empty list to hold the data in the desired list of lists format\r\ndata_rows = []\r\n\r\ntry:\r\n    # Check if sub_headers_to_match is a list\r\n    if not isinstance(sub_headers_to_match, list):\r\n        raise ValueError(\"Sub-Headers to match must be provided as a list.\")\r\n\r\n    # Track unmatched sub-headers\r\n    unmatched_sub_headers = set(sub_headers_to_match)\r\n\r\n    # Iterate through each row in the Excel data\r\n    for row in excel_data:\r\n        # Check if the row is a valid list and has at least 6 fields\r\n        if isinstance(row, list) and len(row) >= 6:\r\n            # Extract and format the required data, providing sensible default values where necessary\r\n            header = row[0] if row[0] else \"N/A\"\r\n            sub_header = row[1] if row[1] else \"N/A\"\r\n            item_type = row[2] if row[2] else \"N/A\"\r\n            try:\r\n                existing = float(row[3]) if row[3] else 0  # Convert to float if applicable\r\n                proposed = float(row[4]) if row[4] else 0\r\n                variation = float(row[5]) if row[5] else 0\r\n            except ValueError:\r\n                # Handle case where numerical values are not valid numbers\r\n                existing, proposed, variation = 0, 0, 0\r\n\r\n            # Only include rows with meaningful sub-header data that matches the provided list\r\n            if sub_header in sub_headers_to_match:\r\n                # Remove matched sub-header from unmatched list\r\n                unmatched_sub_headers.discard(sub_header)\r\n                # Create a list for the row, keeping fields in the correct order\r\n                row_list = [header, sub_header, item_type, existing, proposed, variation]\r\n\r\n                # Append the row list to the data rows\r\n                data_rows.append(row_list)\r\n\r\n    # Check for unmatched sub-headers and raise an error if any remain\r\n    if unmatched_sub_headers:\r\n        raise ValueError(\"The following Sub-Headers were not found in the input data: {}\".format(\", \".join(unmatched_sub_headers)))\r\n\r\n    # Set output to the list of lists\r\n    OUT = data_rows if data_rows else \"No valid rows found in input data. Check the structure of the input or revise the extraction logic.\"\r\n\r\nexcept Exception as e:\r\n    # Output any errors that occur\r\n    OUT = \"Error occurred: {}\".format(str(e))\r\n",
+      "Code": "# Input from Excel Import Node (flattened data)\r\nexcel_data = IN[0]\r\n\r\n# Input list of Sub-Headers to be matched\r\nsub_headers_to_match = IN[1]\r\n\r\n# Initialize an empty list to hold the data in the desired list of lists format\r\ndata_rows = []\r\n\r\ntry:\r\n    # Check if sub_headers_to_match is a list\r\n    if not isinstance(sub_headers_to_match, list):\r\n        raise ValueError(\"Sub-Headers to match must be provided as a list.\")\r\n\r\n    # Track unmatched sub-headers\r\n    unmatched_sub_headers = set(sub_headers_to_match)\r\n\r\n    # Iterate through each row in the Excel data\r\n    for row in excel_data:\r\n        # Check if the row is a valid list and has at least 6 fields\r\n        if isinstance(row, list) and len(row) >= 6:\r\n            # Extract and format the required data, providing sensible default values where necessary\r\n            sub_header = row[1] if row[1] else \"N/A\"\r\n            item_type = row[2] if row[2] else \"N/A\"\r\n            existing = row[3] if row[3] is not None and row[3] != \"\" else 0\r\n            proposed = row[4] if row[4] is not None and row[4] != \"\" else 0\r\n            variation = row[5] if row[5] is not None and row[5] != \"\" else 0\r\n\r\n            # Only include rows with meaningful sub-header data that matches the provided list\r\n            if sub_header in sub_headers_to_match:\r\n                # Remove matched sub-header from unmatched list\r\n                unmatched_sub_headers.discard(sub_header)\r\n                # Create a list for the row, formatted to match the desired output structure\r\n                row_list = [sub_header, [item_type, existing, proposed, variation]]\r\n\r\n                # Append the row list to the data rows\r\n                data_rows.append(row_list)\r\n\r\n    # Check for unmatched sub-headers and raise an error if any remain\r\n    if unmatched_sub_headers:\r\n        raise ValueError(\"The following Sub-Headers were not found in the input data: {}\".format(\", \".join(unmatched_sub_headers)))\r\n\r\n    # Set output to the list of lists\r\n    OUT = data_rows if data_rows else \"No valid rows found in input data. Check the structure of the input or revise the extraction logic.\"\r\n\r\nexcept Exception as e:\r\n    # Output any errors that occur\r\n    OUT = \"Error occurred: {}\".format(str(e))\r\n",
       "Engine": "CPython3",
       "EngineName": "CPython3",
       "VariableInputPorts": true,
@@ -1598,35 +1598,6 @@
       "Description": "Runs an embedded Python script."
     },
     {
-      "ConcreteType": "CoreNodeModels.Watch, CoreNodeModels",
-      "NodeType": "ExtensionNode",
-      "Id": "c31f5808e0124cc887246c65234aa7dc",
-      "Inputs": [
-        {
-          "Id": "589b36e1a39e440db02b9794a2f92887",
-          "Name": "",
-          "Description": "Node to show output from",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        }
-      ],
-      "Outputs": [
-        {
-          "Id": "fafcbfbfcb144a54a0fbb2147af845d7",
-          "Name": "",
-          "Description": "Node output",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        }
-      ],
-      "Replication": "Disabled",
-      "Description": "Visualize the node's output"
-    },
-    {
       "ConcreteType": "Dynamo.Graph.Nodes.ZeroTouch.DSFunction, DynamoCore",
       "NodeType": "FunctionNode",
       "FunctionSignature": "DSCore.List.GetItemAtIndex@var[]..[],int",
@@ -2061,12 +2032,54 @@
       "Description": "Makes a new list out of the given inputs"
     },
     {
-      "ConcreteType": "CoreNodeModels.Watch, CoreNodeModels",
-      "NodeType": "ExtensionNode",
-      "Id": "3a0f21e5f969444cb04c89c70d3884de",
+      "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
+      "NodeType": "PythonScriptNode",
+      "Code": "# Inputs\r\nexcel_data = IN[0]  # Data from Excel\r\nrevit_legend = IN[1]  # Existing Revit Legend data structure\r\n\r\n# Function to overwrite Revit legend values with Excel data\r\ndef overwrite_legend_with_excel(excel_data, revit_legend):\r\n    for revit_item in revit_legend:\r\n        if not isinstance(revit_item, list) or len(revit_item) < 2:\r\n            # Skip invalid or improperly structured items\r\n            continue\r\n\r\n        title = revit_item[0]  # Title in Revit legend\r\n        metrics = revit_item[1]  # Metrics to be overwritten\r\n\r\n        # Match with Excel data\r\n        for excel_item in excel_data:\r\n            if excel_item[0] == title:  # Match titles\r\n                # Completely overwrite Revit metrics with Excel data\r\n                new_metrics = excel_item[1]\r\n                metrics[0] = new_metrics[0]  # LF/DR\r\n                metrics[1] = new_metrics[1]  # First value\r\n                metrics[2] = new_metrics[2]  # Second value\r\n                metrics[3] = new_metrics[3]  # Third value\r\n                break  # Move to the next Revit item after updating\r\n\r\n    return revit_legend\r\n\r\n# Call the function to overwrite the data\r\nupdated_legend = overwrite_legend_with_excel(excel_data, revit_legend)\r\n\r\n# Output the updated legend\r\nOUT = updated_legend\r\n",
+      "Engine": "CPython3",
+      "EngineName": "CPython3",
+      "VariableInputPorts": true,
+      "Id": "89001a4d6287469a8b654da8bc90b466",
       "Inputs": [
         {
-          "Id": "51ceab910c1247fab786ec859f5331a6",
+          "Id": "947656fa909f4b71b672e6e48ed02ba2",
+          "Name": "IN[0]",
+          "Description": "Input #0",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "6026c564b11d40f1856329c6689e37b5",
+          "Name": "IN[1]",
+          "Description": "Input #1",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "0d1279d8f2a24881882b343bdf5876fd",
+          "Name": "OUT",
+          "Description": "Result of the python script",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Runs an embedded Python script."
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Watch, CoreNodeModels",
+      "NodeType": "ExtensionNode",
+      "Id": "261cd47254a94eb5a0ff4f5930cbe946",
+      "Inputs": [
+        {
+          "Id": "739ca4e5262a447dadfd4d463df7baf1",
           "Name": "",
           "Description": "Node to show output from",
           "UsingDefaultValue": false,
@@ -2077,7 +2090,36 @@
       ],
       "Outputs": [
         {
-          "Id": "55e3dc69fca248758ac93326920706d3",
+          "Id": "d766148ad2924e26aabdd83f76998bd3",
+          "Name": "",
+          "Description": "Node output",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Visualize the node's output"
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Watch, CoreNodeModels",
+      "NodeType": "ExtensionNode",
+      "Id": "367765d6be96436aaecc93a8d189982b",
+      "Inputs": [
+        {
+          "Id": "1c7fe5ab522b4ac29d018bfecc49458c",
+          "Name": "",
+          "Description": "Node to show output from",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "1ff13f2e178242d8ad3aab3c1b341a53",
           "Name": "",
           "Description": "Node output",
           "UsingDefaultValue": false,
@@ -2356,6 +2398,12 @@
       "IsHidden": "False"
     },
     {
+      "Start": "35abbe63f2e645b2a01454fe79512e42",
+      "End": "947656fa909f4b71b672e6e48ed02ba2",
+      "Id": "40313c22d95b419ea117710a79077594",
+      "IsHidden": "False"
+    },
+    {
       "Start": "db2df4cecb3749418cfee6413da03b27",
       "End": "3f6e02ed2d7e4baba77ba1d1519697aa",
       "Id": "bdc64b6332de483691b236946db5fbc8",
@@ -2369,8 +2417,8 @@
     },
     {
       "Start": "e23d8f36bb484e0db8c6726f3dc0ca2a",
-      "End": "51ceab910c1247fab786ec859f5331a6",
-      "Id": "1eeec7f9e8094143b5960e8809ba2f76",
+      "End": "1c7fe5ab522b4ac29d018bfecc49458c",
+      "Id": "bdd7bb84e3cb4609bf6a38b760029249",
       "IsHidden": "False"
     },
     {
@@ -2465,12 +2513,6 @@
     },
     {
       "Start": "c1f233780d964911991aecac7a4ad75d",
-      "End": "589b36e1a39e440db02b9794a2f92887",
-      "Id": "bc89886f178a48e5aff77438ca9ed0a5",
-      "IsHidden": "False"
-    },
-    {
-      "Start": "c1f233780d964911991aecac7a4ad75d",
       "End": "755d181c614840d081a65e34bb2f43e6",
       "Id": "4e43d3a21de64c37b35f30f9eec228e3",
       "IsHidden": "False"
@@ -2491,6 +2533,12 @@
       "Start": "664573c69e8d421b86815e0f05b88dc9",
       "End": "7e4c2efd88a4467aad09ce43ce1b1c29",
       "Id": "e0430b55964f47cdb039dd95721b3f38",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "664573c69e8d421b86815e0f05b88dc9",
+      "End": "6026c564b11d40f1856329c6689e37b5",
+      "Id": "5f0f607446e045e4921854d65387721b",
       "IsHidden": "False"
     },
     {
@@ -2515,6 +2563,12 @@
       "Start": "b560155a956b4f7687ca1c6fa20bf8ff",
       "End": "e2cd1936e6bb42078ce24cd61926012c",
       "Id": "516f054401d840f4a1474e9e7701b18d",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "0d1279d8f2a24881882b343bdf5876fd",
+      "End": "739ca4e5262a447dadfd4d463df7baf1",
+      "Id": "61bf117b0b4e4c3285d2391e2cd050e5",
       "IsHidden": "False"
     }
   ],
@@ -3010,8 +3064,8 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 10766.545682165184,
-        "Y": 3607.7583900378904
+        "X": 10890.056743159097,
+        "Y": 3246.1537174894474
       },
       {
         "Name": "Boolean",
@@ -3190,18 +3244,8 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 5721.7348646768423,
-        "Y": 9308.6831488510543
-      },
-      {
-        "Name": "Watch",
-        "ShowGeometry": true,
-        "Id": "c31f5808e0124cc887246c65234aa7dc",
-        "IsSetAsInput": false,
-        "IsSetAsOutput": false,
-        "Excluded": false,
-        "X": 6307.52435867705,
-        "Y": 9568.26870206957
+        "X": 10273.370229371434,
+        "Y": 9313.96560857411
       },
       {
         "Name": "List.GetItemAtIndex",
@@ -3230,8 +3274,8 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 10590.881768016832,
-        "Y": 9243.0773416217617
+        "X": 10578.370229371434,
+        "Y": 9370.96560857411
       },
       {
         "Name": "Watch",
@@ -3240,8 +3284,8 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 11046.457259945702,
-        "Y": 9315.1167597202129
+        "X": 11042.020466589462,
+        "Y": 9457.0941471198857
       },
       {
         "Name": "Code Block",
@@ -3250,8 +3294,8 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 10336.881768016832,
-        "Y": 9276.9048416217611
+        "X": 10273.370229371434,
+        "Y": 9461.79310857411
       },
       {
         "Name": "Code Block",
@@ -3274,14 +3318,34 @@
         "Y": 5929.7382024797125
       },
       {
-        "Name": "Watch",
+        "Name": "Unify Excel and Revit Data for Legend",
         "ShowGeometry": true,
-        "Id": "3a0f21e5f969444cb04c89c70d3884de",
+        "Id": "89001a4d6287469a8b654da8bc90b466",
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 8473.7963292839868,
-        "Y": 3866.3815193385672
+        "X": 13315.867910219749,
+        "Y": 6060.1940032091788
+      },
+      {
+        "Name": "Watch",
+        "ShowGeometry": true,
+        "Id": "261cd47254a94eb5a0ff4f5930cbe946",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 13737.779496112546,
+        "Y": 6062.0279615144609
+      },
+      {
+        "Name": "Watch",
+        "ShowGeometry": true,
+        "Id": "367765d6be96436aaecc93a8d189982b",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 8430.2145153676538,
+        "Y": 3957.8453829209748
       }
     ],
     "Annotations": [
@@ -3632,13 +3696,12 @@
           "cff63f31ecad4de8970fd63fd90cbc12",
           "36b81f8d5f02460a9add55e4ad167f5a",
           "2774f83e8cfe47e7bc34bb0f99b628e2",
-          "9c8b7d7a2c0249fa8a2f379b7e24e57c",
           "2b56c0d1b49040ba8aab4e5454a41a06"
         ],
         "HasNestedGroups": false,
         "Left": 4145.9560595714929,
         "Top": 9049.5106488510537,
-        "Width": 1790.7788051053494,
+        "Width": 1486.9999999999991,
         "Height": 497.0,
         "FontSize": 36.0,
         "InitialTop": 9122.5106488510537,
@@ -3655,22 +3718,23 @@
         "HeightAdjustment": 0.0,
         "Nodes": [
           "85ac0d2279e34da8b483908120d95364",
-          "bcbfe0aed16d4543acb441008b122134"
+          "bcbfe0aed16d4543acb441008b122134",
+          "9c8b7d7a2c0249fa8a2f379b7e24e57c"
         ],
         "HasNestedGroups": false,
-        "Left": 10326.881768016832,
-        "Top": 9127.0773416217617,
-        "Width": 472.0,
-        "Height": 313.0,
+        "Left": 10263.370229371434,
+        "Top": 9240.96560857411,
+        "Width": 523.0,
+        "Height": 352.82749999999942,
         "FontSize": 36.0,
-        "InitialTop": 9243.0773416217617,
+        "InitialTop": 9313.96560857411,
         "InitialHeight": 178.82750000000033,
-        "TextblockHeight": 106.0,
+        "TextblockHeight": 63.0,
         "Background": "#FFC1D676"
       }
     ],
-    "X": -15988.403386199881,
-    "Y": -5549.91043725027,
-    "Zoom": 1.6052405938048273
+    "X": -4381.9927009362536,
+    "Y": -1245.8957826360345,
+    "Zoom": 0.51653037303187166
   }
 }
