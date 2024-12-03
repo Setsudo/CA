@@ -1,6 +1,8 @@
 import clr
 clr.AddReference('ProtoGeometry')
 from Autodesk.DesignScript.Geometry import *
+import re
+import unicodedata
 
 # Sample data from your output (truncated for brevity)
 text_notes_data = IN[0]
@@ -17,8 +19,25 @@ def navigate_and_flatten(input_list):
             result.append(item)
     return result
 
+# Function to normalize sub-header strings for better matching
+def normalize_header(header):
+    # Normalize by removing line breaks, parentheses, special characters, and converting to uppercase
+    header = unicodedata.normalize('NFKD', header)  # Normalize unicode characters
+    header = re.sub(r'\s*\([^)]*\)', '', header)  # Remove all parentheses and their contents
+    header = re.sub(r'[^\w\s]', '', header)  # Replace special characters
+    header = re.sub(r'\s+', ' ', header)  # Replace line breaks and multiple spaces with a single space
+    header = header.strip()  # Remove leading/trailing whitespace
+    header = header.upper()  # Convert to uppercase for uniform comparison
+    return header
+
 # Function to take tolerance as input
 def group_text_notes(text_notes_data, tolerance, sub_headers_filter):
+    # Normalize sub_headers_filter for comparison
+    normalized_sub_headers_filter = [normalize_header(header) for header in sub_headers_filter]
+
+    # Debug: Output normalized_sub_headers_filter
+    print("Normalized sub_headers_filter:", normalized_sub_headers_filter)
+
     # Ensure that text_notes_data is a list and tolerance is a float
     text_notes_data = navigate_and_flatten(text_notes_data)
     
@@ -79,21 +98,57 @@ def group_text_notes(text_notes_data, tolerance, sub_headers_filter):
 
     # Process the grouped rows to extract sub-headers, their values, and Legend Index
     processed_rows = []
+    matched_sub_headers = []
     for row in grouped_rows:
         texts_in_row = [item[2] for item in row]  # Extract the text elements
         legend_indices_in_row = [item[3] for item in row]  # Extract the Legend Index
         if len(texts_in_row) > 4 and not texts_in_row[0].isdigit():
             # Assume the first item is a sub-header, followed by the four values we're interested in
             sub_header = texts_in_row[0]
+            normalized_sub_header = normalize_header(sub_header)
+
+            # Debug: Output normalized sub_header
+            print("Normalized sub_header:", normalized_sub_header)
+
+            type_labels = texts_in_row[1:5]  # Extract type labels (e.g., LF, SLF, DR)
             values = texts_in_row[1:5]  # Collect all four values
             legend_indices = legend_indices_in_row[1:5]  # Collect corresponding Legend Index for each value
-            if sub_header in sub_headers_filter:
-                processed_rows.append((sub_header, values, legend_indices))
 
-    # Debug: Check processed rows
-    print("Processed rows:", processed_rows)
+            # Create a structured entry to maintain the original nested format
+            if normalized_sub_header in normalized_sub_headers_filter:
+                # Instead of splitting entries, consolidate them under the same sub-header
+                processed_entry = [
+                    sub_header,
+                    type_labels,  # Type labels
+                    values,  # Values corresponding to the type labels
+                    legend_indices   # Corresponding Legend Index for each value
+                ]
+                processed_rows.append(processed_entry)
 
-    return processed_rows
+                # Track matched sub-header with number of occurrences
+                matched_sub_headers.append(normalized_sub_header)
+
+    # Ensure the number of outputs matches the number of inputs exactly
+    output_rows = []
+    for sub_header in sub_headers_filter:
+        normalized_sub_header = normalize_header(sub_header)
+        matching_entries = [entry for entry in processed_rows if normalize_header(entry[0]) == normalized_sub_header]
+        if matching_entries:
+            # Make sure to append all matching entries that are required by the number of inputs
+            output_rows.extend(matching_entries)  # Do not limit to one entry to ensure exact match count
+        else:
+            # If no match found, add a default entry
+            output_rows.append([sub_header, ["N/A"] * 4, [0] * 4, ["N/A"] * 4])
+
+    # Debug: Check processed rows with preserved nested structure
+    print("Processed rows (with nested structure preserved):", output_rows)
+
+    # Error if any sub-header is not matched
+    unmatched_sub_headers = set(normalized_sub_headers_filter) - set(matched_sub_headers)
+    if unmatched_sub_headers:
+        raise ValueError(f"The following sub-headers were not matched: {unmatched_sub_headers}")
+
+    return output_rows
 
 # Adjustable tolerance value for grouping rows (Dynamo input)
 tolerance = IN[1]

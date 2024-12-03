@@ -1659,7 +1659,7 @@
     {
       "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
       "NodeType": "PythonScriptNode",
-      "Code": "import clr\r\nclr.AddReference('ProtoGeometry')\r\nfrom Autodesk.DesignScript.Geometry import *\r\n\r\n# Sample data from your output (truncated for brevity)\r\ntext_notes_data = IN[0]\r\nsub_headers_filter = IN[2]  # List of sub-headers to filter by\r\n\r\n# Function to navigate through nested lists to flatten them\r\n# but maintain the heavily nested structure for proper navigation\r\ndef navigate_and_flatten(input_list):\r\n    result = []\r\n    for item in input_list:\r\n        if isinstance(item, list):\r\n            result.append(navigate_and_flatten(item))\r\n        else:\r\n            result.append(item)\r\n    return result\r\n\r\n# Function to take tolerance as input\r\ndef group_text_notes(text_notes_data, tolerance, sub_headers_filter):\r\n    # Ensure that text_notes_data is a list and tolerance is a float\r\n    text_notes_data = navigate_and_flatten(text_notes_data)\r\n    \r\n    # Debug: Check the flattened text notes data\r\n    print(\"Navigated text_notes_data:\", text_notes_data)\r\n\r\n    if not isinstance(text_notes_data, list):\r\n        raise ValueError(\"text_notes_data must be a list\")\r\n    if not isinstance(tolerance, (int, float)):\r\n        raise ValueError(\"tolerance must be a number\")\r\n    if not isinstance(sub_headers_filter, list):\r\n        raise ValueError(\"sub_headers_filter must be a list\")\r\n\r\n    # Extract positions, text, and Legend Index\r\n    positions = []\r\n    for text_note in text_notes_data:\r\n        if not isinstance(text_note, list) or len(text_note) < 2:\r\n            continue  # Skip invalid entries\r\n        try:\r\n            text = text_note[0]\r\n            legend_index_info = text_note[1]\r\n            if isinstance(legend_index_info, list) and len(legend_index_info) >= 3:\r\n                legend_index = legend_index_info[1]  # Correctly assign Legend Index\r\n                _, x, y, *_ = legend_index_info[2]\r\n                positions.append((x, y, text, legend_index))\r\n        except Exception as e:\r\n            # Debug: Log exceptions in extracting data\r\n            print(f\"Error processing text_note: {text_note}, Error: {e}\")\r\n\r\n    # Debug: Check extracted positions\r\n    print(\"Extracted positions:\", positions)\r\n\r\n    # Sort positions by Y (descending), then by X (ascending)\r\n    positions.sort(key=lambda pos: (-pos[1], pos[0]))\r\n\r\n    # Debug: Check sorted positions\r\n    print(\"Sorted positions:\", positions)\r\n\r\n    # Group by similar Y values (rows) with tolerance\r\n    grouped_rows = []\r\n    if positions:\r\n        current_group = [positions[0]]\r\n    else:\r\n        current_group = []\r\n        \r\n    for current in positions[1:]:\r\n        last = current_group[-1]\r\n        if abs(current[1] - last[1]) <= tolerance:\r\n            current_group.append(current)\r\n        else:\r\n            grouped_rows.append(current_group)\r\n            current_group = [current]\r\n    if current_group:\r\n        grouped_rows.append(current_group)\r\n\r\n    # Debug: Check grouped rows\r\n    print(\"Grouped rows:\", grouped_rows)\r\n\r\n    # Process the grouped rows to extract sub-headers, their values, and Legend Index\r\n    processed_rows = []\r\n    for row in grouped_rows:\r\n        texts_in_row = [item[2] for item in row]  # Extract the text elements\r\n        legend_indices_in_row = [item[3] for item in row]  # Extract the Legend Index\r\n        if len(texts_in_row) > 4 and not texts_in_row[0].isdigit():\r\n            # Assume the first item is a sub-header, followed by the four values we're interested in\r\n            sub_header = texts_in_row[0]\r\n            values = texts_in_row[1:5]  # Collect all four values\r\n            legend_indices = legend_indices_in_row[1:5]  # Collect corresponding Legend Index for each value\r\n            if sub_header in sub_headers_filter:\r\n                processed_rows.append((sub_header, values, legend_indices))\r\n\r\n    # Debug: Check processed rows\r\n    print(\"Processed rows:\", processed_rows)\r\n\r\n    return processed_rows\r\n\r\n# Adjustable tolerance value for grouping rows (Dynamo input)\r\ntolerance = IN[1]\r\n\r\n# Convert tolerance to float\r\ntry:\r\n    tolerance = float(tolerance)  # Convert to float if possible\r\nexcept (ValueError, TypeError):\r\n    raise ValueError(\"tolerance must be a number\")\r\n\r\n# Use the navigate_and_flatten function to process text_notes_data\r\ntext_notes_data = navigate_and_flatten(text_notes_data)\r\n\r\n# Debug: Check initial inputs\r\nprint(\"Initial text_notes_data:\", text_notes_data)\r\nprint(\"Tolerance:\", tolerance)\r\nprint(\"Sub-header filter list:\", sub_headers_filter)\r\n\r\n# Group the text notes with the given tolerance and sub-header filter\r\nprocessed_rows = group_text_notes(text_notes_data, tolerance, sub_headers_filter)\r\n\r\n# Output the grouped rows\r\nOUT = processed_rows\r\n",
+      "Code": "import clr\r\nclr.AddReference('ProtoGeometry')\r\nfrom Autodesk.DesignScript.Geometry import *\r\nimport re\r\nimport unicodedata\r\n\r\n# Sample data from your output (truncated for brevity)\r\ntext_notes_data = IN[0]\r\nsub_headers_filter = IN[2]  # List of sub-headers to filter by\r\n\r\n# Function to navigate through nested lists to flatten them\r\n# but maintain the heavily nested structure for proper navigation\r\ndef navigate_and_flatten(input_list):\r\n    result = []\r\n    for item in input_list:\r\n        if isinstance(item, list):\r\n            result.append(navigate_and_flatten(item))\r\n        else:\r\n            result.append(item)\r\n    return result\r\n\r\n# Function to normalize sub-header strings for better matching\r\ndef normalize_header(header):\r\n    # Normalize by removing line breaks, parentheses, special characters, and converting to uppercase\r\n    header = unicodedata.normalize('NFKD', header)  # Normalize unicode characters\r\n    header = re.sub(r'\\s*\\([^)]*\\)', '', header)  # Remove all parentheses and their contents\r\n    header = re.sub(r'[^\\w\\s]', '', header)  # Replace special characters\r\n    header = re.sub(r'\\s+', ' ', header)  # Replace line breaks and multiple spaces with a single space\r\n    header = header.strip()  # Remove leading/trailing whitespace\r\n    header = header.upper()  # Convert to uppercase for uniform comparison\r\n    return header\r\n\r\n# Function to take tolerance as input\r\ndef group_text_notes(text_notes_data, tolerance, sub_headers_filter):\r\n    # Normalize sub_headers_filter for comparison\r\n    normalized_sub_headers_filter = [normalize_header(header) for header in sub_headers_filter]\r\n\r\n    # Debug: Output normalized_sub_headers_filter\r\n    print(\"Normalized sub_headers_filter:\", normalized_sub_headers_filter)\r\n\r\n    # Ensure that text_notes_data is a list and tolerance is a float\r\n    text_notes_data = navigate_and_flatten(text_notes_data)\r\n    \r\n    # Debug: Check the flattened text notes data\r\n    print(\"Navigated text_notes_data:\", text_notes_data)\r\n\r\n    if not isinstance(text_notes_data, list):\r\n        raise ValueError(\"text_notes_data must be a list\")\r\n    if not isinstance(tolerance, (int, float)):\r\n        raise ValueError(\"tolerance must be a number\")\r\n    if not isinstance(sub_headers_filter, list):\r\n        raise ValueError(\"sub_headers_filter must be a list\")\r\n\r\n    # Extract positions, text, and Legend Index\r\n    positions = []\r\n    for text_note in text_notes_data:\r\n        if not isinstance(text_note, list) or len(text_note) < 2:\r\n            continue  # Skip invalid entries\r\n        try:\r\n            text = text_note[0]\r\n            legend_index_info = text_note[1]\r\n            if isinstance(legend_index_info, list) and len(legend_index_info) >= 3:\r\n                legend_index = legend_index_info[1]  # Correctly assign Legend Index\r\n                _, x, y, *_ = legend_index_info[2]\r\n                positions.append((x, y, text, legend_index))\r\n        except Exception as e:\r\n            # Debug: Log exceptions in extracting data\r\n            print(f\"Error processing text_note: {text_note}, Error: {e}\")\r\n\r\n    # Debug: Check extracted positions\r\n    print(\"Extracted positions:\", positions)\r\n\r\n    # Sort positions by Y (descending), then by X (ascending)\r\n    positions.sort(key=lambda pos: (-pos[1], pos[0]))\r\n\r\n    # Debug: Check sorted positions\r\n    print(\"Sorted positions:\", positions)\r\n\r\n    # Group by similar Y values (rows) with tolerance\r\n    grouped_rows = []\r\n    if positions:\r\n        current_group = [positions[0]]\r\n    else:\r\n        current_group = []\r\n        \r\n    for current in positions[1:]:\r\n        last = current_group[-1]\r\n        if abs(current[1] - last[1]) <= tolerance:\r\n            current_group.append(current)\r\n        else:\r\n            grouped_rows.append(current_group)\r\n            current_group = [current]\r\n    if current_group:\r\n        grouped_rows.append(current_group)\r\n\r\n    # Debug: Check grouped rows\r\n    print(\"Grouped rows:\", grouped_rows)\r\n\r\n    # Process the grouped rows to extract sub-headers, their values, and Legend Index\r\n    processed_rows = []\r\n    matched_sub_headers = []\r\n    for row in grouped_rows:\r\n        texts_in_row = [item[2] for item in row]  # Extract the text elements\r\n        legend_indices_in_row = [item[3] for item in row]  # Extract the Legend Index\r\n        if len(texts_in_row) > 4 and not texts_in_row[0].isdigit():\r\n            # Assume the first item is a sub-header, followed by the four values we're interested in\r\n            sub_header = texts_in_row[0]\r\n            normalized_sub_header = normalize_header(sub_header)\r\n\r\n            # Debug: Output normalized sub_header\r\n            print(\"Normalized sub_header:\", normalized_sub_header)\r\n\r\n            type_labels = texts_in_row[1:5]  # Extract type labels (e.g., LF, SLF, DR)\r\n            values = texts_in_row[1:5]  # Collect all four values\r\n            legend_indices = legend_indices_in_row[1:5]  # Collect corresponding Legend Index for each value\r\n\r\n            # Create a structured entry to maintain the original nested format\r\n            if normalized_sub_header in normalized_sub_headers_filter:\r\n                # Instead of splitting entries, consolidate them under the same sub-header\r\n                processed_entry = [\r\n                    sub_header,\r\n                    type_labels,  # Type labels\r\n                    values,  # Values corresponding to the type labels\r\n                    legend_indices   # Corresponding Legend Index for each value\r\n                ]\r\n                processed_rows.append(processed_entry)\r\n\r\n                # Track matched sub-header with number of occurrences\r\n                matched_sub_headers.append(normalized_sub_header)\r\n\r\n    # Ensure the number of outputs matches the number of inputs exactly\r\n    output_rows = []\r\n    for sub_header in sub_headers_filter:\r\n        normalized_sub_header = normalize_header(sub_header)\r\n        matching_entries = [entry for entry in processed_rows if normalize_header(entry[0]) == normalized_sub_header]\r\n        if matching_entries:\r\n            # Make sure to append all matching entries that are required by the number of inputs\r\n            output_rows.extend(matching_entries)  # Do not limit to one entry to ensure exact match count\r\n        else:\r\n            # If no match found, add a default entry\r\n            output_rows.append([sub_header, [\"N/A\"] * 4, [0] * 4, [\"N/A\"] * 4])\r\n\r\n    # Debug: Check processed rows with preserved nested structure\r\n    print(\"Processed rows (with nested structure preserved):\", output_rows)\r\n\r\n    # Error if any sub-header is not matched\r\n    unmatched_sub_headers = set(normalized_sub_headers_filter) - set(matched_sub_headers)\r\n    if unmatched_sub_headers:\r\n        raise ValueError(f\"The following sub-headers were not matched: {unmatched_sub_headers}\")\r\n\r\n    return output_rows\r\n\r\n# Adjustable tolerance value for grouping rows (Dynamo input)\r\ntolerance = IN[1]\r\n\r\n# Convert tolerance to float\r\ntry:\r\n    tolerance = float(tolerance)  # Convert to float if possible\r\nexcept (ValueError, TypeError):\r\n    raise ValueError(\"tolerance must be a number\")\r\n\r\n# Use the navigate_and_flatten function to process text_notes_data\r\ntext_notes_data = navigate_and_flatten(text_notes_data)\r\n\r\n# Debug: Check initial inputs\r\nprint(\"Initial text_notes_data:\", text_notes_data)\r\nprint(\"Tolerance:\", tolerance)\r\nprint(\"Sub-header filter list:\", sub_headers_filter)\r\n\r\n# Group the text notes with the given tolerance and sub-header filter\r\nprocessed_rows = group_text_notes(text_notes_data, tolerance, sub_headers_filter)\r\n\r\n# Output the grouped rows\r\nOUT = processed_rows\r\n",
       "Engine": "CPython3",
       "EngineName": "CPython3",
       "VariableInputPorts": true,
@@ -1739,12 +1739,12 @@
     {
       "ConcreteType": "Dynamo.Graph.Nodes.CodeBlockNodeModel, DynamoCore",
       "NodeType": "CodeBlockNode",
-      "Code": "0.001;",
+      "Code": "0.01;",
       "Id": "bcbfe0aed16d4543acb441008b122134",
       "Inputs": [],
       "Outputs": [
         {
-          "Id": "96d5e2fd303f4ad9a9db46dfd222a13c",
+          "Id": "4912c6891f444634a36dd1bb60c0d698",
           "Name": "",
           "Description": "Value of expression at line 1",
           "UsingDefaultValue": false,
@@ -2034,7 +2034,7 @@
     {
       "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
       "NodeType": "PythonScriptNode",
-      "Code": "import clr\r\n\r\n# Import Revit API\r\nclr.AddReference('RevitAPI')\r\nfrom Autodesk.Revit.DB import *\r\n\r\nclr.AddReference('RevitServices')\r\nfrom RevitServices.Persistence import DocumentManager\r\nfrom RevitServices.Transactions import TransactionManager\r\n\r\n# Access the active Revit document\r\ndoc = DocumentManager.Instance.CurrentDBDocument\r\n\r\n# Inputs\r\nexcel_data = IN[0]  # Data from Excel\r\nrevit_legend = IN[1]  # Existing Revit Legend data structure\r\nlegend_view_id = UnwrapElement(IN[2])  # Legend View Element ID\r\n\r\n# Function to update legend data\r\ndef update_legend_with_excel(excel_data, revit_legend):\r\n    updated_legend = []\r\n\r\n    # Iterate through each item in the Revit legend\r\n    for revit_item in revit_legend[0]:\r\n        # Each item is expected to have the structure: [Title, [Metrics]]\r\n        title = revit_item[0]\r\n        metrics = revit_item[1]\r\n\r\n        # Search for a matching title in the Excel data\r\n        matching_excel_item = None\r\n        for excel_item in excel_data:\r\n            if title == excel_item[0]:\r\n                matching_excel_item = excel_item\r\n                break\r\n\r\n        # If a match is found, update the metrics\r\n        if matching_excel_item:\r\n            new_metrics = matching_excel_item[1]\r\n            metrics[0] = new_metrics[0]  # LF or DR\r\n            metrics[1] = new_metrics[1]  # First value\r\n            metrics[2] = new_metrics[2]  # Second value\r\n            metrics[3] = new_metrics[3]  # Third value\r\n\r\n        # Append the updated item to the updated legend list\r\n        updated_legend.append([title, metrics])\r\n\r\n    return updated_legend\r\n\r\n# Process and update the Legend data\r\nupdated_legend = update_legend_with_excel(excel_data, revit_legend)\r\n\r\n# Write back to Revit\r\nTransactionManager.Instance.EnsureInTransaction(doc)\r\n\r\n# Collect all text notes in the specified legend view\r\ncollector = FilteredElementCollector(doc, legend_view_id).OfClass(TextNote).ToElements()\r\n\r\n# Iterate through updated legend data and update corresponding text notes in Revit\r\nfor revit_item in updated_legend:\r\n    title = revit_item[0]\r\n    metrics = revit_item[1]\r\n\r\n    # Construct the updated text for each legend item\r\n    updated_text = f\"{title}\\n{metrics[0]} {metrics[1]} {metrics[2]} {metrics[3]}\"\r\n\r\n    for text_note in collector:\r\n        # Update the corresponding text note in Revit\r\n        if text_note.Text.startswith(title):\r\n            text_note.Text = updated_text\r\n            break\r\n\r\nTransactionManager.Instance.TransactionTaskDone()\r\n\r\n# Output updated data structure\r\nOUT = updated_legend\r\n",
+      "Code": "# Inputs\r\nexcel_data = IN[0]  # Data from Excel\r\nrevit_legend = IN[1]  # Existing Revit Legend data structure\r\n\r\n# Function to overwrite legend data with Excel data\r\ndef overwrite_legend_data(excel_data, revit_legend):\r\n    # Iterate through the Revit legend items\r\n    for revit_item in revit_legend:\r\n        if not isinstance(revit_item, list) or len(revit_item) < 2:\r\n            # Skip invalid or improperly structured items\r\n            continue\r\n\r\n        title = revit_item[0]  # Title in Revit legend\r\n        metrics = revit_item[1]  # Metrics to be overwritten\r\n\r\n        # Match with Excel data\r\n        for excel_item in excel_data:\r\n            if excel_item[0] == title:  # Match titles\r\n                # Overwrite the metrics in the Revit legend with the Excel data\r\n                new_metrics = excel_item[1]\r\n                metrics[0] = new_metrics[0]  # LF/DR or equivalent value\r\n                metrics[1] = new_metrics[1]  # First value\r\n                metrics[2] = new_metrics[2]  # Second value\r\n                metrics[3] = new_metrics[3]  # Third value\r\n                break  # No need to check further, move to next legend item\r\n\r\n    return revit_legend\r\n\r\n# Call the function to overwrite the data\r\noverwritten_legend = overwrite_legend_data(excel_data, revit_legend)\r\n\r\n# Output the updated legend with Excel values\r\nOUT = overwritten_legend\r\n",
       "Engine": "CPython3",
       "EngineName": "CPython3",
       "VariableInputPorts": true,
@@ -2149,6 +2149,183 @@
       "Outputs": [
         {
           "Id": "a5f6a6ac444e4ef395fe5481d8b77cf4",
+          "Name": "",
+          "Description": "Node output",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Visualize the node's output"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.ZeroTouch.DSFunction, DynamoCore",
+      "NodeType": "FunctionNode",
+      "FunctionSignature": "DSCore.List.Count@var[]..[]",
+      "Id": "05c0fd4340bc40e8bcfc1ff657d8d0b6",
+      "Inputs": [
+        {
+          "Id": "7be87c9b86d849848b6ad1c689de7ef7",
+          "Name": "list",
+          "Description": "List to get the item count of.\n\nvar[]..[]",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "6a07679c1d6c423d94834c570773e83e",
+          "Name": "int",
+          "Description": "List length.",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Auto",
+      "Description": "Returns the number of items stored in the given list.\n\nList.Count (list: var[]..[]): int"
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Watch, CoreNodeModels",
+      "NodeType": "ExtensionNode",
+      "Id": "ea732978d6a949838b1341ea5b513ecb",
+      "Inputs": [
+        {
+          "Id": "116ea090c0b84d91a04d69b422b4c6bb",
+          "Name": "",
+          "Description": "Node to show output from",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "c3c7a0ef7f974228b8c47609e903cbb8",
+          "Name": "",
+          "Description": "Node output",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Visualize the node's output"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.ZeroTouch.DSFunction, DynamoCore",
+      "NodeType": "FunctionNode",
+      "FunctionSignature": "DSCore.List.Count@var[]..[]",
+      "Id": "809793342eaf4e828149fac08bcff6ae",
+      "Inputs": [
+        {
+          "Id": "c1d53ec851064f2091450646ce6062e3",
+          "Name": "list",
+          "Description": "List to get the item count of.\n\nvar[]..[]",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "6514a8de26ab4687bf72bc2dd24c157a",
+          "Name": "int",
+          "Description": "List length.",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Auto",
+      "Description": "Returns the number of items stored in the given list.\n\nList.Count (list: var[]..[]): int"
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Watch, CoreNodeModels",
+      "NodeType": "ExtensionNode",
+      "Id": "d11838b1e01446889b95a8c447544d37",
+      "Inputs": [
+        {
+          "Id": "25d0cb099c134fe0b8f0e15457a69b73",
+          "Name": "",
+          "Description": "Node to show output from",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "ace6aa9eb00749d99c21a5b6baf78d4b",
+          "Name": "",
+          "Description": "Node output",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Visualize the node's output"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.ZeroTouch.DSFunction, DynamoCore",
+      "NodeType": "FunctionNode",
+      "FunctionSignature": "DSCore.List.Count@var[]..[]",
+      "Id": "b9318e9c52c341b9b7c7f1a17ca3b822",
+      "Inputs": [
+        {
+          "Id": "fda7fc7fed1c488ab878fc8ac52fddf6",
+          "Name": "list",
+          "Description": "List to get the item count of.\n\nvar[]..[]",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "c08279e875d148f1812d4062698bc620",
+          "Name": "int",
+          "Description": "List length.",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Auto",
+      "Description": "Returns the number of items stored in the given list.\n\nList.Count (list: var[]..[]): int"
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Watch, CoreNodeModels",
+      "NodeType": "ExtensionNode",
+      "Id": "6c20a15942ff401792715929e47dadc5",
+      "Inputs": [
+        {
+          "Id": "ba7a046aec3942eabff3bb221c605b06",
+          "Name": "",
+          "Description": "Node to show output from",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "af07a2f7c8d84459a3525150781e1232",
           "Name": "",
           "Description": "Node output",
           "UsingDefaultValue": false,
@@ -2433,6 +2610,12 @@
       "IsHidden": "False"
     },
     {
+      "Start": "35abbe63f2e645b2a01454fe79512e42",
+      "End": "c1d53ec851064f2091450646ce6062e3",
+      "Id": "70a2bef287b04d51a67a48ecae62f41b",
+      "IsHidden": "False"
+    },
+    {
       "Start": "db2df4cecb3749418cfee6413da03b27",
       "End": "3f6e02ed2d7e4baba77ba1d1519697aa",
       "Id": "bdc64b6332de483691b236946db5fbc8",
@@ -2571,9 +2754,15 @@
       "IsHidden": "False"
     },
     {
-      "Start": "96d5e2fd303f4ad9a9db46dfd222a13c",
+      "Start": "664573c69e8d421b86815e0f05b88dc9",
+      "End": "fda7fc7fed1c488ab878fc8ac52fddf6",
+      "Id": "4a091229250846c0b428473b5d542109",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "4912c6891f444634a36dd1bb60c0d698",
       "End": "b8d21a9fb4894675bff5e1a7083669d5",
-      "Id": "180e77e2e8794cb581abeb49b1de722a",
+      "Id": "810f437d75e44688857c2d8ba2553742",
       "IsHidden": "False"
     },
     {
@@ -2601,9 +2790,33 @@
       "IsHidden": "False"
     },
     {
+      "Start": "b560155a956b4f7687ca1c6fa20bf8ff",
+      "End": "7be87c9b86d849848b6ad1c689de7ef7",
+      "Id": "e6da49119c724177bdd0bbca3a15e47c",
+      "IsHidden": "False"
+    },
+    {
       "Start": "0d1279d8f2a24881882b343bdf5876fd",
       "End": "739ca4e5262a447dadfd4d463df7baf1",
       "Id": "61bf117b0b4e4c3285d2391e2cd050e5",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "6a07679c1d6c423d94834c570773e83e",
+      "End": "116ea090c0b84d91a04d69b422b4c6bb",
+      "Id": "70ad6344e2a6440f887917cce6f7976d",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "6514a8de26ab4687bf72bc2dd24c157a",
+      "End": "25d0cb099c134fe0b8f0e15457a69b73",
+      "Id": "9704113f81e24f5a816fb54ed0c3691e",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "c08279e875d148f1812d4062698bc620",
+      "End": "ba7a046aec3942eabff3bb221c605b06",
+      "Id": "37af8aa319d848578fae0edcd4ba0d31",
       "IsHidden": "False"
     }
   ],
@@ -3090,7 +3303,7 @@
         "IsSetAsOutput": false,
         "Excluded": false,
         "X": 10357.099428821275,
-        "Y": 3605.2702252520216
+        "Y": 3605.2702252520212
       },
       {
         "Name": "Watch",
@@ -3309,8 +3522,8 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 10578.370229371434,
-        "Y": 9370.96560857411
+        "X": 10580.197326717995,
+        "Y": 9369.13851122755
       },
       {
         "Name": "Watch",
@@ -3319,8 +3532,8 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 11042.020466589462,
-        "Y": 9457.0941471198857
+        "X": 11127.812672640061,
+        "Y": 9440.2947914998567
       },
       {
         "Name": "Code Block",
@@ -3391,6 +3604,66 @@
         "Excluded": false,
         "X": 7808.60377649248,
         "Y": 6622.3595275658363
+      },
+      {
+        "Name": "List.Count",
+        "ShowGeometry": true,
+        "Id": "05c0fd4340bc40e8bcfc1ff657d8d0b6",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 8116.0165309645154,
+        "Y": 6285.5141783348226
+      },
+      {
+        "Name": "Watch",
+        "ShowGeometry": true,
+        "Id": "ea732978d6a949838b1341ea5b513ecb",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 8393.5957900529247,
+        "Y": 6287.82605780181
+      },
+      {
+        "Name": "List.Count",
+        "ShowGeometry": true,
+        "Id": "809793342eaf4e828149fac08bcff6ae",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 10609.675431886892,
+        "Y": 3006.9984918631726
+      },
+      {
+        "Name": "Watch",
+        "ShowGeometry": true,
+        "Id": "d11838b1e01446889b95a8c447544d37",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 10887.254690975291,
+        "Y": 3009.3103713301625
+      },
+      {
+        "Name": "List.Count",
+        "ShowGeometry": true,
+        "Id": "b9318e9c52c341b9b7c7f1a17ca3b822",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 10998.46569919493,
+        "Y": 8962.1810873807663
+      },
+      {
+        "Name": "Watch",
+        "ShowGeometry": true,
+        "Id": "6c20a15942ff401792715929e47dadc5",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 11276.04495828333,
+        "Y": 8964.4929668477562
       }
     ],
     "Annotations": [
@@ -3769,7 +4042,7 @@
         "HasNestedGroups": false,
         "Left": 10263.370229371434,
         "Top": 9240.96560857411,
-        "Width": 523.0,
+        "Width": 524.82709734656055,
         "Height": 352.82749999999942,
         "FontSize": 36.0,
         "InitialTop": 9313.96560857411,
@@ -3778,8 +4051,8 @@
         "Background": "#FFC1D676"
       }
     ],
-    "X": -21151.206900153007,
-    "Y": -9505.6367338966047,
-    "Zoom": 1.646177105571013
+    "X": -6693.3906805392508,
+    "Y": -5996.9433954147853,
+    "Zoom": 0.69306207792573782
   }
 }
