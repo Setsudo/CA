@@ -1069,7 +1069,7 @@
     {
       "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
       "NodeType": "PythonScriptNode",
-      "Code": "# Input from Excel Import Node (flattened data)\r\nexcel_data = IN[0]\r\n\r\n# Input list of Sub-Headers to be matched\r\nsub_headers_to_match = IN[1]\r\n\r\n# Initialize an empty list to hold the data in the desired list of lists format\r\ndata_rows = []\r\n\r\ntry:\r\n    # Check if sub_headers_to_match is a list\r\n    if not isinstance(sub_headers_to_match, list):\r\n        raise ValueError(\"Sub-Headers to match must be provided as a list.\")\r\n\r\n    # Track unmatched sub-headers\r\n    unmatched_sub_headers = set(sub_headers_to_match)\r\n\r\n    # Iterate through each row in the Excel data\r\n    for row in excel_data:\r\n        # Check if the row is a valid list and has at least 6 fields\r\n        if isinstance(row, list) and len(row) >= 6:\r\n            # Extract and format the required data, providing sensible default values where necessary\r\n            sub_header = row[1] if row[1] else \"N/A\"\r\n            item_type = row[2] if row[2] else \"N/A\"\r\n            existing = row[3] if row[3] is not None and row[3] != \"\" else 0\r\n            proposed = row[4] if row[4] is not None and row[4] != \"\" else 0\r\n            variation = row[5] if row[5] is not None and row[5] != \"\" else 0\r\n\r\n            # Only include rows with meaningful sub-header data that matches the provided list\r\n            if sub_header in sub_headers_to_match:\r\n                # Remove matched sub-header from unmatched list\r\n                unmatched_sub_headers.discard(sub_header)\r\n                # Create a list for the row, formatted to match the desired output structure\r\n                row_list = [sub_header, [item_type, existing, proposed, variation]]\r\n\r\n                # Append the row list to the data rows\r\n                data_rows.append(row_list)\r\n\r\n    # Check for unmatched sub-headers and raise an error if any remain\r\n    if unmatched_sub_headers:\r\n        raise ValueError(\"The following Sub-Headers were not found in the input data: {}\".format(\", \".join(unmatched_sub_headers)))\r\n\r\n    # Set output to the list of lists\r\n    OUT = data_rows if data_rows else \"No valid rows found in input data. Check the structure of the input or revise the extraction logic.\"\r\n\r\nexcept Exception as e:\r\n    # Output any errors that occur\r\n    OUT = \"Error occurred: {}\".format(str(e))\r\n",
+      "Code": "# Input from Excel Import Node (flattened data)\r\nexcel_data = IN[0]\r\n\r\n# Input list of Sub-Headers to be matched\r\nsub_headers_to_match = IN[1]\r\n\r\n# Initialize an empty list to hold the data in the desired list of lists format\r\ndata_rows = []\r\n\r\ntry:\r\n    # Check if sub_headers_to_match is a list\r\n    if not isinstance(sub_headers_to_match, list):\r\n        raise ValueError(\"Sub-Headers to match must be provided as a list.\")\r\n\r\n    # Create a list to track unmatched sub-headers\r\n    unmatched_sub_headers = sub_headers_to_match.copy()\r\n\r\n    # Iterate through each row in the Excel data\r\n    for row in excel_data:\r\n        # Check if the row is a valid list and has at least 6 fields\r\n        if isinstance(row, list) and len(row) >= 6:\r\n            # Extract and format the required data, providing sensible default values where necessary\r\n            sub_header = row[1] if row[1] else \"N/A\"\r\n            item_type = row[2] if row[2] else \"N/A\"\r\n            existing = row[3] if row[3] is not None and row[3] != \"\" else 0\r\n            proposed = row[4] if row[4] is not None and row[4] != \"\" else 0\r\n            variation = row[5] if row[5] is not None and row[5] != \"\" else 0\r\n\r\n            # Only include rows with meaningful sub-header data that matches the provided list\r\n            if sub_header in sub_headers_to_match:\r\n                # Create a list for the row, formatted to match the desired output structure\r\n                row_list = [sub_header, [item_type, existing, proposed, variation]]\r\n\r\n                # Append the row list to the data rows\r\n                data_rows.append(row_list)\r\n\r\n                # Remove one occurrence of the matched sub-header from unmatched list if present\r\n                if sub_header in unmatched_sub_headers:\r\n                    unmatched_sub_headers.remove(sub_header)\r\n\r\n    # Check for unmatched sub-headers and raise an error if any remain\r\n    if unmatched_sub_headers:\r\n        raise ValueError(\"The following Sub-Headers were not found in the input data: {}\".format(\", \".join(unmatched_sub_headers)))\r\n\r\n    # Set output to the list of lists\r\n    OUT = data_rows if data_rows else \"No valid rows found in input data. Check the structure of the input or revise the extraction logic.\"\r\n\r\nexcept Exception as e:\r\n    # Output any errors that occur\r\n    OUT = \"Error occurred: {}\".format(str(e))\r\n",
       "Engine": "CPython3",
       "EngineName": "CPython3",
       "VariableInputPorts": true,
@@ -2034,7 +2034,7 @@
     {
       "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
       "NodeType": "PythonScriptNode",
-      "Code": "# Inputs\r\nexcel_data = IN[0]  # Data from Excel\r\nrevit_legend = IN[1]  # Existing Revit Legend data structure\r\n\r\n# Function to overwrite Revit legend values with Excel data\r\ndef overwrite_legend_with_excel(excel_data, revit_legend):\r\n    for revit_item in revit_legend:\r\n        if not isinstance(revit_item, list) or len(revit_item) < 2:\r\n            # Skip invalid or improperly structured items\r\n            continue\r\n\r\n        title = revit_item[0]  # Title in Revit legend\r\n        metrics = revit_item[1]  # Metrics to be overwritten\r\n\r\n        # Match with Excel data\r\n        for excel_item in excel_data:\r\n            if excel_item[0] == title:  # Match titles\r\n                # Completely overwrite Revit metrics with Excel data\r\n                new_metrics = excel_item[1]\r\n                metrics[0] = new_metrics[0]  # LF/DR\r\n                metrics[1] = new_metrics[1]  # First value\r\n                metrics[2] = new_metrics[2]  # Second value\r\n                metrics[3] = new_metrics[3]  # Third value\r\n                break  # Move to the next Revit item after updating\r\n\r\n    return revit_legend\r\n\r\n# Call the function to overwrite the data\r\nupdated_legend = overwrite_legend_with_excel(excel_data, revit_legend)\r\n\r\n# Output the updated legend\r\nOUT = updated_legend\r\n",
+      "Code": "import clr\r\n\r\n# Import Revit API\r\nclr.AddReference('RevitAPI')\r\nfrom Autodesk.Revit.DB import *\r\n\r\nclr.AddReference('RevitServices')\r\nfrom RevitServices.Persistence import DocumentManager\r\nfrom RevitServices.Transactions import TransactionManager\r\n\r\n# Access the active Revit document\r\ndoc = DocumentManager.Instance.CurrentDBDocument\r\n\r\n# Inputs\r\nexcel_data = IN[0]  # Data from Excel\r\nrevit_legend = IN[1]  # Existing Revit Legend data structure\r\nlegend_view_id = UnwrapElement(IN[2])  # Legend View Element ID\r\n\r\n# Function to update legend data\r\ndef update_legend_with_excel(excel_data, revit_legend):\r\n    updated_legend = []\r\n\r\n    # Iterate through each item in the Revit legend\r\n    for revit_item in revit_legend[0]:\r\n        # Each item is expected to have the structure: [Title, [Metrics]]\r\n        title = revit_item[0]\r\n        metrics = revit_item[1]\r\n\r\n        # Search for a matching title in the Excel data\r\n        matching_excel_item = None\r\n        for excel_item in excel_data:\r\n            if title == excel_item[0]:\r\n                matching_excel_item = excel_item\r\n                break\r\n\r\n        # If a match is found, update the metrics\r\n        if matching_excel_item:\r\n            new_metrics = matching_excel_item[1]\r\n            metrics[0] = new_metrics[0]  # LF or DR\r\n            metrics[1] = new_metrics[1]  # First value\r\n            metrics[2] = new_metrics[2]  # Second value\r\n            metrics[3] = new_metrics[3]  # Third value\r\n\r\n        # Append the updated item to the updated legend list\r\n        updated_legend.append([title, metrics])\r\n\r\n    return updated_legend\r\n\r\n# Process and update the Legend data\r\nupdated_legend = update_legend_with_excel(excel_data, revit_legend)\r\n\r\n# Write back to Revit\r\nTransactionManager.Instance.EnsureInTransaction(doc)\r\n\r\n# Collect all text notes in the specified legend view\r\ncollector = FilteredElementCollector(doc, legend_view_id).OfClass(TextNote).ToElements()\r\n\r\n# Iterate through updated legend data and update corresponding text notes in Revit\r\nfor revit_item in updated_legend:\r\n    title = revit_item[0]\r\n    metrics = revit_item[1]\r\n\r\n    # Construct the updated text for each legend item\r\n    updated_text = f\"{title}\\n{metrics[0]} {metrics[1]} {metrics[2]} {metrics[3]}\"\r\n\r\n    for text_note in collector:\r\n        # Update the corresponding text note in Revit\r\n        if text_note.Text.startswith(title):\r\n            text_note.Text = updated_text\r\n            break\r\n\r\nTransactionManager.Instance.TransactionTaskDone()\r\n\r\n# Output updated data structure\r\nOUT = updated_legend\r\n",
       "Engine": "CPython3",
       "EngineName": "CPython3",
       "VariableInputPorts": true,
@@ -2120,6 +2120,35 @@
       "Outputs": [
         {
           "Id": "1ff13f2e178242d8ad3aab3c1b341a53",
+          "Name": "",
+          "Description": "Node output",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Visualize the node's output"
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Watch, CoreNodeModels",
+      "NodeType": "ExtensionNode",
+      "Id": "9e83f085a0a54dc3b295f7064d04ec8c",
+      "Inputs": [
+        {
+          "Id": "679bbeee16ab4cfbac29255dcae284b4",
+          "Name": "",
+          "Description": "Node to show output from",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "a5f6a6ac444e4ef395fe5481d8b77cf4",
           "Name": "",
           "Description": "Node output",
           "UsingDefaultValue": false,
@@ -2400,7 +2429,7 @@
     {
       "Start": "35abbe63f2e645b2a01454fe79512e42",
       "End": "947656fa909f4b71b672e6e48ed02ba2",
-      "Id": "40313c22d95b419ea117710a79077594",
+      "Id": "7121623e30da4776bc020c8af956f3be",
       "IsHidden": "False"
     },
     {
@@ -2411,14 +2440,14 @@
     },
     {
       "Start": "e23d8f36bb484e0db8c6726f3dc0ca2a",
-      "End": "714d4356e8274c5cb0c272dd6ec963ac",
-      "Id": "a0fc8dfe550f419fad6fb38b976ffb84",
+      "End": "1c7fe5ab522b4ac29d018bfecc49458c",
+      "Id": "bdd7bb84e3cb4609bf6a38b760029249",
       "IsHidden": "False"
     },
     {
       "Start": "e23d8f36bb484e0db8c6726f3dc0ca2a",
-      "End": "1c7fe5ab522b4ac29d018bfecc49458c",
-      "Id": "bdd7bb84e3cb4609bf6a38b760029249",
+      "End": "714d4356e8274c5cb0c272dd6ec963ac",
+      "Id": "f99e10ced5a7434faf8249a325901d98",
       "IsHidden": "False"
     },
     {
@@ -2563,6 +2592,12 @@
       "Start": "b560155a956b4f7687ca1c6fa20bf8ff",
       "End": "e2cd1936e6bb42078ce24cd61926012c",
       "Id": "516f054401d840f4a1474e9e7701b18d",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "b560155a956b4f7687ca1c6fa20bf8ff",
+      "End": "679bbeee16ab4cfbac29255dcae284b4",
+      "Id": "2535ca6b021d47b19d9f740db74bb4c7",
       "IsHidden": "False"
     },
     {
@@ -3324,8 +3359,8 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 13315.867910219749,
-        "Y": 6060.1940032091788
+        "X": 13315.8679102197,
+        "Y": 6060.19400320918
       },
       {
         "Name": "Watch",
@@ -3346,6 +3381,16 @@
         "Excluded": false,
         "X": 8430.2145153676538,
         "Y": 3957.8453829209748
+      },
+      {
+        "Name": "Watch",
+        "ShowGeometry": true,
+        "Id": "9e83f085a0a54dc3b295f7064d04ec8c",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 7808.60377649248,
+        "Y": 6622.3595275658363
       }
     ],
     "Annotations": [
@@ -3733,8 +3778,8 @@
         "Background": "#FFC1D676"
       }
     ],
-    "X": -4381.9927009362536,
-    "Y": -1245.8957826360345,
-    "Zoom": 0.51653037303187166
+    "X": -21151.206900153007,
+    "Y": -9505.6367338966047,
+    "Zoom": 1.646177105571013
   }
 }

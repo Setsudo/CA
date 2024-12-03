@@ -12,8 +12,8 @@ try:
     if not isinstance(sub_headers_to_match, list):
         raise ValueError("Sub-Headers to match must be provided as a list.")
 
-    # Track unmatched sub-headers
-    unmatched_sub_headers = set(sub_headers_to_match)
+    # Create a list to track unmatched sub-headers
+    unmatched_sub_headers = sub_headers_to_match.copy()
 
     # Iterate through each row in the Excel data
     for row in excel_data:
@@ -28,13 +28,15 @@ try:
 
             # Only include rows with meaningful sub-header data that matches the provided list
             if sub_header in sub_headers_to_match:
-                # Remove matched sub-header from unmatched list
-                unmatched_sub_headers.discard(sub_header)
                 # Create a list for the row, formatted to match the desired output structure
                 row_list = [sub_header, [item_type, existing, proposed, variation]]
 
                 # Append the row list to the data rows
                 data_rows.append(row_list)
+
+                # Remove one occurrence of the matched sub-header from unmatched list if present
+                if sub_header in unmatched_sub_headers:
+                    unmatched_sub_headers.remove(sub_header)
 
     # Check for unmatched sub-headers and raise an error if any remain
     if unmatched_sub_headers:
