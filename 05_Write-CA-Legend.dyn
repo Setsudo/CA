@@ -2268,6 +2268,165 @@
       ],
       "Replication": "Disabled",
       "Description": "Visualize the node's output"
+    },
+    {
+      "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
+      "NodeType": "PythonScriptNode",
+      "Code": "import clr\r\nclr.AddReference('RevitServices')\r\nfrom RevitServices.Persistence import DocumentManager\r\nfrom RevitServices.Transactions import TransactionManager\r\n\r\nimport re\r\n\r\n# Function to flatten nested list into a single-level list\r\ndef flatten_list(nested_list):\r\n    flat_list = []\r\n    for item in nested_list:\r\n        if isinstance(item, list):\r\n            flat_list.extend(flatten_list(item))\r\n        else:\r\n            flat_list.append(item)\r\n    return flat_list\r\n\r\n# Function to remove all non-alphanumeric characters, spaces, and line breaks from a string\r\ndef normalize_string(s):\r\n    return re.sub(r'[^a-zA-Z0-9]', '', s).lower()\r\n\r\n# Function to search for labels and return the desired columns in the original format\r\ndef find_labels_and_columns(data, labels, num_following_columns):\r\n    results = []\r\n    found_labels = set()\r\n    normalized_labels = [normalize_string(label) for label in labels]\r\n    \r\n    # Iterate through each element in the data\r\n    for i, element in enumerate(data):\r\n        if isinstance(element, list) and len(element) > 0 and isinstance(element[0], str):\r\n            label = element[0]\r\n            normalized_label = normalize_string(label)\r\n            if normalized_label in normalized_labels:\r\n                # Mark the label as found\r\n                found_labels.add(normalized_label)\r\n                # Extract the element and the following columns based on count\r\n                end_index = min(i + num_following_columns + 1, len(data))\r\n                results.append(data[i:end_index])\r\n\r\n    # Check if all labels were found, if not append the error to OUT\r\n    if len(found_labels) != len(normalized_labels):\r\n        missing_labels = [label for label in labels if normalize_string(label) not in found_labels]\r\n        if missing_labels:\r\n            return f\"Error: The following labels were not found in the data: {missing_labels}\"\r\n\r\n    return results\r\n\r\n# Input data: The structured dataset and list of labels of interest from Dynamo UI input\r\ndata = IN[0]  # Expecting input from Dynamo to be a structured list\r\n\r\n# Dynamically input labels of interest from user (Dynamo UI input)\r\nlabels_of_interest = IN[1]  # Expecting input from Dynamo to be a list of labels\r\n\r\n# Input for number of following columns to collect (Dynamo UI input)\r\nnum_following_columns = IN[2]  # Expecting input from Dynamo to be an integer specifying the number of following columns\r\n\r\n# Find labels and their respective columns\r\nmatched_results = find_labels_and_columns(data, labels_of_interest, num_following_columns)\r\n\r\n# Output the results in the same format as the input\r\nOUT = matched_results\r\n",
+      "Engine": "CPython3",
+      "EngineName": "CPython3",
+      "VariableInputPorts": true,
+      "Id": "397989174bf8498e83219dc02b317346",
+      "Inputs": [
+        {
+          "Id": "8af02bc3ef0e41a784dbee72e6d3b4e6",
+          "Name": "IN[0]",
+          "Description": "Input #0",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "a1878718981a45e4b3fa480e3168dfe5",
+          "Name": "IN[1]",
+          "Description": "Input #1",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "d1d74038f99946bebdf846b9f8447087",
+          "Name": "IN[2]",
+          "Description": "Input #2",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "09fbc00085d34c8d87102fe743489dfc",
+          "Name": "OUT",
+          "Description": "Result of the python script",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Runs an embedded Python script."
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Watch, CoreNodeModels",
+      "NodeType": "ExtensionNode",
+      "Id": "827911cc03894f4e8313e0055824cb78",
+      "Inputs": [
+        {
+          "Id": "3ebf74e2121e4211ba9ab07315c45b22",
+          "Name": "",
+          "Description": "Node to show output from",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "58bc592542144791a5c1bb7237201ad2",
+          "Name": "",
+          "Description": "Node output",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Visualize the node's output"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CodeBlockNodeModel, DynamoCore",
+      "NodeType": "CodeBlockNode",
+      "Code": "4;",
+      "Id": "2af2a074483643e086fd82e0f793ad33",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "e5b754943fa04c6ca015703a072dc3bb",
+          "Name": "",
+          "Description": "Value of expression at line 1",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Allows for DesignScript code to be authored directly"
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Watch, CoreNodeModels",
+      "NodeType": "ExtensionNode",
+      "Id": "db4da7c08ffc43c2b72fe014beb0b3db",
+      "Inputs": [
+        {
+          "Id": "01c9cb090b7e4d368c28b09e29afb251",
+          "Name": "",
+          "Description": "Node to show output from",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "6699e4f0283c4c658306490fcf83d9d3",
+          "Name": "",
+          "Description": "Node output",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Visualize the node's output"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.ZeroTouch.DSFunction, DynamoCore",
+      "NodeType": "FunctionNode",
+      "FunctionSignature": "DSCore.List.Count@var[]..[]",
+      "Id": "ef48cb24d15743daac528f24faaddf79",
+      "Inputs": [
+        {
+          "Id": "36243593fe724d3f9b79287f39455d4c",
+          "Name": "list",
+          "Description": "List to get the item count of.\n\nvar[]..[]",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "64df4cc6be25481896a6e3ad06dcc501",
+          "Name": "int",
+          "Description": "List length.",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Auto",
+      "Description": "Returns the number of items stored in the given list.\n\nList.Count (list: var[]..[]): int"
     }
   ],
   "Connectors": [
@@ -2704,6 +2863,12 @@
       "IsHidden": "False"
     },
     {
+      "Start": "b560155a956b4f7687ca1c6fa20bf8ff",
+      "End": "a1878718981a45e4b3fa480e3168dfe5",
+      "Id": "def8f090579940a9b4811569b3f5937a",
+      "IsHidden": "False"
+    },
+    {
       "Start": "0d1279d8f2a24881882b343bdf5876fd",
       "End": "739ca4e5262a447dadfd4d463df7baf1",
       "Id": "61bf117b0b4e4c3285d2391e2cd050e5",
@@ -2725,6 +2890,36 @@
       "Start": "261a48d1ffca4199b1806a735fbc22db",
       "End": "60248a94d78742ebb30d9f741dcedf20",
       "Id": "f99dd0834c0949bc8021e6413b8f7625",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "261a48d1ffca4199b1806a735fbc22db",
+      "End": "8af02bc3ef0e41a784dbee72e6d3b4e6",
+      "Id": "17400ff14bcf468d8f1e0246570d5e0f",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "09fbc00085d34c8d87102fe743489dfc",
+      "End": "3ebf74e2121e4211ba9ab07315c45b22",
+      "Id": "edfc86a827a34d218a014acf70913252",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "09fbc00085d34c8d87102fe743489dfc",
+      "End": "36243593fe724d3f9b79287f39455d4c",
+      "Id": "11f36500004f4eb7b0e3ebb52642dbdc",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "e5b754943fa04c6ca015703a072dc3bb",
+      "End": "d1d74038f99946bebdf846b9f8447087",
+      "Id": "1e3a0e861a1e47689625cbe964fc8e5d",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "64df4cc6be25481896a6e3ad06dcc501",
+      "End": "01c9cb090b7e4d368c28b09e29afb251",
+      "Id": "1a6d9caba2fc4938ae1881145f6563b1",
       "IsHidden": "False"
     }
   ],
@@ -2811,7 +3006,7 @@
         "IsSetAsOutput": false,
         "Excluded": false,
         "X": 4811.9560595714929,
-        "Y": 9179.6831488510543
+        "Y": 9180.9610656774967
       },
       {
         "Name": "Boolean",
@@ -3400,8 +3595,8 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 7262.1379784817182,
-        "Y": 9311.4126638575017
+        "X": 5769.0917446716612,
+        "Y": 9308.8428768802041
       },
       {
         "Name": "List.GetItemAtIndex",
@@ -3480,8 +3675,8 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 7934.29737953099,
-        "Y": 6687.9387987163636
+        "X": 7885.7248590254048,
+        "Y": 6529.5059055065822
       },
       {
         "Name": "List.Count",
@@ -3530,8 +3725,8 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 7739.6785678683127,
-        "Y": 9648.4871399177682
+        "X": 6401.3028662286533,
+        "Y": 9686.3284604965957
       },
       {
         "Name": "Arrange into Columns and Rows",
@@ -3540,8 +3735,8 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 8587.4315693596254,
-        "Y": 9305.8870631542832
+        "X": 7792.7947451660248,
+        "Y": 9303.1772919049545
       },
       {
         "Name": "Watch",
@@ -3550,8 +3745,58 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 9153.7578604990467,
-        "Y": 9637.13725209245
+        "X": 8528.1632560104717,
+        "Y": 9657.6150511965261
+      },
+      {
+        "Name": "Return Sub-Headers",
+        "ShowGeometry": true,
+        "Id": "397989174bf8498e83219dc02b317346",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 10559.194820525479,
+        "Y": 9291.805525527132
+      },
+      {
+        "Name": "Watch",
+        "ShowGeometry": true,
+        "Id": "827911cc03894f4e8313e0055824cb78",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 11130.411223341773,
+        "Y": 9714.4760195991876
+      },
+      {
+        "Name": "Code Block",
+        "ShowGeometry": true,
+        "Id": "2af2a074483643e086fd82e0f793ad33",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 10305.194820525479,
+        "Y": 9360.8599679262152
+      },
+      {
+        "Name": "Watch",
+        "ShowGeometry": true,
+        "Id": "db4da7c08ffc43c2b72fe014beb0b3db",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 11437.072248863822,
+        "Y": 8965.4238718724137
+      },
+      {
+        "Name": "List.Count",
+        "ShowGeometry": true,
+        "Id": "ef48cb24d15743daac528f24faaddf79",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 11183.144995059272,
+        "Y": 8972.8510534046636
       }
     ],
     "Annotations": [
@@ -3926,12 +4171,12 @@
           "9c8b7d7a2c0249fa8a2f379b7e24e57c"
         ],
         "HasNestedGroups": false,
-        "Left": 7252.1379784817182,
-        "Top": 9186.4126638575017,
+        "Left": 5759.0917446716612,
+        "Top": 9183.8428768802041,
         "Width": 225.0,
         "Height": 257.0,
         "FontSize": 36.0,
-        "InitialTop": 9311.4126638575017,
+        "InitialTop": 9308.8428768802041,
         "InitialHeight": 162.0,
         "TextblockHeight": 115.0,
         "Background": "#FFC1D676"
@@ -3947,19 +4192,41 @@
           "83f4fc82b3a54e2089e05ebc85cdb693"
         ],
         "HasNestedGroups": false,
-        "Left": 8577.4315693596254,
-        "Top": 9189.8870631542832,
+        "Left": 7782.7947451660248,
+        "Top": 9187.1772919049545,
         "Width": 332.0,
         "Height": 248.0,
         "FontSize": 36.0,
-        "InitialTop": 9305.8870631542832,
+        "InitialTop": 9303.1772919049545,
         "InitialHeight": 256.85880295376046,
+        "TextblockHeight": 106.0,
+        "Background": "#FFC1D676"
+      },
+      {
+        "Id": "7184b43a4ace4df6b0611b3c1da57d27",
+        "Title": "Search for Sub-Header and Return Data",
+        "DescriptionText": "<Double click here to edit group description>",
+        "IsExpanded": true,
+        "WidthAdjustment": 0.0,
+        "HeightAdjustment": 0.0,
+        "Nodes": [
+          "397989174bf8498e83219dc02b317346",
+          "2af2a074483643e086fd82e0f793ad33"
+        ],
+        "HasNestedGroups": false,
+        "Left": 10295.194820525479,
+        "Top": 9175.805525527132,
+        "Width": 500.0,
+        "Height": 317.0544423990832,
+        "FontSize": 36.0,
+        "InitialTop": 9291.805525527132,
+        "InitialHeight": 162.0,
         "TextblockHeight": 106.0,
         "Background": "#FFC1D676"
       }
     ],
-    "X": -3592.0756779613048,
-    "Y": -4442.7655742407151,
-    "Zoom": 0.52485300436216742
+    "X": -2236.9905370577235,
+    "Y": -4902.0659090928157,
+    "Zoom": 0.56829883837450945
   }
 }
