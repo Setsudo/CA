@@ -1657,68 +1657,6 @@
       "Description": "Allows for DesignScript code to be authored directly"
     },
     {
-      "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
-      "NodeType": "PythonScriptNode",
-      "Code": "# Function to group elements based on Y values with a specified tolerance\r\n\r\ndef group_elements_by_y(input_list, tolerance):\r\n    # Extract elements with Y values\r\n    elements_with_y = []\r\n    for item in input_list:\r\n        if isinstance(item, list) and len(item) > 1:\r\n            legend_index_info = item[1]\r\n            if isinstance(legend_index_info, list) and len(legend_index_info) > 2:\r\n                position_data = legend_index_info[2]\r\n                if isinstance(position_data, list) and len(position_data) >= 3:\r\n                    y_value = position_data[2]\r\n                    elements_with_y.append((y_value, item))\r\n\r\n    # Sort elements by Y value (descending order)\r\n    elements_with_y.sort(key=lambda x: -x[0])\r\n\r\n    # Group elements by Y value within the specified tolerance\r\n    grouped_rows = []\r\n    row_counter = 1\r\n    current_row = []\r\n    last_y = None\r\n\r\n    for y_value, element in elements_with_y:\r\n        if last_y is None or abs(last_y - y_value) <= tolerance:\r\n            current_row.append(element)\r\n        else:\r\n            grouped_rows.append((f\"Row {row_counter}\", current_row))\r\n            row_counter += 1\r\n            current_row = [element]\r\n        last_y = y_value\r\n\r\n    # Append the last row if it exists\r\n    if current_row:\r\n        grouped_rows.append((f\"Row {row_counter}\", current_row))\r\n\r\n    return grouped_rows\r\n\r\n# Convert tolerance to float\r\ntolerance = float(IN[1])\r\n\r\n# Group the elements by Y value with the specified tolerance\r\noutput_rows = group_elements_by_y(IN[0], tolerance)\r\n\r\n# Output the grouped rows\r\nOUT = output_rows\r\n",
-      "Engine": "CPython3",
-      "EngineName": "CPython3",
-      "VariableInputPorts": true,
-      "Id": "85ac0d2279e34da8b483908120d95364",
-      "Inputs": [
-        {
-          "Id": "755d181c614840d081a65e34bb2f43e6",
-          "Name": "IN[0]",
-          "Description": "Input #0",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        },
-        {
-          "Id": "b8d21a9fb4894675bff5e1a7083669d5",
-          "Name": "IN[1]",
-          "Description": "Input #1",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        }
-      ],
-      "Outputs": [
-        {
-          "Id": "664573c69e8d421b86815e0f05b88dc9",
-          "Name": "OUT",
-          "Description": "Result of the python script",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        }
-      ],
-      "Replication": "Disabled",
-      "Description": "Runs an embedded Python script."
-    },
-    {
-      "ConcreteType": "Dynamo.Graph.Nodes.CodeBlockNodeModel, DynamoCore",
-      "NodeType": "CodeBlockNode",
-      "Code": "0.001;",
-      "Id": "bcbfe0aed16d4543acb441008b122134",
-      "Inputs": [],
-      "Outputs": [
-        {
-          "Id": "815eb2e37aa148e68e452da877a251ac",
-          "Name": "",
-          "Description": "Value of expression at line 1",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        }
-      ],
-      "Replication": "Disabled",
-      "Description": "Allows for DesignScript code to be authored directly"
-    },
-    {
       "ConcreteType": "Dynamo.Graph.Nodes.CodeBlockNodeModel, DynamoCore",
       "NodeType": "CodeBlockNode",
       "Code": "\"MULTI-DECK DAIRY\";",
@@ -2241,42 +2179,12 @@
       "Description": "Visualize the node's output"
     },
     {
-      "ConcreteType": "Dynamo.Graph.Nodes.ZeroTouch.DSFunction, DynamoCore",
-      "NodeType": "FunctionNode",
-      "FunctionSignature": "DSCore.List.Count@var[]..[]",
-      "Id": "b9318e9c52c341b9b7c7f1a17ca3b822",
-      "Inputs": [
-        {
-          "Id": "fda7fc7fed1c488ab878fc8ac52fddf6",
-          "Name": "list",
-          "Description": "List to get the item count of.\n\nvar[]..[]",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        }
-      ],
-      "Outputs": [
-        {
-          "Id": "c08279e875d148f1812d4062698bc620",
-          "Name": "int",
-          "Description": "List length.",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        }
-      ],
-      "Replication": "Auto",
-      "Description": "Returns the number of items stored in the given list.\n\nList.Count (list: var[]..[]): int"
-    },
-    {
       "ConcreteType": "CoreNodeModels.Watch, CoreNodeModels",
       "NodeType": "ExtensionNode",
-      "Id": "6c20a15942ff401792715929e47dadc5",
+      "Id": "6d484fb7ad1b4384b933975e2fa696f9",
       "Inputs": [
         {
-          "Id": "ba7a046aec3942eabff3bb221c605b06",
+          "Id": "a9670865b1a0439e93793ca36e040eae",
           "Name": "",
           "Description": "Node to show output from",
           "UsingDefaultValue": false,
@@ -2287,36 +2195,7 @@
       ],
       "Outputs": [
         {
-          "Id": "af07a2f7c8d84459a3525150781e1232",
-          "Name": "",
-          "Description": "Node output",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        }
-      ],
-      "Replication": "Disabled",
-      "Description": "Visualize the node's output"
-    },
-    {
-      "ConcreteType": "CoreNodeModels.Watch, CoreNodeModels",
-      "NodeType": "ExtensionNode",
-      "Id": "1cca4752644241f28af0d6c528676cce",
-      "Inputs": [
-        {
-          "Id": "71829dc766544e51b43788e288330633",
-          "Name": "",
-          "Description": "Node to show output from",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        }
-      ],
-      "Outputs": [
-        {
-          "Id": "f58790363b0846b9b690978f0f04ff31",
+          "Id": "2770957a4d324613abe8606a6db4ccdf",
           "Name": "",
           "Description": "Node output",
           "UsingDefaultValue": false,
@@ -2331,25 +2210,16 @@
     {
       "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
       "NodeType": "PythonScriptNode",
-      "Code": "import clr\r\nclr.AddReference('ProtoGeometry')\r\nfrom Autodesk.DesignScript.Geometry import *\r\n\r\n# Inputs\r\ninput_list = IN[0]  # The input list containing all rows\r\ndesired_sub_headers = IN[1]  # The list of desired sub-headers to keep\r\n\r\n# Function to filter rows based on Sub-Header\r\ndef filter_rows(input_list, filter_values):\r\n    filtered_rows = []\r\n    \r\n    for row in input_list:\r\n        row_name, row_data = row\r\n        \r\n        # Check if any item in the row matches the desired sub-headers\r\n        if any(item[0] in filter_values for item in row_data):\r\n            filtered_rows.append(row)\r\n    \r\n    return filtered_rows\r\n\r\n# Apply filter\r\nfiltered_output = filter_rows(input_list, desired_sub_headers)\r\n\r\n# Output\r\nOUT = filtered_output\r\n",
+      "Code": "import clr\r\nclr.AddReference('RevitServices')\r\nfrom RevitServices.Persistence import DocumentManager\r\nfrom RevitServices.Transactions import TransactionManager\r\n\r\nclr.AddReference(\"RevitAPI\")\r\nfrom Autodesk.Revit.DB import *\r\n\r\n# Inputs\r\ntext_notes = IN[0]  # Nested list containing TextNotes data\r\n\r\n# Function to determine column and row boundaries based on the positions of TextNotes\r\ndef infer_grid_dimensions(text_notes):\r\n    x_values = []\r\n    y_values = []\r\n    \r\n    # Extract X and Y coordinates from the nested list\r\n    for note in text_notes:\r\n        position_data = note[1][2]\r\n        _, x, y, _ = position_data\r\n        x_values.append(x)\r\n        y_values.append(y)\r\n    \r\n    # Sort and calculate the average difference between sorted unique values as the inferred width/height\r\n    unique_x_values = sorted(set(x_values))\r\n    unique_y_values = sorted(set(y_values))\r\n    \r\n    column_width = (max(unique_x_values) - min(unique_x_values)) / (len(unique_x_values) - 1) if len(unique_x_values) > 1 else 1\r\n    row_height = (max(unique_y_values) - min(unique_y_values)) / (len(unique_y_values) - 1) if len(unique_y_values) > 1 else 1\r\n    \r\n    return column_width, row_height\r\n\r\n# Infer column width and row height\r\ncolumn_width, row_height = infer_grid_dimensions(text_notes)\r\n\r\n# Function to determine column and row indices based on X, Y values\r\ndef calculate_grid_indices(x, y, column_width, row_height):\r\n    column = int(x // column_width) + 1  # Convert to 1-based index\r\n    row = int(y // row_height) + 1       # Convert to 1-based index\r\n    return column, row\r\n\r\n# Loop through each TextNote and add Column and Row information to the nested list\r\nfor note in text_notes:\r\n    position_data = note[1][2]\r\n    _, x, y, _ = position_data\r\n    \r\n    # Calculate column and row indices\r\n    column, row = calculate_grid_indices(x, y, column_width, row_height)\r\n    \r\n    # Move Column and Row data to the same level as the note title\r\n    note.insert(1, (\"Column\", column))\r\n    note.insert(2, (\"Row\", row))\r\n\r\n# Output (for verification in Dynamo)\r\nOUT = text_notes\r\n",
       "Engine": "CPython3",
       "EngineName": "CPython3",
       "VariableInputPorts": true,
-      "Id": "0e32c7cb56a348a4a0aff63664812fa3",
+      "Id": "83f4fc82b3a54e2089e05ebc85cdb693",
       "Inputs": [
         {
-          "Id": "1d71dee7fa1f439eb530a4090ffd9b4b",
+          "Id": "2b14bd8ca8d445c387e19526a9de9b20",
           "Name": "IN[0]",
           "Description": "Input #0",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        },
-        {
-          "Id": "f6d0ce3f273c4525b19311d78cd80ea5",
-          "Name": "IN[1]",
-          "Description": "Input #1",
           "UsingDefaultValue": false,
           "Level": 2,
           "UseLevels": false,
@@ -2358,7 +2228,7 @@
       ],
       "Outputs": [
         {
-          "Id": "6b7fd2a35cfd4dc380bfb4950f557196",
+          "Id": "261a48d1ffca4199b1806a735fbc22db",
           "Name": "OUT",
           "Description": "Result of the python script",
           "UsingDefaultValue": false,
@@ -2373,10 +2243,10 @@
     {
       "ConcreteType": "CoreNodeModels.Watch, CoreNodeModels",
       "NodeType": "ExtensionNode",
-      "Id": "bb5a76f2d0b94bbeb2c9b7f40f497da6",
+      "Id": "a17631d619a94e3f986d37e4b42103f8",
       "Inputs": [
         {
-          "Id": "abab3cf7abb0490380710c0444f58475",
+          "Id": "60248a94d78742ebb30d9f741dcedf20",
           "Name": "",
           "Description": "Node to show output from",
           "UsingDefaultValue": false,
@@ -2387,7 +2257,7 @@
       ],
       "Outputs": [
         {
-          "Id": "e5b755ce571c4063ae60e637e19caca7",
+          "Id": "505da93073084a35b7375039b6bd529b",
           "Name": "",
           "Description": "Node output",
           "UsingDefaultValue": false,
@@ -2787,8 +2657,14 @@
     },
     {
       "Start": "c1f233780d964911991aecac7a4ad75d",
-      "End": "755d181c614840d081a65e34bb2f43e6",
-      "Id": "4e43d3a21de64c37b35f30f9eec228e3",
+      "End": "a9670865b1a0439e93793ca36e040eae",
+      "Id": "6d69eb4e1fcd49d7822f25ab7c1b58d1",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "c1f233780d964911991aecac7a4ad75d",
+      "End": "2b14bd8ca8d445c387e19526a9de9b20",
+      "Id": "750c5d09e7ad47aab179abfa9effa600",
       "IsHidden": "False"
     },
     {
@@ -2801,36 +2677,6 @@
       "Start": "465d76870d1144db938b343f6ba71aec",
       "End": "9a6d4451344c4a2ba68c1d90e193cc03",
       "Id": "3a2e11bb169c4196af158afeccd4ab27",
-      "IsHidden": "False"
-    },
-    {
-      "Start": "664573c69e8d421b86815e0f05b88dc9",
-      "End": "6026c564b11d40f1856329c6689e37b5",
-      "Id": "5f0f607446e045e4921854d65387721b",
-      "IsHidden": "False"
-    },
-    {
-      "Start": "664573c69e8d421b86815e0f05b88dc9",
-      "End": "fda7fc7fed1c488ab878fc8ac52fddf6",
-      "Id": "5d2c142c639f46d3b4c5a7a809ef014b",
-      "IsHidden": "False"
-    },
-    {
-      "Start": "664573c69e8d421b86815e0f05b88dc9",
-      "End": "71829dc766544e51b43788e288330633",
-      "Id": "73c9e1bc12d14e7b8eec055e2807f03d",
-      "IsHidden": "False"
-    },
-    {
-      "Start": "664573c69e8d421b86815e0f05b88dc9",
-      "End": "1d71dee7fa1f439eb530a4090ffd9b4b",
-      "Id": "6c18f724b74a4ef98887a4919a2cd244",
-      "IsHidden": "False"
-    },
-    {
-      "Start": "815eb2e37aa148e68e452da877a251ac",
-      "End": "b8d21a9fb4894675bff5e1a7083669d5",
-      "Id": "da8ab70c161343ddb8372d0262d651b1",
       "IsHidden": "False"
     },
     {
@@ -2858,12 +2704,6 @@
       "IsHidden": "False"
     },
     {
-      "Start": "b560155a956b4f7687ca1c6fa20bf8ff",
-      "End": "f6d0ce3f273c4525b19311d78cd80ea5",
-      "Id": "d15ff487a4154925a935d74b3644447e",
-      "IsHidden": "False"
-    },
-    {
       "Start": "0d1279d8f2a24881882b343bdf5876fd",
       "End": "739ca4e5262a447dadfd4d463df7baf1",
       "Id": "61bf117b0b4e4c3285d2391e2cd050e5",
@@ -2882,15 +2722,9 @@
       "IsHidden": "False"
     },
     {
-      "Start": "c08279e875d148f1812d4062698bc620",
-      "End": "ba7a046aec3942eabff3bb221c605b06",
-      "Id": "37af8aa319d848578fae0edcd4ba0d31",
-      "IsHidden": "False"
-    },
-    {
-      "Start": "6b7fd2a35cfd4dc380bfb4950f557196",
-      "End": "abab3cf7abb0490380710c0444f58475",
-      "Id": "a27e7097587a46e98809b4cf5caf0bd8",
+      "Start": "261a48d1ffca4199b1806a735fbc22db",
+      "End": "60248a94d78742ebb30d9f741dcedf20",
+      "Id": "f99dd0834c0949bc8021e6413b8f7625",
       "IsHidden": "False"
     }
   ],
@@ -3566,8 +3400,8 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 10274.283778044715,
-        "Y": 9313.96560857411
+        "X": 7262.1379784817182,
+        "Y": 9311.4126638575017
       },
       {
         "Name": "List.GetItemAtIndex",
@@ -3590,26 +3424,6 @@
         "Y": 9414.5106488510537
       },
       {
-        "Name": "Arrange into Rows",
-        "ShowGeometry": true,
-        "Id": "85ac0d2279e34da8b483908120d95364",
-        "IsSetAsInput": false,
-        "IsSetAsOutput": false,
-        "Excluded": false,
-        "X": 10580.14889302598,
-        "Y": 9366.93430562035
-      },
-      {
-        "Name": "Code Block",
-        "ShowGeometry": true,
-        "Id": "bcbfe0aed16d4543acb441008b122134",
-        "IsSetAsInput": false,
-        "IsSetAsOutput": false,
-        "Excluded": false,
-        "X": 10274.283778044715,
-        "Y": 9461.79310857411
-      },
-      {
         "Name": "Code Block",
         "ShowGeometry": true,
         "Id": "14710cda3d564534a6bbe21de117a8ab",
@@ -3626,8 +3440,8 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 7336.20767753669,
-        "Y": 5929.7382024797125
+        "X": 7461.9012805752,
+        "Y": 5995.31747363024
       },
       {
         "Name": "Unify Excel and Revit Data for Legend",
@@ -3666,8 +3480,8 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 7808.60377649248,
-        "Y": 6622.3595275658363
+        "X": 7934.29737953099,
+        "Y": 6687.9387987163636
       },
       {
         "Name": "List.Count",
@@ -3676,8 +3490,8 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 8326.10198966238,
-        "Y": 5922.3863325060593
+        "X": 8451.79559270089,
+        "Y": 5987.9656036565866
       },
       {
         "Name": "Watch",
@@ -3686,8 +3500,8 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 8580.0292434669263,
-        "Y": 5914.9591509738084
+        "X": 8705.7228465054359,
+        "Y": 5980.5384221243357
       },
       {
         "Name": "List.Count",
@@ -3710,54 +3524,34 @@
         "Y": 3231.5861897341038
       },
       {
-        "Name": "List.Count",
+        "Name": "Watch",
         "ShowGeometry": true,
-        "Id": "b9318e9c52c341b9b7c7f1a17ca3b822",
+        "Id": "6d484fb7ad1b4384b933975e2fa696f9",
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 10998.46569919493,
-        "Y": 8962.1810873807663
+        "X": 7739.6785678683127,
+        "Y": 9648.4871399177682
+      },
+      {
+        "Name": "Arrange into Columns and Rows",
+        "ShowGeometry": true,
+        "Id": "83f4fc82b3a54e2089e05ebc85cdb693",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 8587.4315693596254,
+        "Y": 9305.8870631542832
       },
       {
         "Name": "Watch",
         "ShowGeometry": true,
-        "Id": "6c20a15942ff401792715929e47dadc5",
+        "Id": "a17631d619a94e3f986d37e4b42103f8",
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 11276.04495828333,
-        "Y": 8964.4929668477562
-      },
-      {
-        "Name": "Watch",
-        "ShowGeometry": true,
-        "Id": "1cca4752644241f28af0d6c528676cce",
-        "IsSetAsInput": false,
-        "IsSetAsOutput": false,
-        "Excluded": false,
-        "X": 10951.252263781289,
-        "Y": 9831.7900723089642
-      },
-      {
-        "Name": "Strip Extra Rows",
-        "ShowGeometry": true,
-        "Id": "0e32c7cb56a348a4a0aff63664812fa3",
-        "IsSetAsInput": false,
-        "IsSetAsOutput": false,
-        "Excluded": false,
-        "X": 11585.689027357475,
-        "Y": 9333.2121357786873
-      },
-      {
-        "Name": "Watch",
-        "ShowGeometry": true,
-        "Id": "bb5a76f2d0b94bbeb2c9b7f40f497da6",
-        "IsSetAsInput": false,
-        "IsSetAsOutput": false,
-        "Excluded": false,
-        "X": 11999.196490664553,
-        "Y": 9601.1663125837476
+        "X": 9153.7578604990467,
+        "Y": 9637.13725209245
       }
     ],
     "Annotations": [
@@ -4122,31 +3916,50 @@
         "Background": "#FFC1D676"
       },
       {
-        "Id": "d3101f0f86c34839842194b04450c0ec",
-        "Title": "Extract and Arrange",
+        "Id": "0a71eb0c6cdc4f7096803bfa1b4adeab",
+        "Title": "Extract Textnotes",
         "DescriptionText": "<Double click here to edit group description>",
         "IsExpanded": true,
         "WidthAdjustment": 0.0,
         "HeightAdjustment": 0.0,
         "Nodes": [
-          "85ac0d2279e34da8b483908120d95364",
-          "bcbfe0aed16d4543acb441008b122134",
           "9c8b7d7a2c0249fa8a2f379b7e24e57c"
         ],
         "HasNestedGroups": false,
-        "Left": 10264.283778044715,
-        "Top": 9240.96560857411,
-        "Width": 535.86511498126492,
-        "Height": 352.82749999999942,
+        "Left": 7252.1379784817182,
+        "Top": 9186.4126638575017,
+        "Width": 225.0,
+        "Height": 257.0,
         "FontSize": 36.0,
-        "InitialTop": 9313.96560857411,
-        "InitialHeight": 292.82749999999942,
-        "TextblockHeight": 63.0,
+        "InitialTop": 9311.4126638575017,
+        "InitialHeight": 162.0,
+        "TextblockHeight": 115.0,
+        "Background": "#FFC1D676"
+      },
+      {
+        "Id": "d2668b601ed3430eba6c1c67969e287e",
+        "Title": "Detect Relationship of Textnotes",
+        "DescriptionText": "<Double click here to edit group description>",
+        "IsExpanded": true,
+        "WidthAdjustment": 0.0,
+        "HeightAdjustment": 0.0,
+        "Nodes": [
+          "83f4fc82b3a54e2089e05ebc85cdb693"
+        ],
+        "HasNestedGroups": false,
+        "Left": 8577.4315693596254,
+        "Top": 9189.8870631542832,
+        "Width": 332.0,
+        "Height": 248.0,
+        "FontSize": 36.0,
+        "InitialTop": 9305.8870631542832,
+        "InitialHeight": 256.85880295376046,
+        "TextblockHeight": 106.0,
         "Background": "#FFC1D676"
       }
     ],
-    "X": -8454.89466268432,
-    "Y": -7504.201996350288,
-    "Zoom": 0.8181024031574925
+    "X": -3592.0756779613048,
+    "Y": -4442.7655742407151,
+    "Zoom": 0.52485300436216742
   }
 }
