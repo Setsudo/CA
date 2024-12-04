@@ -3,6 +3,7 @@ clr.AddReference('ProtoGeometry')
 from Autodesk.DesignScript.Geometry import *
 import re
 import unicodedata
+from difflib import SequenceMatcher
 
 # Sample data from your output (truncated for brevity)
 text_notes_data = IN[0]
@@ -19,12 +20,16 @@ def navigate_and_flatten(input_list):
             result.append(item)
     return result
 
-# Function to normalize sub-header strings for better matching
-def normalize_header(header):
-    # Normalize by removing line breaks, parentheses, special characters, and converting to uppercase
+# Improved function to normalize sub-header strings for better matching
+def improved_normalize_header(header):
+    if not isinstance(header, str):
+        return ""
+    # Handle line breaks in text
+    header = header.replace('\n', ' ')
     header = unicodedata.normalize('NFKD', header)  # Normalize unicode characters
+    # Keep forward slashes for "BEER / WINE" style headers
     header = re.sub(r'\s*\([^)]*\)', '', header)  # Remove all parentheses and their contents
-    header = re.sub(r'[^\w\s]', '', header)  # Replace special characters
+    header = re.sub(r'[^\w\s/]', '', header)  # Replace special characters except slashes
     header = re.sub(r'\s+', ' ', header)  # Replace line breaks and multiple spaces with a single space
     header = header.strip()  # Remove leading/trailing whitespace
     header = header.upper()  # Convert to uppercase for uniform comparison
@@ -33,17 +38,11 @@ def normalize_header(header):
 # Function to take tolerance as input
 def group_text_notes(text_notes_data, tolerance, sub_headers_filter):
     # Normalize sub_headers_filter for comparison
-    normalized_sub_headers_filter = [normalize_header(header) for header in sub_headers_filter]
-
-    # Debug: Output normalized_sub_headers_filter
-    print("Normalized sub_headers_filter:", normalized_sub_headers_filter)
+    normalized_sub_headers_filter = [improved_normalize_header(header) for header in sub_headers_filter]
 
     # Ensure that text_notes_data is a list and tolerance is a float
     text_notes_data = navigate_and_flatten(text_notes_data)
     
-    # Debug: Check the flattened text notes data
-    print("Navigated text_notes_data:", text_notes_data)
-
     if not isinstance(text_notes_data, list):
         raise ValueError("text_notes_data must be a list")
     if not isinstance(tolerance, (int, float)):
@@ -67,14 +66,8 @@ def group_text_notes(text_notes_data, tolerance, sub_headers_filter):
             # Debug: Log exceptions in extracting data
             print(f"Error processing text_note: {text_note}, Error: {e}")
 
-    # Debug: Check extracted positions
-    print("Extracted positions:", positions)
-
     # Sort positions by Y (descending), then by X (ascending)
     positions.sort(key=lambda pos: (-pos[1], pos[0]))
-
-    # Debug: Check sorted positions
-    print("Sorted positions:", positions)
 
     # Group by similar Y values (rows) with tolerance
     grouped_rows = []
@@ -93,9 +86,6 @@ def group_text_notes(text_notes_data, tolerance, sub_headers_filter):
     if current_group:
         grouped_rows.append(current_group)
 
-    # Debug: Check grouped rows
-    print("Grouped rows:", grouped_rows)
-
     # Process the grouped rows to extract sub-headers, their values, and Legend Index
     processed_rows = []
     matched_sub_headers = []
@@ -105,18 +95,14 @@ def group_text_notes(text_notes_data, tolerance, sub_headers_filter):
         if len(texts_in_row) > 4 and not texts_in_row[0].isdigit():
             # Assume the first item is a sub-header, followed by the four values we're interested in
             sub_header = texts_in_row[0]
-            normalized_sub_header = normalize_header(sub_header)
-
-            # Debug: Output normalized sub_header
-            print("Normalized sub_header:", normalized_sub_header)
+            normalized_sub_header = improved_normalize_header(sub_header)
 
             type_labels = texts_in_row[1:5]  # Extract type labels (e.g., LF, SLF, DR)
             values = texts_in_row[1:5]  # Collect all four values
             legend_indices = legend_indices_in_row[1:5]  # Collect corresponding Legend Index for each value
 
             # Create a structured entry to maintain the original nested format
-            if normalized_sub_header in normalized_sub_headers_filter:
-                # Instead of splitting entries, consolidate them under the same sub-header
+            if normalized_sub_header in normalized_sub_headers_filter or any(similar(normalized_sub_header, filter_header) for filter_header in normalized_sub_headers_filter):
                 processed_entry = [
                     sub_header,
                     type_labels,  # Type labels
@@ -131,8 +117,8 @@ def group_text_notes(text_notes_data, tolerance, sub_headers_filter):
     # Ensure the number of outputs matches the number of inputs exactly
     output_rows = []
     for sub_header in sub_headers_filter:
-        normalized_sub_header = normalize_header(sub_header)
-        matching_entries = [entry for entry in processed_rows if normalize_header(entry[0]) == normalized_sub_header]
+        normalized_sub_header = improved_normalize_header(sub_header)
+        matching_entries = [entry for entry in processed_rows if improved_normalize_header(entry[0]) == normalized_sub_header]
         if matching_entries:
             # Make sure to append all matching entries that are required by the number of inputs
             output_rows.extend(matching_entries)  # Do not limit to one entry to ensure exact match count
@@ -140,13 +126,13 @@ def group_text_notes(text_notes_data, tolerance, sub_headers_filter):
             # If no match found, add a default entry
             output_rows.append([sub_header, ["N/A"] * 4, [0] * 4, ["N/A"] * 4])
 
-    # Debug: Check processed rows with preserved nested structure
-    print("Processed rows (with nested structure preserved):", output_rows)
-
     # Error if any sub-header is not matched
     unmatched_sub_headers = set(normalized_sub_headers_filter) - set(matched_sub_headers)
     if unmatched_sub_headers:
-        raise ValueError(f"The following sub-headers were not matched: {unmatched_sub_headers}")
+        # Raise an error and also output the error in the result for visibility in Dynamo Watch node
+        error_message = f"The following sub-headers were not matched: {unmatched_sub_headers}"
+        OUT = error_message
+        return OUT
 
     return output_rows
 
@@ -162,13 +148,9 @@ except (ValueError, TypeError):
 # Use the navigate_and_flatten function to process text_notes_data
 text_notes_data = navigate_and_flatten(text_notes_data)
 
-# Debug: Check initial inputs
-print("Initial text_notes_data:", text_notes_data)
-print("Tolerance:", tolerance)
-print("Sub-header filter list:", sub_headers_filter)
-
 # Group the text notes with the given tolerance and sub-header filter
-processed_rows = group_text_notes(text_notes_data, tolerance, sub_headers_filter)
-
-# Output the grouped rows
-OUT = processed_rows
+try:
+    processed_rows = group_text_notes(text_notes_data, tolerance, sub_headers_filter)
+    OUT = processed_rows  # Output the grouped rows
+except ValueError as e:
+    OUT = str(e)  # Output the error message to the Watch node in Dynamo
