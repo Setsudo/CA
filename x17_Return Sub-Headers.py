@@ -33,9 +33,49 @@ def find_labels_and_columns(data, labels, num_following_columns):
             if normalized_label in normalized_labels:
                 # Mark the label as found
                 found_labels.add(normalized_label)
-                # Extract the element and the following columns based on count
-                end_index = min(i + num_following_columns + 1, len(data))
-                results.append(data[i:end_index])
+                
+                # Extract the row and column of the matched label
+                label_row = None
+                label_column = None
+                for sub_element in element:
+                    if isinstance(sub_element, list) and len(sub_element) > 1:
+                        if sub_element[0] == 'Row':
+                            label_row = sub_element[1]
+                        elif sub_element[0] == 'Column':
+                            label_column = sub_element[1]
+                
+                if label_row is None or label_column is None:
+                    continue
+                
+                # Collect the elements in the same row, based on column values to the right of the matched label
+                collected_section = [element]  # Start with the matched element itself
+                columns_collected = 1  # Count the current label as collected
+                
+                # Sort the data based on the column value to ensure proper ordering
+                sorted_data = sorted([elem for elem in data if isinstance(elem, list) and len(elem) > 0], 
+                                    key=lambda x: next((sub[1] for sub in x if isinstance(sub, list) and sub[0] == 'Column'), float('inf')))
+                
+                # Iterate over sorted data to collect elements that match the same row and are sequential to the right in terms of columns
+                for other_element in sorted_data:
+                    if other_element == element:
+                        continue  # Skip the matched label itself
+                    if isinstance(other_element, list) and len(other_element) > 0 and isinstance(other_element[0], str):
+                        other_row = None
+                        other_column = None
+                        for sub in other_element:
+                            if isinstance(sub, list) and len(sub) > 1:
+                                if sub[0] == 'Row':
+                                    other_row = sub[1]
+                                elif sub[0] == 'Column':
+                                    other_column = sub[1]
+                        
+                        # If rows match and the other column is strictly to the right of the matched label's column, collect the element
+                        if other_row == label_row and other_column is not None and other_column > label_column and columns_collected < num_following_columns + 1:
+                            collected_section.append(other_element)
+                            columns_collected += 1
+                
+                # Add the collected section to the results
+                results.append(collected_section)
 
     # Check if all labels were found, if not append the error to OUT
     if len(found_labels) != len(normalized_labels):
