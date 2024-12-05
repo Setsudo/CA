@@ -1919,64 +1919,6 @@
     {
       "ConcreteType": "CoreNodeModels.Watch, CoreNodeModels",
       "NodeType": "ExtensionNode",
-      "Id": "2c8c67332c974eb39d6ac18a2dc17562",
-      "Inputs": [
-        {
-          "Id": "dab0c54af517429492983359dc14efa6",
-          "Name": "",
-          "Description": "Node to show output from",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        }
-      ],
-      "Outputs": [
-        {
-          "Id": "4fe6c2a063c54e2887e61aad6344f893",
-          "Name": "",
-          "Description": "Node output",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        }
-      ],
-      "Replication": "Disabled",
-      "Description": "Visualize the node's output"
-    },
-    {
-      "ConcreteType": "CoreNodeModels.Watch, CoreNodeModels",
-      "NodeType": "ExtensionNode",
-      "Id": "ffe1ad5a48eb4efd8d5f82712582fa78",
-      "Inputs": [
-        {
-          "Id": "04040646aaf547c2b1ecf4fe56191426",
-          "Name": "",
-          "Description": "Node to show output from",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        }
-      ],
-      "Outputs": [
-        {
-          "Id": "043bef4564cc490c8844e212fd9b0a88",
-          "Name": "",
-          "Description": "Node output",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        }
-      ],
-      "Replication": "Disabled",
-      "Description": "Visualize the node's output"
-    },
-    {
-      "ConcreteType": "CoreNodeModels.Watch, CoreNodeModels",
-      "NodeType": "ExtensionNode",
       "Id": "e2db8788ce334e0699f3a72812582be4",
       "Inputs": [
         {
@@ -2042,6 +1984,115 @@
       ],
       "Replication": "Disabled",
       "Description": "Allows for DesignScript code to be authored directly"
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Watch, CoreNodeModels",
+      "NodeType": "ExtensionNode",
+      "Id": "0bc1c4f59c5a43daae16cd0e50fc2e87",
+      "Inputs": [
+        {
+          "Id": "d3db16ed88a948bb9ae4c121adbd8fd2",
+          "Name": "",
+          "Description": "Node to show output from",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "39754ec57357435dabed6801e1a35a0f",
+          "Name": "",
+          "Description": "Node output",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Visualize the node's output"
+    },
+    {
+      "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
+      "NodeType": "PythonScriptNode",
+      "Code": "import clr\r\nclr.AddReference('RevitAPI')\r\nclr.AddReference('RevitServices')\r\nfrom RevitServices.Persistence import DocumentManager\r\nfrom Autodesk.Revit.DB import TextNote, ElementId\r\nimport re\r\n\r\n# Inputs\r\nexcel_data = IN[0]  # Correct values from Excel\r\nrevit_data = IN[1]  # Revit data containing Legend Index and Position information\r\nsub_headers = IN[2]  # List of expected sub-headers\r\n\r\n# Get current document\r\ndoc = DocumentManager.Instance.CurrentDBDocument\r\n\r\n# Placeholder for output data\r\noutput = []\r\n\r\n# Error flag and messages\r\nerror_flag = False\r\nerror_messages = []\r\n\r\ndef normalize_string(input_string):\r\n    \"\"\"\r\n    Normalize strings by removing extra whitespace, line breaks, and special characters.\r\n    \"\"\"\r\n    return re.sub(r'[\\s\\n\\r]+', ' ', re.sub(r'[\\(\\)\\,\\.]', '', input_string.strip())).strip().lower()\r\n\r\ntry:\r\n    # Normalize the sub_headers list to create a lookup for expected sub-headers\r\n    normalized_sub_headers = [normalize_string(sub) for sub in sub_headers]\r\n\r\n    # Build a lookup dictionary for Revit data based on normalized category names\r\n    revit_lookup = {}\r\n    for revit_category in revit_data:\r\n        revit_category_name = normalize_string(revit_category[0][0])\r\n        revit_lookup[revit_category_name] = revit_category\r\n\r\n    # Iterate through each category in the Excel data\r\n    for excel_category in excel_data:\r\n        # Normalize the category name from Excel\r\n        category_name = normalize_string(excel_category[0])\r\n        \r\n        # Attempt to find the matching category in Revit\r\n        if category_name in revit_lookup:\r\n            revit_category = revit_lookup[category_name]\r\n\r\n            # Iterate through each sub-header in Excel and try to match with Revit\r\n            for excel_sub_header in excel_category[1:]:\r\n                if isinstance(excel_sub_header, list) and len(excel_sub_header) > 0:\r\n                    excel_label = normalize_string(excel_sub_header[0])\r\n\r\n                    # Only proceed if the label is in the provided sub-header list\r\n                    if excel_label in normalized_sub_headers:\r\n                        # Iterate through Revit sub-headers to find the best match\r\n                        match_found = False\r\n                        for revit_sub_header in revit_category[1:]:\r\n                            if isinstance(revit_sub_header, list) and len(revit_sub_header) > 0:\r\n                                revit_label = normalize_string(revit_sub_header[0])\r\n\r\n                                # Only proceed if the label is in the provided sub-header list\r\n                                if revit_label in normalized_sub_headers:\r\n                                    # Check if the labels match\r\n                                    if excel_label == revit_label:\r\n                                        output.append(f\"Matching sub-header '{revit_label}' with '{excel_label}'\")\r\n                                        match_found = True\r\n                                        break\r\n\r\n                        # If no exact match is found, add logging to understand the issue\r\n                        if not match_found:\r\n                            output.append(f\"No matching sub-header found for Excel sub-header '{excel_label}' in Revit category '{category_name}'.\")\r\n        else:\r\n            # If the category name is not found in Revit data, log an error\r\n            error_flag = True\r\n            error_messages.append(f\"Category name mismatch: Excel '{category_name}' not found in Revit data.\")\r\n\r\nexcept Exception as e:\r\n    error_flag = True\r\n    error_messages.append(str(e))\r\n\r\n# Output results to Dynamo\r\nif error_flag:\r\n    output.append(\"Errors encountered:\")\r\n    output.extend(error_messages)\r\n\r\nOUT = output\r\n",
+      "Engine": "CPython3",
+      "EngineName": "CPython3",
+      "VariableInputPorts": true,
+      "Id": "fd5daf8948144cd5bec4fb9cd79175ef",
+      "Inputs": [
+        {
+          "Id": "7247baea7f564e989cf4e80d42b18997",
+          "Name": "IN[0]",
+          "Description": "Input #0",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "f7874f276e8747bfac3af0e2c7448d1a",
+          "Name": "IN[1]",
+          "Description": "Input #1",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "ba22bce5859f43749bc251e9bf3b1389",
+          "Name": "IN[2]",
+          "Description": "Input #2",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "32e28a6d9ba242bfa4663c4c4697a19c",
+          "Name": "OUT",
+          "Description": "Result of the python script",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Runs an embedded Python script."
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Watch, CoreNodeModels",
+      "NodeType": "ExtensionNode",
+      "Id": "399f2c27ebf643ebb2a0b0128d3ab363",
+      "Inputs": [
+        {
+          "Id": "8e861f96943b4279924d01693e93c349",
+          "Name": "",
+          "Description": "Node to show output from",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "e853f82af33e4b23ba020c0d43cd0f47",
+          "Name": "",
+          "Description": "Node output",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Visualize the node's output"
     }
   ],
   "Connectors": [
@@ -2292,6 +2343,18 @@
       "IsHidden": "False"
     },
     {
+      "Start": "35abbe63f2e645b2a01454fe79512e42",
+      "End": "d3db16ed88a948bb9ae4c121adbd8fd2",
+      "Id": "061f3a981fa64eeea78df2bc58286eb1",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "35abbe63f2e645b2a01454fe79512e42",
+      "End": "7247baea7f564e989cf4e80d42b18997",
+      "Id": "d930467c24b74831a925d5c2932ea224",
+      "IsHidden": "False"
+    },
+    {
       "Start": "db2df4cecb3749418cfee6413da03b27",
       "End": "3f6e02ed2d7e4baba77ba1d1519697aa",
       "Id": "bdc64b6332de483691b236946db5fbc8",
@@ -2382,15 +2445,9 @@
       "IsHidden": "False"
     },
     {
-      "Start": "c1f233780d964911991aecac7a4ad75d",
-      "End": "dab0c54af517429492983359dc14efa6",
-      "Id": "d6a9cd2668854adeaab3f6a5b71d5a97",
-      "IsHidden": "False"
-    },
-    {
       "Start": "38e9b522c02744f7975ff08c08df4d1f",
       "End": "f3017c133e7d4f6eab800f58eef32017",
-      "Id": "6d82eb817d544385816bbbef29fb90de",
+      "Id": "16b560974bc04681a9d2091e7e925769",
       "IsHidden": "False"
     },
     {
@@ -2418,9 +2475,9 @@
       "IsHidden": "False"
     },
     {
-      "Start": "261a48d1ffca4199b1806a735fbc22db",
-      "End": "04040646aaf547c2b1ecf4fe56191426",
-      "Id": "ff1cc09cce694fb9bb494082402f606c",
+      "Start": "b560155a956b4f7687ca1c6fa20bf8ff",
+      "End": "ba22bce5859f43749bc251e9bf3b1389",
+      "Id": "7942329e9e5c42958ee7fbc4cf487ee3",
       "IsHidden": "False"
     },
     {
@@ -2433,6 +2490,12 @@
       "Start": "09fbc00085d34c8d87102fe743489dfc",
       "End": "daaca22457cc45688b7ff072f496f97f",
       "Id": "3db27ccc6ff84c0f8103ea5499e249d9",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "09fbc00085d34c8d87102fe743489dfc",
+      "End": "f7874f276e8747bfac3af0e2c7448d1a",
+      "Id": "f6af7eb62370446aaa0f4d93e5d6ccdc",
       "IsHidden": "False"
     },
     {
@@ -2451,6 +2514,12 @@
       "Start": "c1013b4c37164975a6f6de0b2ef8c525",
       "End": "53f0de4723064720a0f6c68cc640005b",
       "Id": "350568ba05bb496da9cc24b6b283a8da",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "32e28a6d9ba242bfa4663c4c4697a19c",
+      "End": "8e861f96943b4279924d01693e93c349",
+      "Id": "9a87786bf0ac486d869c10cb7ccd9ad6",
       "IsHidden": "False"
     }
   ],
@@ -2936,8 +3005,8 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 10346.122845196389,
-        "Y": 3827.5460436559624
+        "X": 10406.738825840926,
+        "Y": 4819.4439087484034
       },
       {
         "Name": "Boolean",
@@ -3086,8 +3155,8 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 5769.0917446716612,
-        "Y": 9308.8428768802041
+        "X": 6525.6989970092964,
+        "Y": 8978.94059833491
       },
       {
         "Name": "List.GetItemAtIndex",
@@ -3126,8 +3195,8 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 7461.9012805752,
-        "Y": 5995.31747363024
+        "X": 7540.8145363275207,
+        "Y": 6082.4439298818006
       },
       {
         "Name": "Arrange into Columns and Rows",
@@ -3136,8 +3205,8 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 7792.7947451660248,
-        "Y": 9303.1772919049545
+        "X": 7616.6720012122205,
+        "Y": 8489.2917235425411
       },
       {
         "Name": "Return Sub-Headers",
@@ -3146,8 +3215,8 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 10559.194820525479,
-        "Y": 9289.4086955115527
+        "X": 10518.197995817816,
+        "Y": 7362.9462861091833
       },
       {
         "Name": "Code Block",
@@ -3156,28 +3225,8 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 10305.194820525479,
-        "Y": 9360.8599679262152
-      },
-      {
-        "Name": "Watch",
-        "ShowGeometry": true,
-        "Id": "2c8c67332c974eb39d6ac18a2dc17562",
-        "IsSetAsInput": false,
-        "IsSetAsOutput": false,
-        "Excluded": false,
-        "X": 6163.2688202002319,
-        "Y": 9587.534381460242
-      },
-      {
-        "Name": "Watch",
-        "ShowGeometry": true,
-        "Id": "ffe1ad5a48eb4efd8d5f82712582fa78",
-        "IsSetAsInput": false,
-        "IsSetAsOutput": false,
-        "Excluded": false,
-        "X": 8298.5726779732759,
-        "Y": 9610.6492719830112
+        "X": 10264.197995817816,
+        "Y": 7430.7737861091828
       },
       {
         "Name": "Watch",
@@ -3186,8 +3235,8 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 11011.443353337318,
-        "Y": 9637.65738358884
+        "X": 13561.981376475096,
+        "Y": 7043.3895377989093
       },
       {
         "Name": "WINE / LIQUOR LF",
@@ -3208,6 +3257,36 @@
         "Excluded": false,
         "X": 4169.4440470660547,
         "Y": 7459.4867243392564
+      },
+      {
+        "Name": "Watch",
+        "ShowGeometry": true,
+        "Id": "0bc1c4f59c5a43daae16cd0e50fc2e87",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 13561.981376475096,
+        "Y": 4994.4151212910265
+      },
+      {
+        "Name": "Return Sub-Headers",
+        "ShowGeometry": true,
+        "Id": "fd5daf8948144cd5bec4fb9cd79175ef",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 13122.656610082957,
+        "Y": 5986.0401771211555
+      },
+      {
+        "Name": "Watch",
+        "ShowGeometry": true,
+        "Id": "399f2c27ebf643ebb2a0b0128d3ab363",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 13567.881107372328,
+        "Y": 5991.1996327558245
       }
     ],
     "Annotations": [
@@ -3582,12 +3661,12 @@
           "9c8b7d7a2c0249fa8a2f379b7e24e57c"
         ],
         "HasNestedGroups": false,
-        "Left": 5759.0917446716612,
-        "Top": 9183.8428768802041,
+        "Left": 6515.6989970092964,
+        "Top": 8853.94059833491,
         "Width": 225.0,
         "Height": 257.0,
         "FontSize": 36.0,
-        "InitialTop": 9308.8428768802041,
+        "InitialTop": 8978.94059833491,
         "InitialHeight": 145.0,
         "TextblockHeight": 115.0,
         "Background": "#FFFFC999"
@@ -3603,12 +3682,12 @@
           "83f4fc82b3a54e2089e05ebc85cdb693"
         ],
         "HasNestedGroups": false,
-        "Left": 7782.7947451660248,
-        "Top": 9187.1772919049545,
+        "Left": 7606.6720012122205,
+        "Top": 8373.2917235425411,
         "Width": 332.0,
         "Height": 248.0,
         "FontSize": 36.0,
-        "InitialTop": 9303.1772919049545,
+        "InitialTop": 8489.2917235425411,
         "InitialHeight": 145.0,
         "TextblockHeight": 106.0,
         "Background": "#FFFFC999"
@@ -3625,12 +3704,12 @@
           "2af2a074483643e086fd82e0f793ad33"
         ],
         "HasNestedGroups": false,
-        "Left": 10295.194820525479,
-        "Top": 9173.008695511553,
+        "Left": 10254.197995817816,
+        "Top": 7246.5462861091837,
         "Width": 500.0,
-        "Height": 319.85127241466216,
+        "Height": 316.22749999999905,
         "FontSize": 36.0,
-        "InitialTop": 9289.4086955115527,
+        "InitialTop": 7362.9462861091833,
         "InitialHeight": 214.0544423990832,
         "TextblockHeight": 106.4,
         "Background": "#FFFFC999"
@@ -3646,19 +3725,19 @@
           "e5f5d610811f4f8daf532fe9f38b697c"
         ],
         "HasNestedGroups": false,
-        "Left": 10336.122845196389,
-        "Top": 3711.5460436559624,
+        "Left": 10396.738825840926,
+        "Top": 4703.4439087484034,
         "Width": 336.0,
         "Height": 278.0,
         "FontSize": 36.0,
-        "InitialTop": 3827.5460436559624,
+        "InitialTop": 4819.4439087484034,
         "InitialHeight": 192.0,
         "TextblockHeight": 106.0,
         "Background": "#FFFFC999"
       }
     ],
-    "X": -272.52521579838844,
-    "Y": -279.43598290832733,
-    "Zoom": 0.14126185661141874
+    "X": 74.866263735134,
+    "Y": 64.222048216937537,
+    "Zoom": 0.10804947356076179
   }
 }

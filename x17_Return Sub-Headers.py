@@ -74,8 +74,8 @@ def find_labels_and_columns(data, labels, num_following_columns):
                             collected_section.append(other_element)
                             columns_collected += 1
                 
-                # Add the collected section to the results
-                results.append(collected_section)
+                # Title each list with the relevant Sub-Header
+                results.append([label, collected_section])
 
     # Check if all labels were found, if not append the error to OUT
     if len(found_labels) != len(normalized_labels):
