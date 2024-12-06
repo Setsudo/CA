@@ -1069,7 +1069,7 @@
     {
       "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
       "NodeType": "PythonScriptNode",
-      "Code": "# Input from Excel Import Node (flattened data)\r\nexcel_data = IN[0]\r\n\r\n# Input list of Sub-Headers to be matched\r\nsub_headers_to_match = IN[1]\r\n\r\n# Initialize an empty list to hold the data in the desired list of lists format\r\ndata_rows = []\r\n\r\ntry:\r\n    # Check if sub_headers_to_match is a list\r\n    if not isinstance(sub_headers_to_match, list):\r\n        raise ValueError(\"Sub-Headers to match must be provided as a list.\")\r\n\r\n    # Create a list to track unmatched sub-headers\r\n    unmatched_sub_headers = sub_headers_to_match.copy()\r\n\r\n    # Iterate through each row in the Excel data\r\n    for row in excel_data:\r\n        # Check if the row is a valid list and has at least 6 fields\r\n        if isinstance(row, list) and len(row) >= 6:\r\n            # Extract and format the required data, providing sensible default values where necessary\r\n            sub_header = row[1] if row[1] else \"N/A\"\r\n            item_type = row[2] if row[2] else \"N/A\"\r\n            existing = row[3] if row[3] is not None and row[3] != \"\" else 0\r\n            proposed = row[4] if row[4] is not None and row[4] != \"\" else 0\r\n            variation = row[5] if row[5] is not None and row[5] != \"\" else 0\r\n\r\n            # Only include rows with meaningful sub-header data that matches the provided list\r\n            if sub_header in sub_headers_to_match:\r\n                # Create a list for the row, formatted to match the desired output structure\r\n                row_list = [sub_header, [item_type, existing, proposed, variation]]\r\n\r\n                # Append the row list to the data rows\r\n                data_rows.append(row_list)\r\n\r\n                # Remove one occurrence of the matched sub-header from unmatched list if present\r\n                if sub_header in unmatched_sub_headers:\r\n                    unmatched_sub_headers.remove(sub_header)\r\n\r\n    # Check for unmatched sub-headers and raise an error if any remain\r\n    if unmatched_sub_headers:\r\n        raise ValueError(\"The following Sub-Headers were not found in the input data: {}\".format(\", \".join(unmatched_sub_headers)))\r\n\r\n    # Set output to the list of lists\r\n    OUT = data_rows if data_rows else \"No valid rows found in input data. Check the structure of the input or revise the extraction logic.\"\r\n\r\nexcept Exception as e:\r\n    # Output any errors that occur\r\n    OUT = \"Error occurred: {}\".format(str(e))\r\n",
+      "Code": "# Input from Excel Import Node (flattened data)\r\nexcel_data = IN[0]\r\n\r\n# Input list of Sub-Headers to be matched\r\nsub_headers_to_match = IN[1]\r\n\r\n# Initialize an empty list to hold the data in the desired list of lists format\r\ndata_rows = []\r\n\r\ntry:\r\n    # Check if sub_headers_to_match is a list\r\n    if not isinstance(sub_headers_to_match, list):\r\n        raise ValueError(\"Sub-Headers to match must be provided as a list.\")\r\n\r\n    # Create a list to track unmatched sub-headers\r\n    unmatched_sub_headers = sub_headers_to_match.copy()\r\n\r\n    # Iterate through each row in the Excel data\r\n    for row in excel_data:\r\n        # Check if the row is a valid list and has at least 6 fields\r\n        if isinstance(row, list) and len(row) >= 6:\r\n            # Extract and format the required data, providing sensible default values where necessary\r\n            sub_header = row[1] if row[1] else \"N/A\"\r\n            item_type = row[2] if row[2] else \"N/A\"\r\n            existing = row[3] if row[3] is not None and row[3] != \"\" else 0\r\n            proposed = row[4] if row[4] is not None and row[4] != \"\" else 0\r\n            variation = row[5] if row[5] is not None and row[5] != \"\" else 0\r\n\r\n            # Only include rows with meaningful sub-header data that matches the provided list\r\n            if sub_header in sub_headers_to_match:\r\n                # Create a list for the row, formatted to match the desired output structure with labels\r\n                row_list = [\r\n                    \"Sub-Header\", sub_header,\r\n                    [\r\n                        \"Type\", item_type,\r\n                        \"Existing\", existing,\r\n                        \"Proposed\", proposed,\r\n                        \"Variation\", variation\r\n                    ]\r\n                ]\r\n\r\n                # Append the row list to the data rows\r\n                data_rows.append(row_list)\r\n\r\n                # Remove one occurrence of the matched sub-header from unmatched list if present\r\n                if sub_header in unmatched_sub_headers:\r\n                    unmatched_sub_headers.remove(sub_header)\r\n\r\n    # Check for unmatched sub-headers and raise an error if any remain\r\n    if unmatched_sub_headers:\r\n        raise ValueError(\"The following Sub-Headers were not found in the input data: {}\".format(\", \".join(unmatched_sub_headers)))\r\n\r\n    # Set output to the list of lists\r\n    OUT = data_rows if data_rows else \"No valid rows found in input data. Check the structure of the input or revise the extraction logic.\"\r\n\r\nexcept Exception as e:\r\n    # Output any errors that occur\r\n    OUT = \"Error occurred: {}\".format(str(e))\r\n",
       "Engine": "CPython3",
       "EngineName": "CPython3",
       "VariableInputPorts": true,
@@ -1848,7 +1848,7 @@
     {
       "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
       "NodeType": "PythonScriptNode",
-      "Code": "import clr\r\nclr.AddReference('RevitServices')\r\nfrom RevitServices.Persistence import DocumentManager\r\nfrom RevitServices.Transactions import TransactionManager\r\n\r\nimport re\r\n\r\n# Function to flatten nested list into a single-level list\r\ndef flatten_list(nested_list):\r\n    flat_list = []\r\n    for item in nested_list:\r\n        if isinstance(item, list):\r\n            flat_list.extend(flatten_list(item))\r\n        else:\r\n            flat_list.append(item)\r\n    return flat_list\r\n\r\n# Function to remove all non-alphanumeric characters, spaces, and line breaks from a string\r\ndef normalize_string(s):\r\n    return re.sub(r'[^a-zA-Z0-9]', '', s).lower()\r\n\r\n# Function to search for labels and return the desired columns in the original format\r\ndef find_labels_and_columns(data, labels, num_following_columns):\r\n    results = []\r\n    found_labels = set()\r\n    normalized_labels = [normalize_string(label) for label in labels]\r\n    \r\n    # Iterate through each element in the data\r\n    for i, element in enumerate(data):\r\n        if isinstance(element, list) and len(element) > 0 and isinstance(element[0], str):\r\n            label = element[0]\r\n            normalized_label = normalize_string(label)\r\n            if normalized_label in normalized_labels:\r\n                # Mark the label as found\r\n                found_labels.add(normalized_label)\r\n                \r\n                # Extract the row and column of the matched label\r\n                label_row = None\r\n                label_column = None\r\n                for sub_element in element:\r\n                    if isinstance(sub_element, list) and len(sub_element) > 1:\r\n                        if sub_element[0] == 'Row':\r\n                            label_row = sub_element[1]\r\n                        elif sub_element[0] == 'Column':\r\n                            label_column = sub_element[1]\r\n                \r\n                if label_row is None or label_column is None:\r\n                    continue\r\n                \r\n                # Collect the elements in the same row, based on column values to the right of the matched label\r\n                collected_section = [element]  # Start with the matched element itself\r\n                columns_collected = 1  # Count the current label as collected\r\n                \r\n                # Sort the data based on the column value to ensure proper ordering\r\n                sorted_data = sorted([elem for elem in data if isinstance(elem, list) and len(elem) > 0], \r\n                                    key=lambda x: next((sub[1] for sub in x if isinstance(sub, list) and sub[0] == 'Column'), float('inf')))\r\n                \r\n                # Iterate over sorted data to collect elements that match the same row and are sequential to the right in terms of columns\r\n                for other_element in sorted_data:\r\n                    if other_element == element:\r\n                        continue  # Skip the matched label itself\r\n                    if isinstance(other_element, list) and len(other_element) > 0 and isinstance(other_element[0], str):\r\n                        other_row = None\r\n                        other_column = None\r\n                        for sub in other_element:\r\n                            if isinstance(sub, list) and len(sub) > 1:\r\n                                if sub[0] == 'Row':\r\n                                    other_row = sub[1]\r\n                                elif sub[0] == 'Column':\r\n                                    other_column = sub[1]\r\n                        \r\n                        # If rows match and the other column is strictly to the right of the matched label's column, collect the element\r\n                        if other_row == label_row and other_column is not None and other_column > label_column and columns_collected < num_following_columns + 1:\r\n                            collected_section.append(other_element)\r\n                            columns_collected += 1\r\n                \r\n                # Add the collected section to the results\r\n                results.append(collected_section)\r\n\r\n    # Check if all labels were found, if not append the error to OUT\r\n    if len(found_labels) != len(normalized_labels):\r\n        missing_labels = [label for label in labels if normalize_string(label) not in found_labels]\r\n        if missing_labels:\r\n            return f\"Error: The following labels were not found in the data: {missing_labels}\"\r\n\r\n    return results\r\n\r\n# Input data: The structured dataset and list of labels of interest from Dynamo UI input\r\ndata = IN[0]  # Expecting input from Dynamo to be a structured list\r\n\r\n# Dynamically input labels of interest from user (Dynamo UI input)\r\nlabels_of_interest = IN[1]  # Expecting input from Dynamo to be a list of labels\r\n\r\n# Input for number of following columns to collect (Dynamo UI input)\r\nnum_following_columns = IN[2]  # Expecting input from Dynamo to be an integer specifying the number of following columns\r\n\r\n# Find labels and their respective columns\r\nmatched_results = find_labels_and_columns(data, labels_of_interest, num_following_columns)\r\n\r\n# Output the results in the same format as the input\r\nOUT = matched_results\r\n",
+      "Code": "import clr\r\nclr.AddReference('RevitServices')\r\nfrom RevitServices.Persistence import DocumentManager\r\nfrom RevitServices.Transactions import TransactionManager\r\n\r\nimport re\r\n\r\n# Function to flatten nested list into a single-level list\r\ndef flatten_list(nested_list):\r\n    flat_list = []\r\n    for item in nested_list:\r\n        if isinstance(item, list):\r\n            flat_list.extend(flatten_list(item))\r\n        else:\r\n            flat_list.append(item)\r\n    return flat_list\r\n\r\n# Function to remove all non-alphanumeric characters, spaces, and line breaks from a string\r\ndef normalize_string(s):\r\n    return re.sub(r'[^a-zA-Z0-9]', '', s).lower()\r\n\r\n# Function to search for labels and return the desired columns in the original format\r\ndef find_labels_and_columns(data, labels, num_following_columns):\r\n    results = []\r\n    found_labels = set()\r\n    normalized_labels = [normalize_string(label) for label in labels]\r\n    \r\n    # Iterate through each element in the data\r\n    for i, element in enumerate(data):\r\n        if isinstance(element, list) and len(element) > 0 and isinstance(element[0], str):\r\n            label = element[0]\r\n            normalized_label = normalize_string(label)\r\n            if normalized_label in normalized_labels:\r\n                # Mark the label as found\r\n                found_labels.add(normalized_label)\r\n                \r\n                # Extract the row and column of the matched label\r\n                label_row = None\r\n                label_column = None\r\n                for sub_element in element:\r\n                    if isinstance(sub_element, list) and len(sub_element) > 1:\r\n                        if sub_element[0] == 'Row':\r\n                            label_row = sub_element[1]\r\n                        elif sub_element[0] == 'Column':\r\n                            label_column = sub_element[1]\r\n                \r\n                if label_row is None or label_column is None:\r\n                    continue\r\n                \r\n                # Collect the elements in the same row, based on column values to the right of the matched label\r\n                collected_section = [element]  # Start with the matched element itself\r\n                columns_collected = 0  # Start collecting columns after the Sub-Header\r\n                \r\n                # Sort the data based on the column value to ensure proper ordering\r\n                sorted_data = sorted([elem for elem in data if isinstance(elem, list) and len(elem) > 0], \r\n                                    key=lambda x: next((sub[1] for sub in x if isinstance(sub, list) and sub[0] == 'Column'), float('inf')))\r\n                \r\n                # Iterate over sorted data to collect elements that match the same row and are sequential to the right in terms of columns\r\n                for other_element in sorted_data:\r\n                    if other_element == element:\r\n                        continue  # Skip the matched label itself\r\n                    if isinstance(other_element, list) and len(other_element) > 0 and isinstance(other_element[0], str):\r\n                        other_row = None\r\n                        other_column = None\r\n                        for sub in other_element:\r\n                            if isinstance(sub, list) and len(sub) > 1:\r\n                                if sub[0] == 'Row':\r\n                                    other_row = sub[1]\r\n                                elif sub[0] == 'Column':\r\n                                    other_column = sub[1]\r\n                        \r\n                        # If rows match and the other column is strictly to the right of the matched label's column, collect the element\r\n                        if other_row == label_row and other_column is not None and other_column > label_column and columns_collected < num_following_columns:\r\n                            collected_section.append(other_element)\r\n                            columns_collected += 1\r\n                \r\n                # Label the collected columns correctly without overwriting the values\r\n                labeled_section = [\r\n                    [\"Sub-Header\", collected_section[0][0]]\r\n                ]\r\n                if len(collected_section) > 1:\r\n                    labeled_section.append([\"Type\", collected_section[1][0]] + collected_section[1][1:])\r\n                if len(collected_section) > 2:\r\n                    labeled_section.append([\"Existing\", collected_section[2][0]] + collected_section[2][1:])\r\n                if len(collected_section) > 3:\r\n                    labeled_section.append([\"Proposed\", collected_section[3][0]] + collected_section[3][1:])\r\n                if len(collected_section) > 4:\r\n                    labeled_section.append([\"Variation\", collected_section[4][0]] + collected_section[4][1:])\r\n                \r\n                results.append(labeled_section)\r\n\r\n    # Check if all labels were found, if not append the error to OUT\r\n    if len(found_labels) != len(normalized_labels):\r\n        missing_labels = [label for label in labels if normalize_string(label) not in found_labels]\r\n        if missing_labels:\r\n            return f\"Error: The following labels were not found in the data: {missing_labels}\"\r\n\r\n    return results\r\n\r\n# Input data: The structured dataset and list of labels of interest from Dynamo UI input\r\ndata = IN[0]  # Expecting input from Dynamo to be a structured list\r\n\r\n# Dynamically input labels of interest from user (Dynamo UI input)\r\nlabels_of_interest = IN[1]  # Expecting input from Dynamo to be a list of labels\r\n\r\n# Input for number of following columns to collect (Dynamo UI input)\r\nnum_following_columns = IN[2]  # Expecting input from Dynamo to be an integer specifying the number of following columns\r\n\r\n# Find labels and their respective columns\r\nmatched_results = find_labels_and_columns(data, labels_of_interest, num_following_columns)\r\n\r\n# Output the results in the same format as the input\r\nOUT = matched_results\r\n",
       "Engine": "CPython3",
       "EngineName": "CPython3",
       "VariableInputPorts": true,
@@ -2483,19 +2483,19 @@
     {
       "Start": "261a48d1ffca4199b1806a735fbc22db",
       "End": "8af02bc3ef0e41a784dbee72e6d3b4e6",
-      "Id": "d6178f684afd4aa29c90c53c0e2bd2cb",
-      "IsHidden": "False"
-    },
-    {
-      "Start": "09fbc00085d34c8d87102fe743489dfc",
-      "End": "daaca22457cc45688b7ff072f496f97f",
-      "Id": "3db27ccc6ff84c0f8103ea5499e249d9",
+      "Id": "98302d1198dd432b90aab44603d53468",
       "IsHidden": "False"
     },
     {
       "Start": "09fbc00085d34c8d87102fe743489dfc",
       "End": "f7874f276e8747bfac3af0e2c7448d1a",
       "Id": "f6af7eb62370446aaa0f4d93e5d6ccdc",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "09fbc00085d34c8d87102fe743489dfc",
+      "End": "daaca22457cc45688b7ff072f496f97f",
+      "Id": "5da515409ff341d69069c4f32c7d214c",
       "IsHidden": "False"
     },
     {
@@ -3005,8 +3005,8 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 10406.738825840926,
-        "Y": 4819.4439087484034
+        "X": 10363.034786419181,
+        "Y": 4863.1479481701481
       },
       {
         "Name": "Boolean",
@@ -3215,8 +3215,8 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 10518.197995817816,
-        "Y": 7362.9462861091833
+        "X": 10474.493956396071,
+        "Y": 7406.6503255309281
       },
       {
         "Name": "Code Block",
@@ -3225,8 +3225,8 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 10264.197995817816,
-        "Y": 7430.7737861091828
+        "X": 10220.493956396071,
+        "Y": 7474.4778255309275
       },
       {
         "Name": "Watch",
@@ -3235,8 +3235,8 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 13561.981376475096,
-        "Y": 7043.3895377989093
+        "X": 10913.656272844304,
+        "Y": 5472.4533390204206
       },
       {
         "Name": "WINE / LIQUOR LF",
@@ -3265,8 +3265,8 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 13561.981376475096,
-        "Y": 4994.4151212910265
+        "X": 10915.398688011363,
+        "Y": 4868.0528157329063
       },
       {
         "Name": "Return Sub-Headers",
@@ -3275,8 +3275,8 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 13122.656610082957,
-        "Y": 5986.0401771211555
+        "X": 13024.705995183125,
+        "Y": 5990.4924777984206
       },
       {
         "Name": "Watch",
@@ -3503,7 +3503,7 @@
         "Height": 657.440249839753,
         "FontSize": 36.0,
         "InitialTop": 7007.0464744995033,
-        "InitialHeight": 585.42457107904374,
+        "InitialHeight": 597.440249839753,
         "TextblockHeight": 63.0,
         "Background": "#FFC1D676"
       },
@@ -3704,14 +3704,14 @@
           "2af2a074483643e086fd82e0f793ad33"
         ],
         "HasNestedGroups": false,
-        "Left": 10254.197995817816,
-        "Top": 7246.5462861091837,
+        "Left": 10210.493956396071,
+        "Top": 7290.6503255309281,
         "Width": 500.0,
-        "Height": 316.22749999999905,
+        "Height": 315.82749999999942,
         "FontSize": 36.0,
-        "InitialTop": 7362.9462861091833,
-        "InitialHeight": 214.0544423990832,
-        "TextblockHeight": 106.4,
+        "InitialTop": 7406.6503255309281,
+        "InitialHeight": 212.82749999999942,
+        "TextblockHeight": 106.0,
         "Background": "#FFFFC999"
       },
       {
@@ -3725,19 +3725,19 @@
           "e5f5d610811f4f8daf532fe9f38b697c"
         ],
         "HasNestedGroups": false,
-        "Left": 10396.738825840926,
-        "Top": 4703.4439087484034,
+        "Left": 10353.034786419181,
+        "Top": 4747.1479481701481,
         "Width": 336.0,
         "Height": 278.0,
         "FontSize": 36.0,
-        "InitialTop": 4819.4439087484034,
-        "InitialHeight": 192.0,
+        "InitialTop": 4863.1479481701481,
+        "InitialHeight": 145.0,
         "TextblockHeight": 106.0,
         "Background": "#FFFFC999"
       }
     ],
-    "X": 74.866263735134,
-    "Y": 64.222048216937537,
-    "Zoom": 0.10804947356076179
+    "X": -9936.2533411601653,
+    "Y": -4684.5499679409259,
+    "Zoom": 0.9829055601192912
   }
 }

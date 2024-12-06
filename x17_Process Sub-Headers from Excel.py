@@ -28,8 +28,16 @@ try:
 
             # Only include rows with meaningful sub-header data that matches the provided list
             if sub_header in sub_headers_to_match:
-                # Create a list for the row, formatted to match the desired output structure
-                row_list = [sub_header, [item_type, existing, proposed, variation]]
+                # Create a list for the row, formatted to match the desired output structure with labels
+                row_list = [
+                    "Sub-Header", sub_header,
+                    [
+                        "Type", item_type,
+                        "Existing", existing,
+                        "Proposed", proposed,
+                        "Variation", variation
+                    ]
+                ]
 
                 # Append the row list to the data rows
                 data_rows.append(row_list)
