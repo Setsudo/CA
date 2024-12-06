@@ -1917,35 +1917,6 @@
       "Description": "Allows for DesignScript code to be authored directly"
     },
     {
-      "ConcreteType": "CoreNodeModels.Watch, CoreNodeModels",
-      "NodeType": "ExtensionNode",
-      "Id": "e2db8788ce334e0699f3a72812582be4",
-      "Inputs": [
-        {
-          "Id": "daaca22457cc45688b7ff072f496f97f",
-          "Name": "",
-          "Description": "Node to show output from",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        }
-      ],
-      "Outputs": [
-        {
-          "Id": "979c80f9c4dc40a79eaa8976a253df5e",
-          "Name": "",
-          "Description": "Node output",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        }
-      ],
-      "Replication": "Disabled",
-      "Description": "Visualize the node's output"
-    },
-    {
       "ConcreteType": "Dynamo.Graph.Nodes.CodeBlockNodeModel, DynamoCore",
       "NodeType": "CodeBlockNode",
       "Code": "\"WINE / LIQUOR SHELVING A\";",
@@ -1986,38 +1957,9 @@
       "Description": "Allows for DesignScript code to be authored directly"
     },
     {
-      "ConcreteType": "CoreNodeModels.Watch, CoreNodeModels",
-      "NodeType": "ExtensionNode",
-      "Id": "0bc1c4f59c5a43daae16cd0e50fc2e87",
-      "Inputs": [
-        {
-          "Id": "d3db16ed88a948bb9ae4c121adbd8fd2",
-          "Name": "",
-          "Description": "Node to show output from",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        }
-      ],
-      "Outputs": [
-        {
-          "Id": "39754ec57357435dabed6801e1a35a0f",
-          "Name": "",
-          "Description": "Node output",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        }
-      ],
-      "Replication": "Disabled",
-      "Description": "Visualize the node's output"
-    },
-    {
       "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
       "NodeType": "PythonScriptNode",
-      "Code": "import clr\r\nclr.AddReference('RevitAPI')\r\nclr.AddReference('RevitServices')\r\nfrom RevitServices.Persistence import DocumentManager\r\nfrom Autodesk.Revit.DB import TextNote, ElementId\r\nimport re\r\n\r\n# Inputs\r\nexcel_data = IN[0]  # Correct values from Excel\r\nrevit_data = IN[1]  # Revit data containing Legend Index and Position information\r\nsub_headers = IN[2]  # List of expected sub-headers\r\n\r\n# Get current document\r\ndoc = DocumentManager.Instance.CurrentDBDocument\r\n\r\n# Placeholder for output data\r\noutput = []\r\n\r\n# Error flag and messages\r\nerror_flag = False\r\nerror_messages = []\r\n\r\ndef normalize_string(input_string):\r\n    \"\"\"\r\n    Normalize strings by removing extra whitespace, line breaks, and special characters.\r\n    \"\"\"\r\n    return re.sub(r'[\\s\\n\\r]+', ' ', re.sub(r'[\\(\\)\\,\\.]', '', input_string.strip())).strip().lower()\r\n\r\ntry:\r\n    # Normalize the sub_headers list to create a lookup for expected sub-headers\r\n    normalized_sub_headers = [normalize_string(sub) for sub in sub_headers]\r\n\r\n    # Build a lookup dictionary for Revit data based on normalized category names\r\n    revit_lookup = {}\r\n    for revit_category in revit_data:\r\n        revit_category_name = normalize_string(revit_category[0][0])\r\n        revit_lookup[revit_category_name] = revit_category\r\n\r\n    # Iterate through each category in the Excel data\r\n    for excel_category in excel_data:\r\n        # Normalize the category name from Excel\r\n        category_name = normalize_string(excel_category[0])\r\n        \r\n        # Attempt to find the matching category in Revit\r\n        if category_name in revit_lookup:\r\n            revit_category = revit_lookup[category_name]\r\n\r\n            # Iterate through each sub-header in Excel and try to match with Revit\r\n            for excel_sub_header in excel_category[1:]:\r\n                if isinstance(excel_sub_header, list) and len(excel_sub_header) > 0:\r\n                    excel_label = normalize_string(excel_sub_header[0])\r\n\r\n                    # Only proceed if the label is in the provided sub-header list\r\n                    if excel_label in normalized_sub_headers:\r\n                        # Iterate through Revit sub-headers to find the best match\r\n                        match_found = False\r\n                        for revit_sub_header in revit_category[1:]:\r\n                            if isinstance(revit_sub_header, list) and len(revit_sub_header) > 0:\r\n                                revit_label = normalize_string(revit_sub_header[0])\r\n\r\n                                # Only proceed if the label is in the provided sub-header list\r\n                                if revit_label in normalized_sub_headers:\r\n                                    # Check if the labels match\r\n                                    if excel_label == revit_label:\r\n                                        output.append(f\"Matching sub-header '{revit_label}' with '{excel_label}'\")\r\n                                        match_found = True\r\n                                        break\r\n\r\n                        # If no exact match is found, add logging to understand the issue\r\n                        if not match_found:\r\n                            output.append(f\"No matching sub-header found for Excel sub-header '{excel_label}' in Revit category '{category_name}'.\")\r\n        else:\r\n            # If the category name is not found in Revit data, log an error\r\n            error_flag = True\r\n            error_messages.append(f\"Category name mismatch: Excel '{category_name}' not found in Revit data.\")\r\n\r\nexcept Exception as e:\r\n    error_flag = True\r\n    error_messages.append(str(e))\r\n\r\n# Output results to Dynamo\r\nif error_flag:\r\n    output.append(\"Errors encountered:\")\r\n    output.extend(error_messages)\r\n\r\nOUT = output\r\n",
+      "Code": "import clr\r\nclr.AddReference('RevitAPI')\r\nclr.AddReference('RevitServices')\r\nfrom RevitServices.Persistence import DocumentManager\r\nfrom Autodesk.Revit.DB import TextNote, ElementId\r\n\r\n# Inputs\r\nexcel_data = IN[0]  # Correct values from Excel\r\nrevit_data = IN[1]  # Revit data containing Legend Index and Position information\r\n\r\n# Get current document\r\ndoc = DocumentManager.Instance.CurrentDBDocument\r\n\r\ntry:\r\n    # Build a lookup dictionary for Revit data based on category names\r\n    revit_lookup = {}\r\n    for revit_category in revit_data:\r\n        revit_category_name = revit_category[0][1]\r\n        revit_lookup[revit_category_name] = revit_category\r\n\r\n    # Iterate through each category in the Excel data\r\n    for excel_category in excel_data:\r\n        # Get the category name from Excel\r\n        category_name = excel_category[1]\r\n        \r\n        # Attempt to find the matching category in Revit\r\n        if category_name in revit_lookup:\r\n            revit_category = revit_lookup[category_name]\r\n\r\n            # Iterate through each sub-header in Excel and match with Revit\r\n            for excel_sub_header in excel_category[2:]:\r\n                if isinstance(excel_sub_header, list) and len(excel_sub_header) > 0:\r\n                    excel_label = excel_sub_header[0]\r\n\r\n                    # Iterate through Revit sub-headers to find the best match\r\n                    for revit_sub_header in revit_category[1:]:\r\n                        if isinstance(revit_sub_header, list) and len(revit_sub_header) > 0:\r\n                            revit_label = revit_sub_header[0]\r\n\r\n                            # Check if the labels match and are part of the specified fields to update\r\n                            if excel_label == revit_label and excel_label in [\"Type\", \"Existing\", \"Proposed\", \"Variation\"]:\r\n                                # Overwrite the Revit sub-header values with the Excel values\r\n                                revit_sub_header[1] = excel_sub_header[1]\r\n\r\nexcept Exception as e:\r\n    raise e\r\n\r\n# Output the updated Revit data\r\nOUT = revit_data\r\n",
       "Engine": "CPython3",
       "EngineName": "CPython3",
       "VariableInputPorts": true,
@@ -2036,15 +1978,6 @@
           "Id": "f7874f276e8747bfac3af0e2c7448d1a",
           "Name": "IN[1]",
           "Description": "Input #1",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        },
-        {
-          "Id": "ba22bce5859f43749bc251e9bf3b1389",
-          "Name": "IN[2]",
-          "Description": "Input #2",
           "UsingDefaultValue": false,
           "Level": 2,
           "UseLevels": false,
@@ -2083,6 +2016,97 @@
       "Outputs": [
         {
           "Id": "e853f82af33e4b23ba020c0d43cd0f47",
+          "Name": "",
+          "Description": "Node output",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Visualize the node's output"
+    },
+    {
+      "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
+      "NodeType": "PythonScriptNode",
+      "Code": "import clr\r\nclr.AddReference('ProtoGeometry')\r\nfrom Autodesk.DesignScript.Geometry import *\r\n\r\n# Importing Revit Nodes\r\nclr.AddReference('RevitServices')\r\nimport RevitServices\r\nfrom RevitServices.Persistence import DocumentManager\r\nfrom RevitServices.Transactions import TransactionManager\r\n\r\n# Import Revit API\r\nclr.AddReference('RevitAPI')\r\nimport Autodesk\r\nfrom Autodesk.Revit.DB import *\r\n\r\n# Main function for reformatting list structure\r\ndef reformat_list_structure(input_list):\r\n    reformatted_list = []\r\n    \r\n    for sublist in input_list:\r\n        # Ensure sublist is a list\r\n        if isinstance(sublist, list):\r\n            sub_header = None\r\n            rest_items = []\r\n            \r\n            # Loop through each item in the sublist\r\n            for item in sublist:\r\n                # Extract the Sub-Header if present\r\n                if isinstance(item, list) and len(item) > 1 and item[0] == \"Sub-Header\":\r\n                    sub_header = item\r\n                else:\r\n                    rest_items.append(item)\r\n            \r\n            # If a Sub-Header was found, add it to the reformatted list along with the rest of the items\r\n            if sub_header:\r\n                reformatted_list.append([sub_header] + rest_items)\r\n    \r\n    return reformatted_list\r\n\r\n# Inputs from Dynamo\r\ninput_list = IN[0]\r\n\r\n# Perform the reformatting\r\noutput_list = reformat_list_structure(input_list)\r\n\r\n# Assign the output to Dynamo\r\nOUT = output_list\r\n",
+      "Engine": "CPython3",
+      "EngineName": "CPython3",
+      "VariableInputPorts": true,
+      "Id": "67ec1d72e64b407b95189de847ecee6c",
+      "Inputs": [
+        {
+          "Id": "e98c3a79c10a436fbb44b456c30f013f",
+          "Name": "IN[0]",
+          "Description": "Input #0",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "71e727db30e24dd7937d73021c757c29",
+          "Name": "OUT",
+          "Description": "Result of the python script",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Runs an embedded Python script."
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Watch, CoreNodeModels",
+      "NodeType": "ExtensionNode",
+      "Id": "311816cdea3f47d2a20c8552a5761eec",
+      "Inputs": [
+        {
+          "Id": "53830b390e1447c6883340d3b35a24a9",
+          "Name": "",
+          "Description": "Node to show output from",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "8fcd01acf0de4926b1502ae1ecbd68d6",
+          "Name": "",
+          "Description": "Node output",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Visualize the node's output"
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Watch, CoreNodeModels",
+      "NodeType": "ExtensionNode",
+      "Id": "dbea18cb57284c3fb5d3d3aa6f868145",
+      "Inputs": [
+        {
+          "Id": "0fc3842734084b60b5bbb860b1378c44",
+          "Name": "",
+          "Description": "Node to show output from",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "9295ea5062594053bb2ad2cfa8e3f60a",
           "Name": "",
           "Description": "Node output",
           "UsingDefaultValue": false,
@@ -2344,14 +2368,14 @@
     },
     {
       "Start": "35abbe63f2e645b2a01454fe79512e42",
-      "End": "d3db16ed88a948bb9ae4c121adbd8fd2",
-      "Id": "061f3a981fa64eeea78df2bc58286eb1",
+      "End": "7247baea7f564e989cf4e80d42b18997",
+      "Id": "d930467c24b74831a925d5c2932ea224",
       "IsHidden": "False"
     },
     {
       "Start": "35abbe63f2e645b2a01454fe79512e42",
-      "End": "7247baea7f564e989cf4e80d42b18997",
-      "Id": "d930467c24b74831a925d5c2932ea224",
+      "End": "53830b390e1447c6883340d3b35a24a9",
+      "Id": "038768ab425f430282c664e882fb98bd",
       "IsHidden": "False"
     },
     {
@@ -2475,12 +2499,6 @@
       "IsHidden": "False"
     },
     {
-      "Start": "b560155a956b4f7687ca1c6fa20bf8ff",
-      "End": "ba22bce5859f43749bc251e9bf3b1389",
-      "Id": "7942329e9e5c42958ee7fbc4cf487ee3",
-      "IsHidden": "False"
-    },
-    {
       "Start": "261a48d1ffca4199b1806a735fbc22db",
       "End": "8af02bc3ef0e41a784dbee72e6d3b4e6",
       "Id": "8d0884bcb72e4e328ffe4cc9b5bdf7a6",
@@ -2488,14 +2506,8 @@
     },
     {
       "Start": "09fbc00085d34c8d87102fe743489dfc",
-      "End": "f7874f276e8747bfac3af0e2c7448d1a",
-      "Id": "f6af7eb62370446aaa0f4d93e5d6ccdc",
-      "IsHidden": "False"
-    },
-    {
-      "Start": "09fbc00085d34c8d87102fe743489dfc",
-      "End": "daaca22457cc45688b7ff072f496f97f",
-      "Id": "5da515409ff341d69069c4f32c7d214c",
+      "End": "e98c3a79c10a436fbb44b456c30f013f",
+      "Id": "a54f2778a9a04f518909e83ba46ed866",
       "IsHidden": "False"
     },
     {
@@ -2520,6 +2532,18 @@
       "Start": "32e28a6d9ba242bfa4663c4c4697a19c",
       "End": "8e861f96943b4279924d01693e93c349",
       "Id": "9a87786bf0ac486d869c10cb7ccd9ad6",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "71e727db30e24dd7937d73021c757c29",
+      "End": "f7874f276e8747bfac3af0e2c7448d1a",
+      "Id": "df100a65f3d84363b8e43490871b4ade",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "71e727db30e24dd7937d73021c757c29",
+      "End": "0fc3842734084b60b5bbb860b1378c44",
+      "Id": "b0f9257a9aae4013899999bb181328aa",
       "IsHidden": "False"
     }
   ],
@@ -3215,8 +3239,8 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 10474.493956396071,
-        "Y": 7406.6503255309281
+        "X": 10302.2778476673,
+        "Y": 7398.1806808393485
       },
       {
         "Name": "Code Block",
@@ -3225,18 +3249,8 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 10220.493956396071,
-        "Y": 7474.4778255309275
-      },
-      {
-        "Name": "Watch",
-        "ShowGeometry": true,
-        "Id": "e2db8788ce334e0699f3a72812582be4",
-        "IsSetAsInput": false,
-        "IsSetAsOutput": false,
-        "Excluded": false,
-        "X": 11152.280535309754,
-        "Y": 6980.41451253258
+        "X": 10048.2778476673,
+        "Y": 7466.0081808393479
       },
       {
         "Name": "WINE / LIQUOR LF",
@@ -3259,17 +3273,7 @@
         "Y": 7459.4867243392564
       },
       {
-        "Name": "Watch",
-        "ShowGeometry": true,
-        "Id": "0bc1c4f59c5a43daae16cd0e50fc2e87",
-        "IsSetAsInput": false,
-        "IsSetAsOutput": false,
-        "Excluded": false,
-        "X": 11136.775354923211,
-        "Y": 6344.6351840349434
-      },
-      {
-        "Name": "Return Sub-Headers",
+        "Name": "Update Revit from Excel",
         "ShowGeometry": true,
         "Id": "fd5daf8948144cd5bec4fb9cd79175ef",
         "IsSetAsInput": false,
@@ -3287,6 +3291,36 @@
         "Excluded": false,
         "X": 13567.881107372328,
         "Y": 5991.1996327558245
+      },
+      {
+        "Name": "Resturcture List Sub-Headers",
+        "ShowGeometry": true,
+        "Id": "67ec1d72e64b407b95189de847ecee6c",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 10738.93659167258,
+        "Y": 7394.8443515440622
+      },
+      {
+        "Name": "Watch",
+        "ShowGeometry": true,
+        "Id": "311816cdea3f47d2a20c8552a5761eec",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 11514.293443811717,
+        "Y": 5864.5041018337943
+      },
+      {
+        "Name": "Watch",
+        "ShowGeometry": true,
+        "Id": "dbea18cb57284c3fb5d3d3aa6f868145",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 11511.899938269844,
+        "Y": 6347.2785893701057
       }
     ],
     "Annotations": [
@@ -3704,14 +3738,14 @@
           "2af2a074483643e086fd82e0f793ad33"
         ],
         "HasNestedGroups": false,
-        "Left": 10210.493956396071,
-        "Top": 7290.6503255309281,
+        "Left": 10038.2778476673,
+        "Top": 7281.7806808393489,
         "Width": 500.0,
-        "Height": 315.82749999999942,
+        "Height": 316.22749999999905,
         "FontSize": 36.0,
-        "InitialTop": 7406.6503255309281,
+        "InitialTop": 7398.1806808393485,
         "InitialHeight": 212.82749999999942,
-        "TextblockHeight": 106.0,
+        "TextblockHeight": 106.4,
         "Background": "#FFFFC999"
       },
       {
@@ -3734,10 +3768,52 @@
         "InitialHeight": 145.0,
         "TextblockHeight": 106.0,
         "Background": "#FFFFC999"
+      },
+      {
+        "Id": "cc170219e00c43d699d666169e5ca53c",
+        "Title": "Restructure List",
+        "DescriptionText": "<Double click here to edit group description>",
+        "IsExpanded": true,
+        "WidthAdjustment": 0.0,
+        "HeightAdjustment": 0.0,
+        "Nodes": [
+          "67ec1d72e64b407b95189de847ecee6c"
+        ],
+        "HasNestedGroups": false,
+        "Left": 10728.93659167258,
+        "Top": 7321.8443515440622,
+        "Width": 314.0,
+        "Height": 205.0,
+        "FontSize": 36.0,
+        "InitialTop": 7394.8443515440622,
+        "InitialHeight": 229.82750000000033,
+        "TextblockHeight": 63.0,
+        "Background": "#FFFFC999"
+      },
+      {
+        "Id": "307f9e24475c427980dfa70a083dd8f0",
+        "Title": "Combine Lists",
+        "DescriptionText": "<Double click here to edit group description>",
+        "IsExpanded": true,
+        "WidthAdjustment": 0.0,
+        "HeightAdjustment": 0.0,
+        "Nodes": [
+          "fd5daf8948144cd5bec4fb9cd79175ef"
+        ],
+        "HasNestedGroups": false,
+        "Left": 13014.705995183125,
+        "Top": 5908.4924777984206,
+        "Width": 272.0,
+        "Height": 244.0,
+        "FontSize": 36.0,
+        "InitialTop": 5990.4924777984206,
+        "InitialHeight": 192.0,
+        "TextblockHeight": 72.0,
+        "Background": "#FFFFAA45"
       }
     ],
-    "X": -5360.0663809089965,
-    "Y": -3436.6172231057162,
-    "Zoom": 0.57314830577141063
+    "X": -6854.2136831467715,
+    "Y": -2915.8361976008728,
+    "Zoom": 0.5922279635940263
   }
 }
