@@ -1069,7 +1069,7 @@
     {
       "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
       "NodeType": "PythonScriptNode",
-      "Code": "# Input from Excel Import Node (flattened data)\r\nexcel_data = IN[0]\r\n\r\n# Input list of Sub-Headers to be matched\r\nsub_headers_to_match = IN[1]\r\n\r\n# Initialize an empty list to hold the data in the desired list of lists format\r\ndata_rows = []\r\n\r\ntry:\r\n    # Check if sub_headers_to_match is a list\r\n    if not isinstance(sub_headers_to_match, list):\r\n        raise ValueError(\"Sub-Headers to match must be provided as a list.\")\r\n\r\n    # Create a list to track unmatched sub-headers\r\n    unmatched_sub_headers = sub_headers_to_match.copy()\r\n\r\n    # Iterate through each row in the Excel data\r\n    for row in excel_data:\r\n        # Check if the row is a valid list and has at least 6 fields\r\n        if isinstance(row, list) and len(row) >= 6:\r\n            # Extract and format the required data, providing sensible default values where necessary\r\n            sub_header = row[1] if row[1] else \"N/A\"\r\n            item_type = row[2] if row[2] else \"N/A\"\r\n            existing = row[3] if row[3] is not None and row[3] != \"\" else 0\r\n            proposed = row[4] if row[4] is not None and row[4] != \"\" else 0\r\n            variation = row[5] if row[5] is not None and row[5] != \"\" else 0\r\n\r\n            # Only include rows with meaningful sub-header data that matches the provided list\r\n            if sub_header in sub_headers_to_match:\r\n                # Create a list for the row, formatted to match the desired output structure with labels\r\n                row_list = [\r\n                    \"Sub-Header\", sub_header,\r\n                    [\r\n                        \"Type\", item_type,\r\n                        \"Existing\", existing,\r\n                        \"Proposed\", proposed,\r\n                        \"Variation\", variation\r\n                    ]\r\n                ]\r\n\r\n                # Append the row list to the data rows\r\n                data_rows.append(row_list)\r\n\r\n                # Remove one occurrence of the matched sub-header from unmatched list if present\r\n                if sub_header in unmatched_sub_headers:\r\n                    unmatched_sub_headers.remove(sub_header)\r\n\r\n    # Check for unmatched sub-headers and raise an error if any remain\r\n    if unmatched_sub_headers:\r\n        raise ValueError(\"The following Sub-Headers were not found in the input data: {}\".format(\", \".join(unmatched_sub_headers)))\r\n\r\n    # Set output to the list of lists\r\n    OUT = data_rows if data_rows else \"No valid rows found in input data. Check the structure of the input or revise the extraction logic.\"\r\n\r\nexcept Exception as e:\r\n    # Output any errors that occur\r\n    OUT = \"Error occurred: {}\".format(str(e))\r\n",
+      "Code": "# Input from Excel Import Node (flattened data)\r\nexcel_data = IN[0]\r\n\r\n# Input list of Sub-Headers to be matched\r\nsub_headers_to_match = IN[1]\r\n\r\n# Initialize an empty list to hold the data in the desired list of lists format\r\ndata_rows = []\r\n\r\ntry:\r\n    # Check if sub_headers_to_match is a list\r\n    if not isinstance(sub_headers_to_match, list):\r\n        raise ValueError(\"Sub-Headers to match must be provided as a list.\")\r\n\r\n    # Create a list to track unmatched sub-headers\r\n    unmatched_sub_headers = sub_headers_to_match.copy()\r\n\r\n    # Iterate through each row in the Excel data\r\n    for row in excel_data:\r\n        # Check if the row is a valid list and has at least 6 fields\r\n        if isinstance(row, list) and len(row) >= 6:\r\n            # Extract and format the required data, providing sensible default values where necessary\r\n            sub_header = row[1] if row[1] else \"N/A\"\r\n            item_type = row[2] if row[2] else \"N/A\"\r\n            existing = row[3] if row[3] is not None and row[3] != \"\" else 0\r\n            proposed = row[4] if row[4] is not None and row[4] != \"\" else 0\r\n            variation = row[5] if row[5] is not None and row[5] != \"\" else 0\r\n\r\n            # Only include rows with meaningful sub-header data that matches the provided list\r\n            if sub_header in sub_headers_to_match:\r\n                # Create a list for the row, formatted to match the desired output structure with individual labeled lists\r\n                row_list = [\r\n                    \"Sub-Header\", sub_header,\r\n                    [\"Type\", item_type],\r\n                    [\"Existing\", existing],\r\n                    [\"Proposed\", proposed],\r\n                    [\"Variation\", variation]\r\n                ]\r\n\r\n                # Append the row list to the data rows\r\n                data_rows.append(row_list)\r\n\r\n                # Remove one occurrence of the matched sub-header from unmatched list if present\r\n                if sub_header in unmatched_sub_headers:\r\n                    unmatched_sub_headers.remove(sub_header)\r\n\r\n    # Check for unmatched sub-headers and raise an error if any remain\r\n    if unmatched_sub_headers:\r\n        raise ValueError(\"The following Sub-Headers were not found in the input data: {}\".format(\", \".join(unmatched_sub_headers)))\r\n\r\n    # Set output to the list of lists\r\n    OUT = data_rows if data_rows else \"No valid rows found in input data. Check the structure of the input or revise the extraction logic.\"\r\n\r\nexcept Exception as e:\r\n    # Output any errors that occur\r\n    OUT = \"Error occurred: {}\".format(str(e))\r\n",
       "Engine": "CPython3",
       "EngineName": "CPython3",
       "VariableInputPorts": true,
@@ -3235,8 +3235,8 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 10913.656272844304,
-        "Y": 5472.4533390204206
+        "X": 11150.529306439985,
+        "Y": 6973.3871406827611
       },
       {
         "Name": "WINE / LIQUOR LF",
@@ -3265,8 +3265,8 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 10915.398688011363,
-        "Y": 4868.0528157329063
+        "X": 11136.775354923211,
+        "Y": 6344.6351840349434
       },
       {
         "Name": "Return Sub-Headers",
@@ -3736,8 +3736,8 @@
         "Background": "#FFFFC999"
       }
     ],
-    "X": -9936.2533411601653,
-    "Y": -4684.5499679409259,
-    "Zoom": 0.9829055601192912
+    "X": -8563.6648886398652,
+    "Y": -5092.26206958922,
+    "Zoom": 0.832963618378389
   }
 }
