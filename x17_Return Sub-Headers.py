@@ -49,7 +49,7 @@ def find_labels_and_columns(data, labels, num_following_columns):
                 
                 # Collect the elements in the same row, based on column values to the right of the matched label
                 collected_section = [element]  # Start with the matched element itself
-                columns_collected = 1  # Count the current label as collected
+                columns_collected = 0  # Start collecting columns after the Sub-Header
                 
                 # Sort the data based on the column value to ensure proper ordering
                 sorted_data = sorted([elem for elem in data if isinstance(elem, list) and len(elem) > 0], 
@@ -70,12 +70,25 @@ def find_labels_and_columns(data, labels, num_following_columns):
                                     other_column = sub[1]
                         
                         # If rows match and the other column is strictly to the right of the matched label's column, collect the element
-                        if other_row == label_row and other_column is not None and other_column > label_column and columns_collected < num_following_columns + 1:
+                        if other_row == label_row and other_column is not None and other_column > label_column and columns_collected < num_following_columns:
                             collected_section.append(other_element)
                             columns_collected += 1
                 
-                # Title each list with the relevant Sub-Header
-                results.append([label, collected_section])
+                # Move Sub-Header to a higher level in the nesting
+                sub_header = ["Sub-Header", collected_section[0][0]]
+                
+                # Add the remaining collected elements without extra nesting and retain their values
+                labeled_section = [sub_header]
+                for j, label_name in enumerate(["Type", "Existing", "Proposed", "Variation"], start=1):
+                    if j < len(collected_section):
+                        # Retain the value of the label (second element in the list)
+                        value = collected_section[j][1] if len(collected_section[j]) > 1 else None
+                        labeled_section.append([label_name, collected_section[j][0] if len(collected_section[j]) > 0 else None, value] + collected_section[j][2:])
+                    else:
+                        # If there's no corresponding collected element, add an empty value placeholder
+                        labeled_section.append([label_name, None])
+                
+                results.append(labeled_section)
 
     # Check if all labels were found, if not append the error to OUT
     if len(found_labels) != len(normalized_labels):
