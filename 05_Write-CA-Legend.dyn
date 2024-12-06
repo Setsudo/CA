@@ -1959,7 +1959,7 @@
     {
       "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
       "NodeType": "PythonScriptNode",
-      "Code": "import clr\r\nclr.AddReference('RevitAPI')\r\nclr.AddReference('RevitServices')\r\nfrom RevitServices.Persistence import DocumentManager\r\nfrom Autodesk.Revit.DB import TextNote, ElementId\r\n\r\n# Inputs\r\nexcel_data = IN[0]  # Correct values from Excel\r\nrevit_data = IN[1]  # Revit data containing Legend Index and Position information\r\n\r\n# Get current document\r\ndoc = DocumentManager.Instance.CurrentDBDocument\r\n\r\ndef sync_data(excel_data, revit_data):\r\n    # Build lookup dictionary for Excel data based on category name\r\n    excel_lookup = {cat[1]: cat for cat in excel_data}\r\n    \r\n    # Create a copy of revit_data to avoid modifying the input directly\r\n    updated_revit_data = [list(cat) for cat in revit_data]\r\n    \r\n    fields_to_update = [\"Type\", \"Existing\", \"Proposed\", \"Variation\"]\r\n\r\n    for i, revit_category in enumerate(updated_revit_data):\r\n        category_name = revit_category[0][1]\r\n        \r\n        if category_name in excel_lookup:\r\n            excel_category = excel_lookup[category_name]\r\n            \r\n            # Create dictionaries for faster lookup\r\n            excel_values = {item[0]: item[1] for item in excel_category[2:] \r\n                            if isinstance(item, list) and len(item) > 0 and item[0] in fields_to_update}\r\n            \r\n            # Update matching fields in Revit data\r\n            for j, sub_header in enumerate(revit_category[1:], start=1):\r\n                if isinstance(sub_header, list) and len(sub_header) > 0:\r\n                    field_name = sub_header[0]\r\n                    if field_name in excel_values:\r\n                        updated_revit_data[i][j][1] = excel_values[field_name]\r\n    \r\n    return updated_revit_data\r\n\r\n# Main execution\r\ntry:\r\n    OUT = sync_data(excel_data, revit_data)\r\nexcept Exception as e:\r\n    import traceback\r\n    OUT = f\"Error: {str(e)}\\n{traceback.format_exc()}\"\r\n",
+      "Code": "import clr\r\nclr.AddReference('RevitAPI')\r\nclr.AddReference('RevitServices')\r\nfrom RevitServices.Persistence import DocumentManager\r\nfrom Autodesk.Revit.DB import TextNote, ElementId\r\n\r\n# Inputs\r\nexcel_data = IN[0]  # Correct values from Excel\r\nrevit_data = IN[1]  # Revit data containing Legend Index and Position information\r\n\r\n# Placeholder to collect debug messages\r\ndebug_messages = []\r\n\r\n# Function to add debug info\r\ndef add_debug_info(message):\r\n    debug_messages.append(message)\r\n\r\n# Check if both inputs are received successfully\r\nif excel_data and revit_data:\r\n    add_debug_info(\"Both Excel and Revit data received successfully.\")\r\nelse:\r\n    if not excel_data:\r\n        add_debug_info(\"Excel data is missing.\")\r\n    if not revit_data:\r\n        add_debug_info(\"Revit data is missing.\")\r\n\r\n# Output debug messages\r\nOUT = debug_messages",
       "Engine": "CPython3",
       "EngineName": "CPython3",
       "VariableInputPorts": true,
@@ -2216,26 +2216,6 @@
       "Description": "Returns an item from the given list that's located at the specified index.\n\nList.GetItemAtIndex (list: var[]..[], index: int): var[]..[]"
     },
     {
-      "ConcreteType": "Dynamo.Graph.Nodes.CodeBlockNodeModel, DynamoCore",
-      "NodeType": "CodeBlockNode",
-      "Code": "0;",
-      "Id": "38031c92673349ac8915d01eda851747",
-      "Inputs": [],
-      "Outputs": [
-        {
-          "Id": "fd542e4c95b54c02ae61532a51e6bd10",
-          "Name": "",
-          "Description": "Value of expression at line 1",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        }
-      ],
-      "Replication": "Disabled",
-      "Description": "Allows for DesignScript code to be authored directly"
-    },
-    {
       "ConcreteType": "Dynamo.Graph.Nodes.ZeroTouch.DSFunction, DynamoCore",
       "NodeType": "FunctionNode",
       "FunctionSignature": "DSCore.List.GetItemAtIndex@var[]..[],int",
@@ -2314,26 +2294,6 @@
       "Description": "Returns an item from the given list that's located at the specified index.\n\nList.GetItemAtIndex (list: var[]..[], index: int): var[]..[]"
     },
     {
-      "ConcreteType": "Dynamo.Graph.Nodes.CodeBlockNodeModel, DynamoCore",
-      "NodeType": "CodeBlockNode",
-      "Code": "4;",
-      "Id": "8b65c3ef8b9c4fe0b0b24a06cbe98373",
-      "Inputs": [],
-      "Outputs": [
-        {
-          "Id": "e166ba96c3d54cb5893c020b51836faa",
-          "Name": "",
-          "Description": "Value of expression at line 1",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        }
-      ],
-      "Replication": "Disabled",
-      "Description": "Allows for DesignScript code to be authored directly"
-    },
-    {
       "ConcreteType": "Dynamo.Graph.Nodes.ZeroTouch.DSFunction, DynamoCore",
       "NodeType": "FunctionNode",
       "FunctionSignature": "DSCore.List.GetItemAtIndex@var[]..[],int",
@@ -2371,6 +2331,246 @@
       ],
       "Replication": "Auto",
       "Description": "Returns an item from the given list that's located at the specified index.\n\nList.GetItemAtIndex (list: var[]..[], index: int): var[]..[]"
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Watch, CoreNodeModels",
+      "NodeType": "ExtensionNode",
+      "Id": "fa6ec1355fba4a39ba77c7199c015b0a",
+      "Inputs": [
+        {
+          "Id": "ef7e2e3368b6444d81b86c539dbdda45",
+          "Name": "",
+          "Description": "Node to show output from",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "3c628588852744a7a2daff94440036f3",
+          "Name": "",
+          "Description": "Node output",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Visualize the node's output"
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Watch, CoreNodeModels",
+      "NodeType": "ExtensionNode",
+      "Id": "da233bb24426449baf339e6164c019d0",
+      "Inputs": [
+        {
+          "Id": "4df6d44ff2894a919632e9ea13d7c78e",
+          "Name": "",
+          "Description": "Node to show output from",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "c4434b66bc364d54bebcb10e61d1dca1",
+          "Name": "",
+          "Description": "Node output",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Visualize the node's output"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CodeBlockNodeModel, DynamoCore",
+      "NodeType": "CodeBlockNode",
+      "Code": "0;",
+      "Id": "1633694d392845428ea5187ee58ba459",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "80c85077d2644fe5826e53bdd7ff95ea",
+          "Name": "",
+          "Description": "Value of expression at line 1",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Allows for DesignScript code to be authored directly"
+    },
+    {
+      "ConcreteType": "Dynamo.Graph.Nodes.CodeBlockNodeModel, DynamoCore",
+      "NodeType": "CodeBlockNode",
+      "Code": "4;",
+      "Id": "89362d19c2db4fa682b6657123d536e0",
+      "Inputs": [],
+      "Outputs": [
+        {
+          "Id": "84a6cdc7b3cc4d5089731dd52afe94bd",
+          "Name": "",
+          "Description": "Value of expression at line 1",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Allows for DesignScript code to be authored directly"
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Watch, CoreNodeModels",
+      "NodeType": "ExtensionNode",
+      "Id": "3cbf2c90f3ad4a0ca388a4820ddd70bf",
+      "Inputs": [
+        {
+          "Id": "c9f37cbe8609479fbfd31271952c9d79",
+          "Name": "",
+          "Description": "Node to show output from",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "1462abb9a9ff4703993d9f532d6b1b3a",
+          "Name": "",
+          "Description": "Node output",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Visualize the node's output"
+    },
+    {
+      "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
+      "NodeType": "PythonScriptNode",
+      "Code": "import clr\r\nclr.AddReference('RevitAPI')\r\nclr.AddReference('RevitServices')\r\nfrom RevitServices.Persistence import DocumentManager\r\nfrom Autodesk.Revit.DB import TextNote, ElementId\r\n\r\n# Inputs\r\nexcel_data = IN[0]  # Correct values from Excel\r\nrevit_data = IN[1]  # Revit data containing Legend Index and Position information\r\n\r\n# Placeholder to collect debug messages\r\ndebug_messages = []\r\n\r\n# Function to add debug info\r\ndef add_debug_info(message):\r\n    debug_messages.append(message)\r\n\r\n# Check if both inputs are received successfully\r\nif excel_data and revit_data:\r\n    add_debug_info(\"Both Excel and Revit data received successfully.\")\r\n\r\n    # Extract Sub-Headers from Excel and Revit data\r\n    excel_subheaders = [item[0] for item in excel_data]\r\n    revit_subheaders = [entry[0] for entry in revit_data]\r\n\r\n    # List to hold matched Sub-Headers\r\n    matched_subheaders = []\r\n\r\n    # Match Excel Sub-Headers to Revit Sub-Headers\r\n    for excel_header in excel_subheaders:\r\n        if excel_header in revit_subheaders:\r\n            # Find the index or value of the matched Revit Sub-Header\r\n            revit_index = revit_subheaders.index(excel_header)\r\n            matched_subheaders.append(revit_data[revit_index])\r\n        else:\r\n            add_debug_info(f\"No match found for Excel Sub-Header: {excel_header}\")\r\n\r\n    # Add debug info for successful matches\r\n    for match in matched_subheaders:\r\n        add_debug_info(f\"Match found: {match[0]}\")\r\nelse:\r\n    if not excel_data:\r\n        add_debug_info(\"Excel data is missing.\")\r\n    if not revit_data:\r\n        add_debug_info(\"Revit data is missing.\")\r\n\r\n# Output debug messages and matched Sub-Headers\r\nOUT = (debug_messages, matched_subheaders)",
+      "Engine": "CPython3",
+      "EngineName": "CPython3",
+      "VariableInputPorts": true,
+      "Id": "06ef5a937fb64d31b1f0d2f57c10850a",
+      "Inputs": [
+        {
+          "Id": "d79b38c3fd534afcaf82116f6e40a993",
+          "Name": "IN[0]",
+          "Description": "Input #0",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "dcdc8eb553f2421b94d472eaab07019a",
+          "Name": "IN[1]",
+          "Description": "Input #1",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "ca06ca87d56d436f8f5b869249eae0d0",
+          "Name": "OUT",
+          "Description": "Result of the python script",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Runs an embedded Python script."
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Watch, CoreNodeModels",
+      "NodeType": "ExtensionNode",
+      "Id": "f41f45e6ff7f42179c861d93a534eb54",
+      "Inputs": [
+        {
+          "Id": "1eb2b51d247240cf8f4b8855b6aa2dc6",
+          "Name": "",
+          "Description": "Node to show output from",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "aec727b6629d4afcb13e92802dbdc666",
+          "Name": "",
+          "Description": "Node output",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Visualize the node's output"
+    },
+    {
+      "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
+      "NodeType": "PythonScriptNode",
+      "Code": "import clr\r\nclr.AddReference('RevitAPI')\r\nclr.AddReference('RevitServices')\r\nfrom RevitServices.Persistence import DocumentManager\r\nfrom Autodesk.Revit.DB import TextNote, ElementId\r\n\r\n# Inputs\r\nexcel_data = IN[0]  # Correct values from Excel\r\nrevit_data = IN[1]  # Revit data containing Legend Index and Position information\r\n\r\n# Initialize matched_subheaders\r\nmatched_subheaders = []\r\n\r\n# Check if both inputs are received successfully\r\nif excel_data and revit_data:\r\n    # Extract Sub-Headers from Excel and Revit data\r\n    excel_subheaders = [item[0] for item in excel_data]\r\n    revit_subheaders = [entry[0] for entry in revit_data]\r\n\r\n    # Match Excel Sub-Headers to Revit Sub-Headers\r\n    for excel_header in excel_subheaders:\r\n        if excel_header in revit_subheaders:\r\n            # Find the index or value of the matched Revit Sub-Header\r\n            revit_index = revit_subheaders.index(excel_header)\r\n            matched_entry = revit_data[revit_index]\r\n            matched_entry.insert(1, \"Status: Match found\")\r\n            matched_subheaders.append(matched_entry)\r\n            print(f\"Debug: Match found for Sub-Header '{excel_header}' at index {revit_index}\")\r\n        else:\r\n            # Add unmatched Excel header with a note\r\n            unmatched_entry = [excel_header, \"Status: No match found\"]\r\n            matched_subheaders.append(unmatched_entry)\r\n            print(f\"Debug: No match found for Sub-Header '{excel_header}'\")\r\nelse:\r\n    if not excel_data:\r\n        matched_subheaders.append([\"Excel data is missing\"])\r\n        print(\"Debug: Excel data is missing\")\r\n    if not revit_data:\r\n        matched_subheaders.append([\"Revit data is missing\"])\r\n        print(\"Debug: Revit data is missing\")\r\n\r\n# Simplify output for clarity\r\nformatted_output = []\r\nfor item in matched_subheaders:\r\n    formatted_output.append(item)\r\n\r\n# Output formatted matched Sub-Headers\r\nOUT = formatted_output\r\n",
+      "Engine": "CPython3",
+      "EngineName": "CPython3",
+      "VariableInputPorts": true,
+      "Id": "ca87af2e1e924dd784a1defc01e90f38",
+      "Inputs": [
+        {
+          "Id": "dfe034d00c8247288463848e4811fed0",
+          "Name": "IN[0]",
+          "Description": "Input #0",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        },
+        {
+          "Id": "dfb36b68d29d42a7b81a904b531068a8",
+          "Name": "IN[1]",
+          "Description": "Input #1",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "0c7ed2bd937f456ca030813413b54bab",
+          "Name": "OUT",
+          "Description": "Result of the python script",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Runs an embedded Python script."
     }
   ],
   "Connectors": [
@@ -2639,6 +2839,18 @@
       "IsHidden": "False"
     },
     {
+      "Start": "35abbe63f2e645b2a01454fe79512e42",
+      "End": "d79b38c3fd534afcaf82116f6e40a993",
+      "Id": "998a8f740b3e43ed8908796d7173a6c2",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "35abbe63f2e645b2a01454fe79512e42",
+      "End": "dfe034d00c8247288463848e4811fed0",
+      "Id": "cd9ed3215328404e9743cb00750ed636",
+      "IsHidden": "False"
+    },
+    {
       "Start": "db2df4cecb3749418cfee6413da03b27",
       "End": "3f6e02ed2d7e4baba77ba1d1519697aa",
       "Id": "bdc64b6332de483691b236946db5fbc8",
@@ -2791,7 +3003,7 @@
     {
       "Start": "32e28a6d9ba242bfa4663c4c4697a19c",
       "End": "8e861f96943b4279924d01693e93c349",
-      "Id": "ebe74f36b7304b03ae405753aa5c7460",
+      "Id": "3ac31615656a400bb2df6b4ee4de9edf",
       "IsHidden": "False"
     },
     {
@@ -2813,21 +3025,27 @@
       "IsHidden": "False"
     },
     {
+      "Start": "71e727db30e24dd7937d73021c757c29",
+      "End": "dcdc8eb553f2421b94d472eaab07019a",
+      "Id": "09e649f20ab845d9878fd1694499b091",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "71e727db30e24dd7937d73021c757c29",
+      "End": "dfb36b68d29d42a7b81a904b531068a8",
+      "Id": "67641a367a0148f69ce478bebece6ca5",
+      "IsHidden": "False"
+    },
+    {
       "Start": "33eda53176964ee6abda6c2aa8b6657a",
       "End": "b0a34c18ce394295a949c0774a387fed",
       "Id": "73b2dc7bc75c4ced84e0718d1a0840cd",
       "IsHidden": "False"
     },
     {
-      "Start": "fd542e4c95b54c02ae61532a51e6bd10",
-      "End": "1e401b0b5bda49f4a3276358f8faf3f5",
-      "Id": "b0083692cb9547c5b70315b77c436653",
-      "IsHidden": "False"
-    },
-    {
-      "Start": "fd542e4c95b54c02ae61532a51e6bd10",
-      "End": "ced48a58e50845bf9a011f72134c25ba",
-      "Id": "849d427f9341493badbff6a4c41b64d7",
+      "Start": "33eda53176964ee6abda6c2aa8b6657a",
+      "End": "4df6d44ff2894a919632e9ea13d7c78e",
+      "Id": "dffa503552854235976c333ed63c301b",
       "IsHidden": "False"
     },
     {
@@ -2843,21 +3061,51 @@
       "IsHidden": "False"
     },
     {
-      "Start": "e166ba96c3d54cb5893c020b51836faa",
-      "End": "ca2fde3c0a6a4971be16ecf04f93e336",
-      "Id": "e250749705064df288a437642b112793",
-      "IsHidden": "False"
-    },
-    {
-      "Start": "e166ba96c3d54cb5893c020b51836faa",
-      "End": "02b2ec25918c45fbba7677e38c662a1a",
-      "Id": "2f7231438e7041cd96311de24f4659b9",
+      "Start": "99dee7bb9e364e0f8fabe3fb0bc6c723",
+      "End": "1676258b12c24130a754beece8afea07",
+      "Id": "0c998ffe77d4452caee09523c3a7bc80",
       "IsHidden": "False"
     },
     {
       "Start": "99dee7bb9e364e0f8fabe3fb0bc6c723",
-      "End": "1676258b12c24130a754beece8afea07",
-      "Id": "0c998ffe77d4452caee09523c3a7bc80",
+      "End": "ef7e2e3368b6444d81b86c539dbdda45",
+      "Id": "dbab30a40bcc4604b1810c0049f619dc",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "80c85077d2644fe5826e53bdd7ff95ea",
+      "End": "ced48a58e50845bf9a011f72134c25ba",
+      "Id": "0687f12a53cf427aba5f73407b82d1e3",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "80c85077d2644fe5826e53bdd7ff95ea",
+      "End": "1e401b0b5bda49f4a3276358f8faf3f5",
+      "Id": "6b0dccdf59934371bf483de53307ceef",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "84a6cdc7b3cc4d5089731dd52afe94bd",
+      "End": "02b2ec25918c45fbba7677e38c662a1a",
+      "Id": "7625ac33ed8c44f09ffa3caeba1bf9a8",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "84a6cdc7b3cc4d5089731dd52afe94bd",
+      "End": "ca2fde3c0a6a4971be16ecf04f93e336",
+      "Id": "4974bbc03d1b488eaa86b7f3f3bccadc",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "ca06ca87d56d436f8f5b869249eae0d0",
+      "End": "c9f37cbe8609479fbfd31271952c9d79",
+      "Id": "c52a21fecb6741daaa4ff7561fb92b6b",
+      "IsHidden": "False"
+    },
+    {
+      "Start": "0c7ed2bd937f456ca030813413b54bab",
+      "End": "1eb2b51d247240cf8f4b8855b6aa2dc6",
+      "Id": "c62ce15e1f724e0ca88a57a90746bde8",
       "IsHidden": "False"
     }
   ],
@@ -3593,8 +3841,8 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 13035.467853950826,
-        "Y": 6159.9454308046707
+        "X": 13971.059206211752,
+        "Y": 5699.4353502887479
       },
       {
         "Name": "Watch",
@@ -3603,8 +3851,8 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 13482.183300823199,
-        "Y": 6161.2550857102424
+        "X": 14440.69541503964,
+        "Y": 5604.743395151314
       },
       {
         "Name": "Resturcture List Sub-Headers",
@@ -3623,8 +3871,8 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 12829.560038240148,
-        "Y": 4874.6399899684338
+        "X": 13014.179243759309,
+        "Y": 4522.2587008972869
       },
       {
         "Name": "Revit Output",
@@ -3633,18 +3881,18 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 12934.991457529475,
-        "Y": 7068.2442396934021
+        "X": 13006.792013638909,
+        "Y": 7236.374582989657
       },
       {
-        "Name": "Watch",
+        "Name": "Excel at Index 4 of Index 0",
         "ShowGeometry": true,
         "Id": "d6f84968d5154459a46c9f0773f76094",
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 13344.939240908661,
-        "Y": 5195.0303886635511
+        "X": 13530.359353068812,
+        "Y": 5001.1375827505444
       },
       {
         "Name": "Watch",
@@ -3653,8 +3901,8 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 13384.870357904005,
-        "Y": 7390.7366285861472
+        "X": 13456.670914013439,
+        "Y": 7706.8972702912761
       },
       {
         "Name": "List.GetItemAtIndex",
@@ -3663,18 +3911,8 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 12738.870357904005,
-        "Y": 7390.7366285861472
-      },
-      {
-        "Name": "Code Block",
-        "ShowGeometry": true,
-        "Id": "38031c92673349ac8915d01eda851747",
-        "IsSetAsInput": false,
-        "IsSetAsOutput": false,
-        "Excluded": false,
-        "X": 10407.572951464395,
-        "Y": 6148.64780004078
+        "X": 12810.670914013439,
+        "Y": 7549.8972702912761
       },
       {
         "Name": "List.GetItemAtIndex",
@@ -3683,8 +3921,8 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 13021.939240908661,
-        "Y": 5195.0303886635511
+        "X": 13207.359353068812,
+        "Y": 5001.1375827505444
       },
       {
         "Name": "List.GetItemAtIndex",
@@ -3693,18 +3931,8 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 13061.870357904005,
-        "Y": 7390.7366285861472
-      },
-      {
-        "Name": "Code Block",
-        "ShowGeometry": true,
-        "Id": "8b65c3ef8b9c4fe0b0b24a06cbe98373",
-        "IsSetAsInput": false,
-        "IsSetAsOutput": false,
-        "Excluded": false,
-        "X": 11266.699751798407,
-        "Y": 6178.5888069842986
+        "X": 13133.670914013439,
+        "Y": 7706.8972702912761
       },
       {
         "Name": "List.GetItemAtIndex",
@@ -3713,8 +3941,88 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 12698.939240908661,
-        "Y": 5195.0303886635511
+        "X": 12884.359353068812,
+        "Y": 4844.1375827505444
+      },
+      {
+        "Name": "Excel at Index 0",
+        "ShowGeometry": true,
+        "Id": "fa6ec1355fba4a39ba77c7199c015b0a",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 13530.359353068812,
+        "Y": 4687.1375827505444
+      },
+      {
+        "Name": "Watch",
+        "ShowGeometry": true,
+        "Id": "da233bb24426449baf339e6164c019d0",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 13456.670914013439,
+        "Y": 7392.8972702912761
+      },
+      {
+        "Name": "Code Block",
+        "ShowGeometry": true,
+        "Id": "1633694d392845428ea5187ee58ba459",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 11645.124306721467,
+        "Y": 6059.7746118533478
+      },
+      {
+        "Name": "Code Block",
+        "ShowGeometry": true,
+        "Id": "89362d19c2db4fa682b6657123d536e0",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 11645.124306721467,
+        "Y": 6205.9559127358816
+      },
+      {
+        "Name": "Watch",
+        "ShowGeometry": true,
+        "Id": "3cbf2c90f3ad4a0ca388a4820ddd70bf",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 14435.936919533933,
+        "Y": 5911.3620316668121
+      },
+      {
+        "Name": "Update Revit from Excel",
+        "ShowGeometry": true,
+        "Id": "06ef5a937fb64d31b1f0d2f57c10850a",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 13972.794680997667,
+        "Y": 5987.0030624713518
+      },
+      {
+        "Name": "Watch",
+        "ShowGeometry": true,
+        "Id": "f41f45e6ff7f42179c861d93a534eb54",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 14427.20928951978,
+        "Y": 6217.7342500780214
+      },
+      {
+        "Name": "Update Revit from Excel",
+        "ShowGeometry": true,
+        "Id": "ca87af2e1e924dd784a1defc01e90f38",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 13977.277251428935,
+        "Y": 6264.9224292099152
       }
     ],
     "Annotations": [
@@ -4195,12 +4503,12 @@
           "fd5daf8948144cd5bec4fb9cd79175ef"
         ],
         "HasNestedGroups": false,
-        "Left": 13025.467853950826,
-        "Top": 6077.9454308046707,
+        "Left": 13961.059206211752,
+        "Top": 5617.4353502887479,
         "Width": 272.0,
         "Height": 244.0,
         "FontSize": 36.0,
-        "InitialTop": 6159.9454308046707,
+        "InitialTop": 5699.4353502887479,
         "InitialHeight": 192.0,
         "TextblockHeight": 72.0,
         "Background": "#FFFFAA45"
@@ -4216,15 +4524,16 @@
           "603404822ab84756b913fb74c5482737",
           "1d4a88d1cc3548b2954d963c3a3f0fe7",
           "dbea18cb57284c3fb5d3d3aa6f868145",
-          "3415e299b6b244e9aa960337f4b077d0"
+          "3415e299b6b244e9aa960337f4b077d0",
+          "da233bb24426449baf339e6164c019d0"
         ],
         "HasNestedGroups": false,
-        "Left": 12728.870357904005,
-        "Top": 6995.2442396934021,
+        "Left": 12800.670914013439,
+        "Top": 7163.374582989657,
         "Width": 943.0,
-        "Height": 693.49238889274511,
+        "Height": 841.522687301619,
         "FontSize": 36.0,
-        "InitialTop": 7068.2442396934021,
+        "InitialTop": 7236.374582989657,
         "InitialHeight": 577.85972656438116,
         "TextblockHeight": 63.0,
         "Background": "#FFB5B5B5"
@@ -4240,22 +4549,87 @@
           "593ca96a43b940daa9dcd27a4122fcfc",
           "32ba3bd8e94744128713596588bfccf2",
           "311816cdea3f47d2a20c8552a5761eec",
-          "d6f84968d5154459a46c9f0773f76094"
+          "d6f84968d5154459a46c9f0773f76094",
+          "fa6ec1355fba4a39ba77c7199c015b0a"
         ],
         "HasNestedGroups": false,
-        "Left": 12688.939240908661,
-        "Top": 4801.6399899684338,
+        "Left": 12874.359353068812,
+        "Top": 4449.2587008972869,
         "Width": 943.0,
-        "Height": 691.39039869511726,
+        "Height": 849.87888185325755,
         "FontSize": 36.0,
-        "InitialTop": 4874.6399899684338,
+        "InitialTop": 4522.2587008972869,
         "InitialHeight": 363.21836056147822,
         "TextblockHeight": 63.0,
         "Background": "#FFB5B5B5"
+      },
+      {
+        "Id": "187e305c28694f40a4e9190173a3d724",
+        "Title": "Debugging Input",
+        "DescriptionText": "<Double click here to edit group description>",
+        "IsExpanded": true,
+        "WidthAdjustment": 0.0,
+        "HeightAdjustment": 0.0,
+        "Nodes": [
+          "1633694d392845428ea5187ee58ba459",
+          "89362d19c2db4fa682b6657123d536e0"
+        ],
+        "HasNestedGroups": false,
+        "Left": 11635.124306721467,
+        "Top": 5934.7746118533478,
+        "Width": 198.3,
+        "Height": 403.18130088253383,
+        "FontSize": 36.0,
+        "InitialTop": 6059.7746118533478,
+        "InitialHeight": 264.0186912365516,
+        "TextblockHeight": 115.0,
+        "Background": "#FF848484"
+      },
+      {
+        "Id": "3f47f5eb19404671bda679d2bec6c79f",
+        "Title": "Combine Lists",
+        "DescriptionText": "<Double click here to edit group description>",
+        "IsExpanded": true,
+        "WidthAdjustment": 0.0,
+        "HeightAdjustment": 0.0,
+        "Nodes": [
+          "06ef5a937fb64d31b1f0d2f57c10850a"
+        ],
+        "HasNestedGroups": false,
+        "Left": 13962.794680997667,
+        "Top": 5905.0030624713518,
+        "Width": 272.0,
+        "Height": 244.0,
+        "FontSize": 36.0,
+        "InitialTop": 5987.0030624713518,
+        "InitialHeight": 192.0,
+        "TextblockHeight": 72.0,
+        "Background": "#FFFFAA45"
+      },
+      {
+        "Id": "2fdc074f9fbd442191e7316b62837fc7",
+        "Title": "Combine Lists",
+        "DescriptionText": "<Double click here to edit group description>",
+        "IsExpanded": true,
+        "WidthAdjustment": 0.0,
+        "HeightAdjustment": 0.0,
+        "Nodes": [
+          "ca87af2e1e924dd784a1defc01e90f38"
+        ],
+        "HasNestedGroups": false,
+        "Left": 13967.277251428935,
+        "Top": 6182.9224292099152,
+        "Width": 272.0,
+        "Height": 244.0,
+        "FontSize": 36.0,
+        "InitialTop": 6264.9224292099152,
+        "InitialHeight": 192.0,
+        "TextblockHeight": 72.0,
+        "Background": "#FFFFAA45"
       }
     ],
-    "X": -777.202873717529,
-    "Y": -698.36363928188348,
-    "Zoom": 0.21721254012672681
+    "X": -1733.0968317086058,
+    "Y": -352.67928109140985,
+    "Zoom": 0.21234133952492099
   }
 }
