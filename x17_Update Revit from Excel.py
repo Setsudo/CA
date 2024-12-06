@@ -11,39 +11,37 @@ revit_data = IN[1]  # Revit data containing Legend Index and Position informatio
 # Get current document
 doc = DocumentManager.Instance.CurrentDBDocument
 
-try:
-    # Build a lookup dictionary for Revit data based on category names
-    revit_lookup = {}
-    for revit_category in revit_data:
-        revit_category_name = revit_category[0][1]
-        revit_lookup[revit_category_name] = revit_category
+def sync_data(excel_data, revit_data):
+    # Build lookup dictionary for Excel data based on category name
+    excel_lookup = {cat[1]: cat for cat in excel_data}
+    
+    # Create a copy of revit_data to avoid modifying the input directly
+    updated_revit_data = [list(cat) for cat in revit_data]
+    
+    fields_to_update = ["Type", "Existing", "Proposed", "Variation"]
 
-    # Iterate through each category in the Excel data
-    for excel_category in excel_data:
-        # Get the category name from Excel
-        category_name = excel_category[1]
+    for i, revit_category in enumerate(updated_revit_data):
+        category_name = revit_category[0][1]
         
-        # Attempt to find the matching category in Revit
-        if category_name in revit_lookup:
-            revit_category = revit_lookup[category_name]
+        if category_name in excel_lookup:
+            excel_category = excel_lookup[category_name]
+            
+            # Create dictionaries for faster lookup
+            excel_values = {item[0]: item[1] for item in excel_category[2:] 
+                            if isinstance(item, list) and len(item) > 0 and item[0] in fields_to_update}
+            
+            # Update matching fields in Revit data
+            for j, sub_header in enumerate(revit_category[1:], start=1):
+                if isinstance(sub_header, list) and len(sub_header) > 0:
+                    field_name = sub_header[0]
+                    if field_name in excel_values:
+                        updated_revit_data[i][j][1] = excel_values[field_name]
+    
+    return updated_revit_data
 
-            # Iterate through each sub-header in Excel and match with Revit
-            for excel_sub_header in excel_category[2:]:
-                if isinstance(excel_sub_header, list) and len(excel_sub_header) > 0:
-                    excel_label = excel_sub_header[0]
-
-                    # Iterate through Revit sub-headers to find the best match
-                    for revit_sub_header in revit_category[1:]:
-                        if isinstance(revit_sub_header, list) and len(revit_sub_header) > 0:
-                            revit_label = revit_sub_header[0]
-
-                            # Check if the labels match and are part of the specified fields to update
-                            if excel_label == revit_label and excel_label in ["Type", "Existing", "Proposed", "Variation"]:
-                                # Overwrite the Revit sub-header values with the Excel values
-                                revit_sub_header[1] = excel_sub_header[1]
-
+# Main execution
+try:
+    OUT = sync_data(excel_data, revit_data)
 except Exception as e:
-    raise e
-
-# Output the updated Revit data
-OUT = revit_data
+    import traceback
+    OUT = f"Error: {str(e)}\n{traceback.format_exc()}"

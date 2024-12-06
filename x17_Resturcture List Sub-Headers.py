@@ -29,11 +29,15 @@ def reformat_list_structure(input_list):
                 if isinstance(item, list) and len(item) > 1 and item[0] == "Sub-Header":
                     sub_header = item  # Retain the entire Sub-Header list, including the label
                 else:
-                    rest_items.append(item)
+                    # Flatten one level of the rest items if they are lists themselves
+                    if isinstance(item, list) and len(item) > 0:
+                        rest_items.append(item)
+                    else:
+                        rest_items.append(item)
             
-            # If a Sub-Header was found, add it to the reformatted list as the top-level key with the rest of the items
+            # If a Sub-Header was found, add it to the reformatted list as the top-level key with the rest of the items directly under it
             if sub_header:
-                reformatted_list.append([sub_header[0], sub_header[1], rest_items])
+                reformatted_list.append([sub_header[0], sub_header[1]] + rest_items)
     
     return reformatted_list
 
