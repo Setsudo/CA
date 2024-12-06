@@ -27,13 +27,13 @@ def reformat_list_structure(input_list):
             for item in sublist:
                 # Extract the Sub-Header if present
                 if isinstance(item, list) and len(item) > 1 and item[0] == "Sub-Header":
-                    sub_header = item
+                    sub_header = item  # Retain the entire Sub-Header list, including the label
                 else:
                     rest_items.append(item)
             
-            # If a Sub-Header was found, add it to the reformatted list along with the rest of the items
+            # If a Sub-Header was found, add it to the reformatted list as the top-level key with the rest of the items
             if sub_header:
-                reformatted_list.append([sub_header] + rest_items)
+                reformatted_list.append([sub_header[0], sub_header[1], rest_items])
     
     return reformatted_list
 
