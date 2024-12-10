@@ -1,57 +1,78 @@
 excel_data = IN[0]
 revit_data = IN[1]
 
-def normalize_subheader_name(name):
-    # Convert name to string, replace newlines with a space, and normalize spaces
-    return " ".join(str(name).replace("\n", " ").replace("\r", " ").split())
+def normalize_name(name):
+    # Normalize names by removing extra spaces and newlines
+    return " ".join(str(name).replace("\n", " ").replace("\r", " ").split()).strip()
 
 def extract_subheaders(data):
     subheader_names = []
     if isinstance(data, list):
-        # Iterate through the blocks directly
+        # Iterate through blocks directly
         for block in data:
             # Each block should have something like ["Sub-Header", "<Name>", ...]
-            if isinstance(block, list) and len(block) > 1:
-                # Check if block[0] indicates a sub-header
-                if "Sub-Header" in str(block[0]):
-                    raw_name = str(block[1])
-                    subheader_name = normalize_subheader_name(raw_name)
-                    subheader_names.append(subheader_name)
+            if isinstance(block, list) and len(block) > 1 and "Sub-Header" in str(block[0]):
+                raw_name = str(block[1])
+                subheader_name = normalize_name(raw_name)
+                subheader_names.append(subheader_name)
     return subheader_names
 
-# Extract Excel and Revit Sub-Headers
-excel_subheaders = extract_subheaders(excel_data)
-revit_subheaders = extract_subheaders(revit_data)
+def extract_values(data):
+    # Extract hierarchical values from data
+    values = {}
+    if isinstance(data, list):
+        for block in data:
+            if isinstance(block, list) and len(block) > 1:
+                subheader = None
+                for item in block:
+                    if isinstance(item, list) and len(item) > 1:
+                        if "Sub-Header" in str(item[0]):
+                            subheader = normalize_name(str(item[1]))
+                            if subheader not in values:
+                                values[subheader] = {"Type": [], "Existing": [], "Proposed": [], "Variation": []}
+                        elif subheader and any(label in str(item[0]) for label in ["Type", "Existing", "Proposed", "Variation"]):
+                            label = next(label for label in ["Type", "Existing", "Proposed", "Variation"] if label in str(item[0]))
+                            normalized_name = normalize_name(str(item[1]))
+                            values[subheader][label].append(normalized_name)
+    return values
 
-# Function to process elements and add debug notes
-def add_debug_notes(block, label, excel_values):
+# Extract subheaders and hierarchical data from Excel
+excel_subheaders = extract_subheaders(excel_data)
+excel_values = extract_values(excel_data)
+
+print("Normalized Excel Sub-Headers:", excel_subheaders)
+print("Normalized Excel Values:", excel_values)
+
+def add_debug_notes(block, label, subheader, excel_values):
+    # Add debug notes for matching values under each label
     for item in block:
         if isinstance(item, list) and len(item) > 1 and label in str(item[0]):
             raw_name = str(item[1])
-            normalized_name = normalize_subheader_name(raw_name)
-            # Always add a debug note regardless of match
-            if normalized_name in excel_values:
-                item.insert(2, f"Debug Note: {label} Matched in Excel")
+            normalized_name = normalize_name(raw_name)
+            if subheader in excel_values and normalized_name in excel_values[subheader][label]:
+                item.insert(2, f"{label} Matched in Excel under Sub-Header '{subheader}'")
             else:
-                item.insert(2, f"Debug Note: {label} Not Matched in Excel")
+                item.insert(2, f"{label} Not Matched in Excel under Sub-Header '{subheader}'")
 
-# Add debug notes for Sub-Headers
+# Iterate through Revit data and add debug notes
 for block in revit_data:
     if isinstance(block, list):
-        # Add debug notes for Sub-Header
+        subheader_name = None
+        # Match sub-header at the top level
         if len(block) > 1 and "Sub-Header" in str(block[0]):
-            raw_name = str(block[1])
-            subheader_name = normalize_subheader_name(raw_name)
+            raw_subheader = str(block[1])
+            subheader_name = normalize_name(raw_subheader)
             if subheader_name in excel_subheaders:
-                block.insert(2, "Debug Note: Subheader Matched in Excel")
+                block.insert(2, "Subheader Matched in Excel")
             else:
-                block.insert(2, "Debug Note: Subheader Not Matched in Excel")
+                block.insert(2, "Subheader Not Matched in Excel")
         
-        # Add debug notes for Type, Existing, Proposed, and Variation
-        add_debug_notes(block, "Type", excel_subheaders)
-        add_debug_notes(block, "Existing", excel_subheaders)
-        add_debug_notes(block, "Proposed", excel_subheaders)
-        add_debug_notes(block, "Variation", excel_subheaders)
+        # Add debug notes for each label if sub-header is determined
+        if subheader_name:
+            for label in ["Type", "Existing", "Proposed", "Variation"]:
+                add_debug_notes(block, label, subheader_name, excel_values)
 
-# Return the modified Revit data
+# Debugging output for review
+print("Processed Revit Data:", revit_data)
+
 OUT = revit_data
