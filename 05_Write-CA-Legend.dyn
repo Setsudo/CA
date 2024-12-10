@@ -1959,77 +1959,6 @@
     {
       "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
       "NodeType": "PythonScriptNode",
-      "Code": "excel_data = IN[0]\r\nrevit_data = IN[1]\r\n\r\ndef normalize_subheader_name(name):\r\n    # Convert name to string, replace newlines with a space, and normalize spaces\r\n    return \" \".join(str(name).replace(\"\\n\", \" \").replace(\"\\r\", \" \").split())\r\n\r\ndef extract_subheaders(data):\r\n    subheader_names = []\r\n    if isinstance(data, list):\r\n        # Iterate through the blocks directly\r\n        for block in data:\r\n            # Each block should have something like [\"Sub-Header\", \"<Name>\", ...]\r\n            if isinstance(block, list) and len(block) > 1:\r\n                # Check if block[0] indicates a sub-header\r\n                if \"Sub-Header\" in str(block[0]):\r\n                    raw_name = str(block[1])\r\n                    subheader_name = normalize_subheader_name(raw_name)\r\n                    subheader_names.append(subheader_name)\r\n    return subheader_names\r\n\r\n# Extract Excel and Revit Sub-Headers\r\nexcel_subheaders = extract_subheaders(excel_data)\r\nrevit_subheaders = extract_subheaders(revit_data)\r\n\r\n# Find matching Sub-Headers\r\nmatching_subheaders = [header for header in excel_subheaders if header in revit_subheaders]\r\n\r\n# Return results for inspection\r\nOUT = (excel_subheaders, revit_subheaders, matching_subheaders)",
-      "Engine": "CPython3",
-      "EngineName": "CPython3",
-      "VariableInputPorts": true,
-      "Id": "fd5daf8948144cd5bec4fb9cd79175ef",
-      "Inputs": [
-        {
-          "Id": "7247baea7f564e989cf4e80d42b18997",
-          "Name": "IN[0]",
-          "Description": "Input #0",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        },
-        {
-          "Id": "f7874f276e8747bfac3af0e2c7448d1a",
-          "Name": "IN[1]",
-          "Description": "Input #1",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        }
-      ],
-      "Outputs": [
-        {
-          "Id": "32e28a6d9ba242bfa4663c4c4697a19c",
-          "Name": "OUT",
-          "Description": "Result of the python script",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        }
-      ],
-      "Replication": "Disabled",
-      "Description": "Runs an embedded Python script."
-    },
-    {
-      "ConcreteType": "CoreNodeModels.Watch, CoreNodeModels",
-      "NodeType": "ExtensionNode",
-      "Id": "399f2c27ebf643ebb2a0b0128d3ab363",
-      "Inputs": [
-        {
-          "Id": "8e861f96943b4279924d01693e93c349",
-          "Name": "",
-          "Description": "Node to show output from",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        }
-      ],
-      "Outputs": [
-        {
-          "Id": "e853f82af33e4b23ba020c0d43cd0f47",
-          "Name": "",
-          "Description": "Node output",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        }
-      ],
-      "Replication": "Disabled",
-      "Description": "Visualize the node's output"
-    },
-    {
-      "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
-      "NodeType": "PythonScriptNode",
       "Code": "import clr\r\nclr.AddReference('ProtoGeometry')\r\nfrom Autodesk.DesignScript.Geometry import *\r\n\r\n# Importing Revit Nodes\r\nclr.AddReference('RevitServices')\r\nimport RevitServices\r\nfrom RevitServices.Persistence import DocumentManager\r\nfrom RevitServices.Transactions import TransactionManager\r\n\r\n# Import Revit API\r\nclr.AddReference('RevitAPI')\r\nimport Autodesk\r\nfrom Autodesk.Revit.DB import *\r\n\r\n# Main function for reformatting list structure\r\ndef reformat_list_structure(input_list):\r\n    reformatted_list = []\r\n    \r\n    for sublist in input_list:\r\n        # Ensure sublist is a list\r\n        if isinstance(sublist, list):\r\n            sub_header = None\r\n            rest_items = []\r\n            \r\n            # Loop through each item in the sublist\r\n            for item in sublist:\r\n                # Extract the Sub-Header if present\r\n                if isinstance(item, list) and len(item) > 1 and item[0] == \"Sub-Header\":\r\n                    sub_header = item  # Retain the entire Sub-Header list, including the label\r\n                else:\r\n                    # Flatten one level of the rest items if they are lists themselves\r\n                    if isinstance(item, list) and len(item) > 0:\r\n                        rest_items.append(item)\r\n                    else:\r\n                        rest_items.append(item)\r\n            \r\n            # If a Sub-Header was found, add it to the reformatted list as the top-level key with the rest of the items directly under it\r\n            if sub_header:\r\n                reformatted_list.append([sub_header[0], sub_header[1]] + rest_items)\r\n    \r\n    return reformatted_list\r\n\r\n# Inputs from Dynamo\r\ninput_list = IN[0]\r\n\r\n# Perform the reformatting\r\noutput_list = reformat_list_structure(input_list)\r\n\r\n# Assign the output to Dynamo\r\nOUT = output_list\r\n",
       "Engine": "CPython3",
       "EngineName": "CPython3",
@@ -2433,14 +2362,14 @@
     {
       "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
       "NodeType": "PythonScriptNode",
-      "Code": "excel_data = IN[0]\r\nrevit_data = IN[1]\r\n\r\ndef normalize_subheader_name(name):\r\n    # Convert name to string, replace newlines with a space, and normalize spaces\r\n    return \" \".join(str(name).replace(\"\\n\", \" \").replace(\"\\r\", \" \").split())\r\n\r\ndef extract_subheaders(data):\r\n    subheader_names = []\r\n    if isinstance(data, list):\r\n        # Iterate through the blocks directly\r\n        for block in data:\r\n            # Each block should have something like [\"Sub-Header\", \"<Name>\", ...]\r\n            if isinstance(block, list) and len(block) > 1:\r\n                # Check if block[0] indicates a sub-header\r\n                if \"Sub-Header\" in str(block[0]):\r\n                    raw_name = str(block[1])\r\n                    subheader_name = normalize_subheader_name(raw_name)\r\n                    subheader_names.append(subheader_name)\r\n    return subheader_names\r\n\r\n# Extract Excel and Revit Sub-Headers\r\nexcel_subheaders = extract_subheaders(excel_data)\r\nrevit_subheaders = extract_subheaders(revit_data)\r\n\r\n# Add debug notes directly within the Sub-Header block\r\nfor block in revit_data:\r\n    if isinstance(block, list) and len(block) > 1 and \"Sub-Header\" in str(block[0]):\r\n        raw_name = str(block[1])\r\n        subheader_name = normalize_subheader_name(raw_name)\r\n        if subheader_name in excel_subheaders:\r\n            block.insert(2, \"Debug Note: Subheader Matched in Excel\")\r\n\r\n# Return the modified Revit data\r\nOUT = revit_data\r\n",
+      "Code": "import difflib\r\n\r\nexcel_data = IN[0]\r\nrevit_data = IN[1]\r\n\r\ndef normalize_name(name):\r\n    \"\"\"Normalize names for matching.\"\"\"\r\n    return \" \".join(str(name).replace(\"\\n\", \" \").replace(\"\\r\", \" \").strip().split()).lower()\r\n\r\ndef extract_subheaders(data):\r\n    \"\"\"Extract subheaders from the input data.\"\"\"\r\n    subheader_names = []\r\n    if isinstance(data, list):\r\n        for block_idx, block in enumerate(data):\r\n            if isinstance(block, list):\r\n                for item_idx, item in enumerate(block):\r\n                    print(f\"Processing Block {block_idx}, Item {item_idx}: {item}\")\r\n                    if isinstance(item, list) and len(item) > 1:\r\n                        normalized_key = normalize_name(item[0])\r\n                        print(f\"Normalized Key: {normalized_key}\")\r\n                        if \"sub-header\" in normalized_key:\r\n                            raw_name = str(item[1])\r\n                            subheader_name = normalize_name(raw_name)\r\n                            print(f\"Found Sub-Header: {subheader_name}\")\r\n                            subheader_names.append(subheader_name)\r\n                        else:\r\n                            print(f\"Key '{normalized_key}' does not match 'sub-header'\")\r\n    return subheader_names\r\n\r\ndef extract_values(data):\r\n    \"\"\"Extract values for each subheader.\"\"\"\r\n    values = {}\r\n    if isinstance(data, list):\r\n        for block in data:\r\n            subheader = None\r\n            if isinstance(block, list):\r\n                for item in block:\r\n                    if isinstance(item, list) and len(item) > 1:\r\n                        if \"sub-header\" in normalize_name(item[0]):\r\n                            subheader = normalize_name(str(item[1]))\r\n                            if subheader not in values:\r\n                                values[subheader] = {\"type\": [], \"existing\": [], \"proposed\": [], \"variation\": []}\r\n                        elif subheader:\r\n                            normalized_item = normalize_name(str(item[0]))\r\n                            for label in [\"type\", \"existing\", \"proposed\", \"variation\"]:\r\n                                if label in normalized_item:\r\n                                    normalized_value = str(item[1]) if len(item) > 1 and item[1] else \"EMPTY\"\r\n                                    values[subheader][label].append(normalized_value)\r\n    return values\r\n\r\ndef log_structure(name, data, limit=5):\r\n    \"\"\"Log a structured overview of the data.\"\"\"\r\n    print(f\"{name} Sample (First {limit} entries):\", data[:limit])\r\n\r\ndef compare_subheaders(excel_subheaders, revit_subheaders):\r\n    \"\"\"Compare Revit subheaders with Excel subheaders for exact matches.\"\"\"\r\n    unmatched_headers = [header for header in revit_subheaders if header not in excel_subheaders]\r\n    return unmatched_headers\r\n\r\ndef log_debug_info(name, data, normalization=False):\r\n    \"\"\"Log detailed debug information for the data.\"\"\"\r\n    print(f\"{name} Debug Info:\")\r\n    for i, entry in enumerate(data[:10]):\r\n        original = entry if not normalization else normalize_name(entry)\r\n        print(f\"  {i + 1}: {original}\")\r\n    print(f\"Total {name}: {len(data)}\")\r\n\r\nprint(\"Starting Debugging Logs\")\r\n\r\n# Validate data structures\r\ndata_structure_valid = isinstance(excel_data, list) and all(isinstance(block, list) for block in excel_data)\r\nif not data_structure_valid:\r\n    print(\"Excel data structure is invalid. Please check the input.\")\r\n\r\n# Extract subheaders and values from Excel\r\nexcel_subheaders = extract_subheaders(excel_data)\r\nexcel_values = extract_values(excel_data)\r\nlog_structure(\"Excel Data Structure\", excel_data)\r\nlog_debug_info(\"Excel Sub-Headers\", excel_subheaders, normalization=True)\r\nprint(\"Extracted Values from Excel:\", excel_values)\r\n\r\n# Extract subheaders from Revit\r\nrevit_subheaders = [normalize_name(block[1]) for block in revit_data if isinstance(block, list) and len(block) > 1 and \"sub-header\" in normalize_name(block[0])]\r\nlog_structure(\"Revit Data Structure\", revit_data)\r\nlog_debug_info(\"Revit Sub-Headers\", revit_subheaders, normalization=True)\r\n\r\n# Log normalized forms of Excel and Revit data for further debugging\r\nnormalized_excel = [normalize_name(item) for block in excel_data for item in block if isinstance(item, list) and len(item) > 1]\r\nnormalized_revit = [normalize_name(block[1]) for block in revit_data if isinstance(block, list) and len(block) > 1]\r\nprint(\"Normalized Excel Data:\", normalized_excel[:10])\r\nprint(\"Normalized Revit Data:\", normalized_revit[:10])\r\n\r\n# Compare subheaders\r\nunmatched_headers = compare_subheaders(excel_subheaders, revit_subheaders)\r\nif unmatched_headers:\r\n    print(f\"Unmatched Revit Sub-Headers ({len(unmatched_headers)}):\")\r\n    for header in unmatched_headers:\r\n        similar = difflib.get_close_matches(header, excel_subheaders, n=3)\r\n        print(f\"  Unmatched: '{header}' | Closest Matches in Excel: {similar}\")\r\nelse:\r\n    print(\"All Revit sub-headers matched successfully.\")\r\n\r\n# Add debug notes to Revit data\r\nfor block in revit_data:\r\n    if isinstance(block, list):\r\n        subheader_name = None\r\n        if len(block) > 1 and \"sub-header\" in normalize_name(block[0]):\r\n            raw_subheader = str(block[1])\r\n            subheader_name = normalize_name(raw_subheader)\r\n            if subheader_name in excel_subheaders:\r\n                block.insert(2, \"Subheader Matched in Excel\")\r\n            else:\r\n                block.insert(2, \"Subheader Not Matched in Excel\")\r\n        \r\n        if subheader_name:\r\n            for label in [\"type\", \"existing\", \"proposed\", \"variation\"]:\r\n                for item in block:\r\n                    if isinstance(item, list) and len(item) > 1 and label.lower() in normalize_name(item[0]):\r\n                        raw_name = str(item[1])\r\n                        normalized_name = normalize_name(raw_name)\r\n                        if subheader_name in excel_values and excel_values[subheader_name][label]:\r\n                            excel_value = excel_values[subheader_name][label].pop(0)\r\n                            original_value = item[1]\r\n                            item[1] = excel_value\r\n                            item.insert(2, f\"{label.capitalize()} Matched. Excel Value: '{excel_value}' replaced '{original_value}'.\")\r\n                        else:\r\n                            item.insert(2, f\"{label.capitalize()} Not Found for Sub-Header '{subheader_name}'.\")\r\n\r\nlog_structure(\"Final Processed Revit Data\", revit_data, limit=10)\r\n\r\nOUT = revit_data\r\n",
       "Engine": "CPython3",
       "EngineName": "CPython3",
       "VariableInputPorts": true,
-      "Id": "34eac80b478a4e899aa50a5ad9c74af3",
+      "Id": "a74d08b1142d401ba7f3af10e73a0877",
       "Inputs": [
         {
-          "Id": "1a35161888b347fb840780d87d52f930",
+          "Id": "eb7df8230cc543b0b8010205b1f6710d",
           "Name": "IN[0]",
           "Description": "Input #0",
           "UsingDefaultValue": false,
@@ -2449,7 +2378,7 @@
           "KeepListStructure": false
         },
         {
-          "Id": "0014ae5dca0c42daa4d5d5986c35d544",
+          "Id": "2ebcd564d0f5428e93937f60bef9f61e",
           "Name": "IN[1]",
           "Description": "Input #1",
           "UsingDefaultValue": false,
@@ -2460,7 +2389,7 @@
       ],
       "Outputs": [
         {
-          "Id": "2dc6fc4bd5b44b448898bf6d43233cfd",
+          "Id": "f2f4b9562e9e47808ea30c9183280331",
           "Name": "OUT",
           "Description": "Result of the python script",
           "UsingDefaultValue": false,
@@ -2475,10 +2404,10 @@
     {
       "ConcreteType": "CoreNodeModels.Watch, CoreNodeModels",
       "NodeType": "ExtensionNode",
-      "Id": "8bf0b06d8bfd45e88f3ce87a8349058b",
+      "Id": "d8841e806455497385cf7007032d386a",
       "Inputs": [
         {
-          "Id": "077473078ec24cc0aa5889e50ac63dea",
+          "Id": "2d493cd7e44f4666bff7294891199650",
           "Name": "",
           "Description": "Node to show output from",
           "UsingDefaultValue": false,
@@ -2489,7 +2418,7 @@
       ],
       "Outputs": [
         {
-          "Id": "84652fb436e24ae3be96b71e9e853584",
+          "Id": "c5b88ea1acc1420b92a8cf4ed1e70e91",
           "Name": "",
           "Description": "Node output",
           "UsingDefaultValue": false,
@@ -2502,54 +2431,12 @@
       "Description": "Visualize the node's output"
     },
     {
-      "ConcreteType": "PythonNodeModels.PythonNode, PythonNodeModels",
-      "NodeType": "PythonScriptNode",
-      "Code": "excel_data = IN[0]\r\nrevit_data = IN[1]\r\n\r\ndef normalize_name(name):\r\n    # Normalize names by removing extra spaces and newlines\r\n    return \" \".join(str(name).replace(\"\\n\", \" \").replace(\"\\r\", \" \").split()).strip()\r\n\r\ndef extract_subheaders(data):\r\n    subheader_names = []\r\n    if isinstance(data, list):\r\n        # Iterate through blocks directly\r\n        for block in data:\r\n            # Each block should have something like [\"Sub-Header\", \"<Name>\", ...]\r\n            if isinstance(block, list) and len(block) > 1 and \"Sub-Header\" in str(block[0]):\r\n                raw_name = str(block[1])\r\n                subheader_name = normalize_name(raw_name)\r\n                subheader_names.append(subheader_name)\r\n    return subheader_names\r\n\r\ndef extract_values(data):\r\n    # Extract hierarchical values from data\r\n    values = {}\r\n    if isinstance(data, list):\r\n        for block in data:\r\n            if isinstance(block, list) and len(block) > 1:\r\n                subheader = None\r\n                for item in block:\r\n                    if isinstance(item, list) and len(item) > 1:\r\n                        if \"Sub-Header\" in str(item[0]):\r\n                            subheader = normalize_name(str(item[1]))\r\n                            if subheader not in values:\r\n                                values[subheader] = {\"Type\": [], \"Existing\": [], \"Proposed\": [], \"Variation\": []}\r\n                        elif subheader and any(label in str(item[0]) for label in [\"Type\", \"Existing\", \"Proposed\", \"Variation\"]):\r\n                            label = next(label for label in [\"Type\", \"Existing\", \"Proposed\", \"Variation\"] if label in str(item[0]))\r\n                            normalized_name = normalize_name(str(item[1]))\r\n                            values[subheader][label].append(normalized_name)\r\n    return values\r\n\r\n# Extract subheaders and hierarchical data from Excel\r\nexcel_subheaders = extract_subheaders(excel_data)\r\nexcel_values = extract_values(excel_data)\r\n\r\nprint(\"Normalized Excel Sub-Headers:\", excel_subheaders)\r\nprint(\"Normalized Excel Values:\", excel_values)\r\n\r\ndef add_debug_notes(block, label, subheader, excel_values):\r\n    # Add debug notes for matching values under each label\r\n    for item in block:\r\n        if isinstance(item, list) and len(item) > 1 and label in str(item[0]):\r\n            raw_name = str(item[1])\r\n            normalized_name = normalize_name(raw_name)\r\n            if subheader in excel_values and normalized_name in excel_values[subheader][label]:\r\n                item.insert(2, f\"{label} Matched in Excel under Sub-Header '{subheader}'\")\r\n            else:\r\n                item.insert(2, f\"{label} Not Matched in Excel under Sub-Header '{subheader}'\")\r\n\r\n# Iterate through Revit data and add debug notes\r\nfor block in revit_data:\r\n    if isinstance(block, list):\r\n        subheader_name = None\r\n        # Match sub-header at the top level\r\n        if len(block) > 1 and \"Sub-Header\" in str(block[0]):\r\n            raw_subheader = str(block[1])\r\n            subheader_name = normalize_name(raw_subheader)\r\n            if subheader_name in excel_subheaders:\r\n                block.insert(2, \"Subheader Matched in Excel\")\r\n            else:\r\n                block.insert(2, \"Subheader Not Matched in Excel\")\r\n        \r\n        # Add debug notes for each label if sub-header is determined\r\n        if subheader_name:\r\n            for label in [\"Type\", \"Existing\", \"Proposed\", \"Variation\"]:\r\n                add_debug_notes(block, label, subheader_name, excel_values)\r\n\r\n# Debugging output for review\r\nprint(\"Processed Revit Data:\", revit_data)\r\n\r\nOUT = revit_data\r\n",
-      "Engine": "CPython3",
-      "EngineName": "CPython3",
-      "VariableInputPorts": true,
-      "Id": "ef465703ba214b09b22529df70aa49b8",
-      "Inputs": [
-        {
-          "Id": "d101715d4f30409cb25e98cf6f038c78",
-          "Name": "IN[0]",
-          "Description": "Input #0",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        },
-        {
-          "Id": "5f57092212c94aab9c149ab8b6cb2385",
-          "Name": "IN[1]",
-          "Description": "Input #1",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        }
-      ],
-      "Outputs": [
-        {
-          "Id": "1801af4366734d5290b856956ddfa87a",
-          "Name": "OUT",
-          "Description": "Result of the python script",
-          "UsingDefaultValue": false,
-          "Level": 2,
-          "UseLevels": false,
-          "KeepListStructure": false
-        }
-      ],
-      "Replication": "Disabled",
-      "Description": "Runs an embedded Python script."
-    },
-    {
       "ConcreteType": "CoreNodeModels.Watch, CoreNodeModels",
       "NodeType": "ExtensionNode",
-      "Id": "18794de4282541d18f30850b11d831ff",
+      "Id": "00d7f4b723664fdea5d18f43f7c01d97",
       "Inputs": [
         {
-          "Id": "73b68fad3590440ca63463b6b1a99b59",
+          "Id": "2cc633d8d67e4d8c90ca38eaea45af12",
           "Name": "",
           "Description": "Node to show output from",
           "UsingDefaultValue": false,
@@ -2560,7 +2447,36 @@
       ],
       "Outputs": [
         {
-          "Id": "841267262af649bc8ae874ec09e63ef8",
+          "Id": "09df9a49b89949bb8c980bb7a8219f95",
+          "Name": "",
+          "Description": "Node output",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Replication": "Disabled",
+      "Description": "Visualize the node's output"
+    },
+    {
+      "ConcreteType": "CoreNodeModels.Watch, CoreNodeModels",
+      "NodeType": "ExtensionNode",
+      "Id": "b3d797189d4c47f092c94c8e1e2787e2",
+      "Inputs": [
+        {
+          "Id": "f29ccfad86a047598b6ba63572c96e50",
+          "Name": "",
+          "Description": "Node to show output from",
+          "UsingDefaultValue": false,
+          "Level": 2,
+          "UseLevels": false,
+          "KeepListStructure": false
+        }
+      ],
+      "Outputs": [
+        {
+          "Id": "4f9ac536e24d406e82e8d1a8a0fc932e",
           "Name": "",
           "Description": "Node output",
           "UsingDefaultValue": false,
@@ -2834,20 +2750,14 @@
     },
     {
       "Start": "35abbe63f2e645b2a01454fe79512e42",
-      "End": "7247baea7f564e989cf4e80d42b18997",
-      "Id": "38a9e0d69b33445fb5f54c87ba0cae45",
+      "End": "eb7df8230cc543b0b8010205b1f6710d",
+      "Id": "f2521af0bcc24ce4b46c344dae4a96b4",
       "IsHidden": "False"
     },
     {
       "Start": "35abbe63f2e645b2a01454fe79512e42",
-      "End": "1a35161888b347fb840780d87d52f930",
-      "Id": "810b72f13b0344ff8c5ebee70e38ac48",
-      "IsHidden": "False"
-    },
-    {
-      "Start": "35abbe63f2e645b2a01454fe79512e42",
-      "End": "d101715d4f30409cb25e98cf6f038c78",
-      "Id": "542b58a318524766a1f1d892f1d1e9de",
+      "End": "f29ccfad86a047598b6ba63572c96e50",
+      "Id": "2a3a79a482a24ac89d380ded6f136d4e",
       "IsHidden": "False"
     },
     {
@@ -3001,12 +2911,6 @@
       "IsHidden": "False"
     },
     {
-      "Start": "32e28a6d9ba242bfa4663c4c4697a19c",
-      "End": "8e861f96943b4279924d01693e93c349",
-      "Id": "5bc551891635468191bfba3350a20cc9",
-      "IsHidden": "False"
-    },
-    {
       "Start": "71e727db30e24dd7937d73021c757c29",
       "End": "381560b60ca3422e962c5436f509dcd3",
       "Id": "6906ad9b99594027ad8e51211eb305e1",
@@ -3020,20 +2924,14 @@
     },
     {
       "Start": "71e727db30e24dd7937d73021c757c29",
-      "End": "f7874f276e8747bfac3af0e2c7448d1a",
-      "Id": "2e7ed9ed509c44aa996ef62dddf9978e",
+      "End": "2ebcd564d0f5428e93937f60bef9f61e",
+      "Id": "ef8c77080e954ac0bb83cee40052923d",
       "IsHidden": "False"
     },
     {
       "Start": "71e727db30e24dd7937d73021c757c29",
-      "End": "0014ae5dca0c42daa4d5d5986c35d544",
-      "Id": "26c22c974ef945d2b061f171a40fe2b8",
-      "IsHidden": "False"
-    },
-    {
-      "Start": "71e727db30e24dd7937d73021c757c29",
-      "End": "5f57092212c94aab9c149ab8b6cb2385",
-      "Id": "0155ead07ac24a5e84fbafc1cf5b52e6",
+      "End": "2cc633d8d67e4d8c90ca38eaea45af12",
+      "Id": "16363624718c4294b0b895cc38c946fc",
       "IsHidden": "False"
     },
     {
@@ -3097,15 +2995,9 @@
       "IsHidden": "False"
     },
     {
-      "Start": "2dc6fc4bd5b44b448898bf6d43233cfd",
-      "End": "077473078ec24cc0aa5889e50ac63dea",
-      "Id": "44ee0651d15c411b8d6b1dd95e6c7787",
-      "IsHidden": "False"
-    },
-    {
-      "Start": "1801af4366734d5290b856956ddfa87a",
-      "End": "73b68fad3590440ca63463b6b1a99b59",
-      "Id": "4feb4c3fa7e947529253bf962f28edf1",
+      "Start": "f2f4b9562e9e47808ea30c9183280331",
+      "End": "2d493cd7e44f4666bff7294891199650",
+      "Id": "13bacb2951cd4f378bbe9b9a3742a54a",
       "IsHidden": "False"
     }
   ],
@@ -3591,8 +3483,8 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 10363.034786419181,
-        "Y": 4863.1479481701481
+        "X": 9028.1142139538842,
+        "Y": 4913.5223093952536
       },
       {
         "Name": "Boolean",
@@ -3801,8 +3693,8 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 10302.2778476673,
-        "Y": 7398.1806808393485
+        "X": 8967.3572752020027,
+        "Y": 7448.555042064454
       },
       {
         "Name": "Code Block",
@@ -3811,8 +3703,8 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 10048.2778476673,
-        "Y": 7466.0081808393479
+        "X": 8713.3572752020027,
+        "Y": 7516.3825420644534
       },
       {
         "Name": "WINE / LIQUOR LF",
@@ -3835,34 +3727,14 @@
         "Y": 7459.4867243392564
       },
       {
-        "Name": "Update Revit from Excel",
-        "ShowGeometry": true,
-        "Id": "fd5daf8948144cd5bec4fb9cd79175ef",
-        "IsSetAsInput": false,
-        "IsSetAsOutput": false,
-        "Excluded": false,
-        "X": 14074.624166373011,
-        "Y": 6331.6044119016588
-      },
-      {
-        "Name": "Watch",
-        "ShowGeometry": true,
-        "Id": "399f2c27ebf643ebb2a0b0128d3ab363",
-        "IsSetAsInput": false,
-        "IsSetAsOutput": false,
-        "Excluded": false,
-        "X": 15245.507795912845,
-        "Y": 6337.0921933101072
-      },
-      {
         "Name": "Resturcture List Sub-Headers",
         "ShowGeometry": true,
         "Id": "67ec1d72e64b407b95189de847ecee6c",
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 10738.93659167258,
-        "Y": 7394.8443515440622
+        "X": 9404.0160192072835,
+        "Y": 7445.2187127691677
       },
       {
         "Name": "Excel Output",
@@ -3871,8 +3743,8 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 14929.534206644172,
-        "Y": 4977.5431408345939
+        "X": 12194.808748748548,
+        "Y": 4977.5431408345921
       },
       {
         "Name": "Revit Output",
@@ -3881,8 +3753,8 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 14907.810293381634,
-        "Y": 6599.872305969242
+        "X": 12161.703969166403,
+        "Y": 6810.2716921085366
       },
       {
         "Name": "Excel at Index 4 of Index 0",
@@ -3891,8 +3763,8 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 14929.534206644172,
-        "Y": 5605.6508157871658
+        "X": 12194.808748748548,
+        "Y": 5605.650815787164
       },
       {
         "Name": "Watch",
@@ -3901,8 +3773,8 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 14907.810293381634,
-        "Y": 7242.3323481582747
+        "X": 12161.703969166403,
+        "Y": 7452.7317342975693
       },
       {
         "Name": "List.GetItemAtIndex",
@@ -3911,8 +3783,8 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 14037.620245844633,
-        "Y": 7022.3366609035575
+        "X": 11216.472643998155,
+        "Y": 7428.0430645915785
       },
       {
         "Name": "List.GetItemAtIndex",
@@ -3921,8 +3793,8 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 14361.7453227994,
-        "Y": 5631.1976654221371
+        "X": 11718.077821477216,
+        "Y": 5430.9080663247241
       },
       {
         "Name": "List.GetItemAtIndex",
@@ -3931,8 +3803,8 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 14360.620245844633,
-        "Y": 7180.2469309349008
+        "X": 11539.472643998155,
+        "Y": 7585.9533346229218
       },
       {
         "Name": "List.GetItemAtIndex",
@@ -3941,8 +3813,8 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 14038.7453227994,
-        "Y": 5474.1976654221371
+        "X": 11395.077821477216,
+        "Y": 5273.9080663247241
       },
       {
         "Name": "Excel at Index 0",
@@ -3951,8 +3823,8 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 14929.534206644172,
-        "Y": 5291.6508157871658
+        "X": 12194.808748748548,
+        "Y": 5291.650815787164
       },
       {
         "Name": "Watch",
@@ -3961,8 +3833,8 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 14907.810293381634,
-        "Y": 6916.140898599202
+        "X": 12161.703969166403,
+        "Y": 7126.5402847384967
       },
       {
         "Name": "Code Block",
@@ -3971,8 +3843,8 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 11726.98221929946,
-        "Y": 6205.1482915842425
+        "X": 10215.751382546294,
+        "Y": 6198.8514964311034
       },
       {
         "Name": "Code Block",
@@ -3981,48 +3853,48 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 11726.98221929946,
-        "Y": 6351.3295924667764
+        "X": 10215.751382546294,
+        "Y": 6345.0327973136373
       },
       {
         "Name": "Update Revit from Excel",
         "ShowGeometry": true,
-        "Id": "34eac80b478a4e899aa50a5ad9c74af3",
+        "Id": "a74d08b1142d401ba7f3af10e73a0877",
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 14464.564717003108,
-        "Y": 6208.4977852155207
+        "X": 12189.352862596732,
+        "Y": 6217.272662203296
       },
       {
         "Name": "Watch",
         "ShowGeometry": true,
-        "Id": "8bf0b06d8bfd45e88f3ce87a8349058b",
+        "Id": "d8841e806455497385cf7007032d386a",
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 15556.662111091502,
-        "Y": 6216.0395956024167
-      },
-      {
-        "Name": "Update Revit from Excel",
-        "ShowGeometry": true,
-        "Id": "ef465703ba214b09b22529df70aa49b8",
-        "IsSetAsInput": false,
-        "IsSetAsOutput": false,
-        "Excluded": false,
-        "X": 14855.740416444851,
-        "Y": 6076.1306960337852
+        "X": 12626.843250038522,
+        "Y": 6220.0990765749766
       },
       {
         "Name": "Watch",
         "ShowGeometry": true,
-        "Id": "18794de4282541d18f30850b11d831ff",
+        "Id": "00d7f4b723664fdea5d18f43f7c01d97",
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": 15865.590693900134,
-        "Y": 6078.2799540794449
+        "X": 9881.1866024334322,
+        "Y": 7655.214444848596
+      },
+      {
+        "Name": "Watch",
+        "ShowGeometry": true,
+        "Id": "b3d797189d4c47f092c94c8e1e2787e2",
+        "IsSetAsInput": false,
+        "IsSetAsOutput": false,
+        "Excluded": false,
+        "X": 9740.81943823112,
+        "Y": 4557.6620416594342
       }
     ],
     "Annotations": [
@@ -4440,12 +4312,12 @@
           "2af2a074483643e086fd82e0f793ad33"
         ],
         "HasNestedGroups": false,
-        "Left": 10038.2778476673,
-        "Top": 7282.1806808393485,
+        "Left": 8703.3572752020027,
+        "Top": 7332.555042064454,
         "Width": 500.0,
         "Height": 315.82749999999942,
         "FontSize": 36.0,
-        "InitialTop": 7398.1806808393485,
+        "InitialTop": 7448.555042064454,
         "InitialHeight": 212.82749999999942,
         "TextblockHeight": 106.0,
         "Background": "#FFFFC999"
@@ -4461,12 +4333,12 @@
           "e5f5d610811f4f8daf532fe9f38b697c"
         ],
         "HasNestedGroups": false,
-        "Left": 10353.034786419181,
-        "Top": 4747.1479481701481,
+        "Left": 9018.1142139538842,
+        "Top": 4797.5223093952536,
         "Width": 336.0,
         "Height": 278.0,
         "FontSize": 36.0,
-        "InitialTop": 4863.1479481701481,
+        "InitialTop": 4913.5223093952536,
         "InitialHeight": 145.0,
         "TextblockHeight": 106.0,
         "Background": "#FFFFC999"
@@ -4482,36 +4354,15 @@
           "67ec1d72e64b407b95189de847ecee6c"
         ],
         "HasNestedGroups": false,
-        "Left": 10728.93659167258,
-        "Top": 7321.8443515440622,
+        "Left": 9394.0160192072835,
+        "Top": 7372.2187127691677,
         "Width": 314.0,
         "Height": 205.0,
         "FontSize": 36.0,
-        "InitialTop": 7394.8443515440622,
+        "InitialTop": 7445.2187127691677,
         "InitialHeight": 145.0,
         "TextblockHeight": 63.0,
         "Background": "#FFFFC999"
-      },
-      {
-        "Id": "307f9e24475c427980dfa70a083dd8f0",
-        "Title": "Combine Lists",
-        "DescriptionText": "<Double click here to edit group description>",
-        "IsExpanded": true,
-        "WidthAdjustment": 0.0,
-        "HeightAdjustment": 0.0,
-        "Nodes": [
-          "fd5daf8948144cd5bec4fb9cd79175ef"
-        ],
-        "HasNestedGroups": false,
-        "Left": 14064.624166373011,
-        "Top": 6249.6044119016588,
-        "Width": 272.0,
-        "Height": 244.0,
-        "FontSize": 36.0,
-        "InitialTop": 6331.6044119016588,
-        "InitialHeight": 145.0,
-        "TextblockHeight": 72.0,
-        "Background": "#FFFFAA45"
       },
       {
         "Id": "c3818ae30a3c4af097578992a40bb208",
@@ -4525,13 +4376,13 @@
           "1d4a88d1cc3548b2954d963c3a3f0fe7"
         ],
         "HasNestedGroups": false,
-        "Left": 14027.620245844633,
-        "Top": 6949.3366609035575,
+        "Left": 11206.472643998155,
+        "Top": 7355.0430645915785,
         "Width": 566.0,
         "Height": 392.91027003134332,
         "FontSize": 36.0,
-        "InitialTop": 7022.3366609035575,
-        "InitialHeight": 615.522687301619,
+        "InitialTop": 7428.0430645915785,
+        "InitialHeight": 302.91027003134332,
         "TextblockHeight": 63.0,
         "Background": "#FFB5B5B5"
       },
@@ -4547,13 +4398,13 @@
           "32ba3bd8e94744128713596588bfccf2"
         ],
         "HasNestedGroups": false,
-        "Left": 14028.7453227994,
-        "Top": 5401.1976654221371,
+        "Left": 11385.077821477216,
+        "Top": 5200.9080663247241,
         "Width": 566.0,
         "Height": 392.0,
         "FontSize": 36.0,
-        "InitialTop": 5474.1976654221371,
-        "InitialHeight": 623.87888185325755,
+        "InitialTop": 5273.9080663247241,
+        "InitialHeight": 302.0,
         "TextblockHeight": 63.0,
         "Background": "#FFB5B5B5"
       },
@@ -4569,12 +4420,12 @@
           "89362d19c2db4fa682b6657123d536e0"
         ],
         "HasNestedGroups": false,
-        "Left": 11716.98221929946,
-        "Top": 6080.1482915842425,
+        "Left": 10205.751382546294,
+        "Top": 6073.8514964311034,
         "Width": 198.3,
         "Height": 403.18130088253383,
         "FontSize": 36.0,
-        "InitialTop": 6205.1482915842425,
+        "InitialTop": 6198.8514964311034,
         "InitialHeight": 291.18130088253383,
         "TextblockHeight": 115.0,
         "Background": "#FF848484"
@@ -4592,13 +4443,13 @@
           "da233bb24426449baf339e6164c019d0"
         ],
         "HasNestedGroups": false,
-        "Left": 14897.810293381634,
-        "Top": 6439.872305969242,
+        "Left": 12151.703969166403,
+        "Top": 6650.2716921085366,
         "Width": 297.0,
         "Height": 1100.4600421890327,
         "FontSize": 36.0,
-        "InitialTop": 6599.872305969242,
-        "InitialHeight": 955.08913269264667,
+        "InitialTop": 6810.2716921085366,
+        "InitialHeight": 787.46004218903272,
         "TextblockHeight": 150.0,
         "Background": "#FFC1D676"
       },
@@ -4615,61 +4466,40 @@
           "fa6ec1355fba4a39ba77c7199c015b0a"
         ],
         "HasNestedGroups": false,
-        "Left": 14919.534206644172,
-        "Top": 4817.5431408345939,
+        "Left": 12184.808748748548,
+        "Top": 4817.5431408345921,
         "Width": 297.0,
         "Height": 1086.1076749525719,
         "FontSize": 36.0,
-        "InitialTop": 4977.5431408345939,
-        "InitialHeight": 956.10767495257187,
+        "InitialTop": 4977.5431408345921,
+        "InitialHeight": 773.10767495257187,
         "TextblockHeight": 150.0,
         "Background": "#FFC1D676"
       },
       {
-        "Id": "d56d196d961345dea515445764f5b29c",
+        "Id": "0b956c5642094692b63c2184b52072db",
         "Title": "Combine Lists",
         "DescriptionText": "<Double click here to edit group description>",
         "IsExpanded": true,
         "WidthAdjustment": 0.0,
         "HeightAdjustment": 0.0,
         "Nodes": [
-          "34eac80b478a4e899aa50a5ad9c74af3"
+          "a74d08b1142d401ba7f3af10e73a0877"
         ],
         "HasNestedGroups": false,
-        "Left": 14454.564717003108,
-        "Top": 6126.4977852155207,
+        "Left": 12179.352862596732,
+        "Top": 6135.272662203296,
         "Width": 272.0,
         "Height": 244.0,
         "FontSize": 36.0,
-        "InitialTop": 6208.4977852155207,
-        "InitialHeight": 192.0,
-        "TextblockHeight": 72.0,
-        "Background": "#FFFFAA45"
-      },
-      {
-        "Id": "5a54c63316e342269cf708e6ded1703f",
-        "Title": "Combine Lists",
-        "DescriptionText": "<Double click here to edit group description>",
-        "IsExpanded": true,
-        "WidthAdjustment": 0.0,
-        "HeightAdjustment": 0.0,
-        "Nodes": [
-          "ef465703ba214b09b22529df70aa49b8"
-        ],
-        "HasNestedGroups": false,
-        "Left": 14845.740416444851,
-        "Top": 5994.1306960337852,
-        "Width": 272.0,
-        "Height": 244.0,
-        "FontSize": 36.0,
-        "InitialTop": 6076.1306960337852,
-        "InitialHeight": 192.0,
+        "InitialTop": 6217.272662203296,
+        "InitialHeight": 145.0,
         "TextblockHeight": 72.0,
         "Background": "#FFFFAA45"
       }
     ],
-    "X": -17814.4538137732,
-    "Y": -7213.680823549289,
-    "Zoom": 1.1999282638220528
+    "X": -522.647325791183,
+    "Y": -617.494651015862,
+    "Zoom": 0.19309579759402762
   }
 }
