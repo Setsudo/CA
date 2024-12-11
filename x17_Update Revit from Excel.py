@@ -12,7 +12,7 @@ clr.ImportExtensions(Revit.Elements)
 clr.ImportExtensions(Revit.GeometryConversion)
 
 # Inputs from Dynamo
-input_list = IN[0]  # Expected to be a list of various nested structures
+subheader_list = IN[0]  # Expected to be a list of various nested structures
 
 # Output container
 OUT = []
@@ -47,7 +47,7 @@ def preprocess_input(data):
 
 # Preprocess the input list
 try:
-    normalized_list = preprocess_input(input_list)
+    normalized_list = preprocess_input(subheader_list)
     OUT.append("Preprocessing completed. Normalized input:")
     OUT.append(normalized_list)
 except Exception as e:
