@@ -21,23 +21,21 @@ OUT = []
 doc = DocumentManager.Instance.CurrentDBDocument
 
 def preprocess_input(data):
-    """Recursively process the input to flatten it and convert into dictionaries with type_name."""
+    """Recursively process the input to flatten it and convert into dictionaries."""
     processed = []
 
     if isinstance(data, list):
         for item in data:
             processed.extend(preprocess_input(item))  # Recursively handle nested lists
     elif isinstance(data, str):
-        # Convert string to a dictionary with type_name
+        # Convert string to a dictionary with sub_header
         processed.append({
-            'view_name': data,
-            'type_name': 'SubHeader'
+            'sub_header': data
         })
     elif isinstance(data, dict):
-        # Ensure required keys are present and set type_name
+        # Ensure required keys are present
         processed.append({
-            'view_name': data.get('view_name', 'UnnamedView'),
-            'type_name': 'SubHeader'
+            'sub_header': data.get('view_name', 'UnnamedView')
         })
     else:
         # Log unsupported types
