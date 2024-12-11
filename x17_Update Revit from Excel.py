@@ -48,7 +48,7 @@ def preprocess_input(data):
 # Preprocess the input list
 try:
     normalized_list = preprocess_input(subheader_list)
-    OUT.append("Preprocessing completed. Normalized input:")
+    OUT.append("Preprocessing completed for input: subheader_list")
     OUT.append(normalized_list)
 except Exception as e:
     OUT.append(f"Error during preprocessing: {str(e)}")
