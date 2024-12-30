@@ -42,6 +42,9 @@ def update_textnotes_from_data(revit_data_list):
                             field_name = item[0]
                             field_value = item[1]
 
+                            # Debugging the specific field being processed
+                            OUT.append(f"Processing Field: {field_name} with value: {field_value}")
+
                             # Locate Legend Index and Position
                             legend_index_entry = next((entry for entry in item if isinstance(entry, list) and entry[0] == "Legend Index"), None)
                             if legend_index_entry and len(legend_index_entry) > 2:
