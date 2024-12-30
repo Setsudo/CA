@@ -36,14 +36,14 @@ def update_textnotes_from_data(revit_data_list):
                     sub_header_name = sub_header_entry[1]
                     OUT.append(f"Processing Sub-Header: {sub_header_name}")
 
+                    # Track if any fields were processed for the Sub-Header
+                    fields_processed = []
+
                     # Iterate through data fields like Existing, Proposed, Variation
                     for item in sublist:
                         if isinstance(item, list) and item[0] in ["Existing", "Proposed", "Variation"]:
                             field_name = item[0]
                             field_value = item[1]
-
-                            # Debugging the specific field being processed
-                            OUT.append(f"Processing Field: {field_name} with value: {field_value}")
 
                             # Locate Legend Index and Position
                             legend_index_entry = next((entry for entry in item if isinstance(entry, list) and entry[0] == "Legend Index"), None)
@@ -57,6 +57,7 @@ def update_textnotes_from_data(revit_data_list):
                                     if legend_element and isinstance(legend_element, TextNote):
                                         legend_element.Text = str(field_value)
                                         OUT.append(f"Updated TextNote for {field_name} (Legend Index: {legend_index_value}) with value: {field_value}")
+                                        fields_processed.append(field_name)
                                     else:
                                         OUT.append(f"Legend Index {legend_index_value} does not correspond to a TextNote.")
                                 except Exception as e:
@@ -78,8 +79,15 @@ def update_textnotes_from_data(revit_data_list):
                                             text_note_type.Id
                                         )
                                         OUT.append(f"Created TextNote at {position_data} for {field_name} with value: {field_value}")
+                                        fields_processed.append(field_name)
                                     except Exception as e:
                                         OUT.append(f"Error creating TextNote at Position {position_entry}: {str(e)}")
+
+                    # Debug the processed fields for the Sub-Header
+                    if fields_processed:
+                        OUT.append(f"Processed fields for Sub-Header {sub_header_name}: {', '.join(fields_processed)}")
+                    else:
+                        OUT.append(f"No fields were processed for Sub-Header {sub_header_name}.")
     except Exception as ex:
         OUT.append(f"Error updating text notes: {str(ex)}")
     finally:
