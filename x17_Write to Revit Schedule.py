@@ -14,7 +14,7 @@ clr.ImportExtensions(Revit.GeometryConversion)
 doc = DocumentManager.Instance.CurrentDBDocument
 OUT = []
 
-def create_textnotes_at_positions(revit_data_list, target_legend_id):
+def update_textnotes_from_data(revit_data_list):
     # Find the first TextNoteType in the document
     text_note_type = FilteredElementCollector(doc)\
         .OfClass(TextNoteType)\
@@ -25,73 +25,67 @@ def create_textnotes_at_positions(revit_data_list, target_legend_id):
 
     OUT.append("Combined Revit and Excel Data Received.")
 
-    # Check if the target LegendID exists in the document
-    target_legend_element = doc.GetElement(target_legend_id)
-    if not target_legend_element:
-        OUT.append(f"Error: Target LegendID {target_legend_id.IntegerValue} not found in the document.")
-        return
-    else:
-        OUT.append(f"Target LegendID {target_legend_id.IntegerValue} successfully located in the document.")
-
-    # Start a transaction to create TextNotes
+    # Start a transaction to update TextNotes
     TransactionManager.Instance.EnsureInTransaction(doc)
     try:
         for sublist in revit_data_list:
             if isinstance(sublist, list) and len(sublist) > 0:
-                legend_id_entry = next((entry for entry in sublist if isinstance(entry, list) and entry[0] == "LegendID"), None)
-                if legend_id_entry and len(legend_id_entry) > 1:
-                    legend_id_value = legend_id_entry[1]
-                    if isinstance(legend_id_value, list) and len(legend_id_value) == 1 and isinstance(legend_id_value[0], int):
-                        legend_id = ElementId(legend_id_value[0])
+                # Process each Sub-Header
+                sub_header_entries = [entry for entry in sublist if isinstance(entry, list) and entry[0] == "Sub-Header"]
+                for sub_header_entry in sub_header_entries:
+                    sub_header_name = sub_header_entry[1]
+                    OUT.append(f"Processing Sub-Header: {sub_header_name}")
 
-                        # Only process notes for the targeted legend
-                        if legend_id == target_legend_id:
-                            OUT.append("LegendID Successfully Located.")
-                            for item in sublist:
-                                if isinstance(item, list) and item != legend_id_entry:
-                                    position_data = None
-                                    note_value = None
+                    # Iterate through data fields like Existing, Proposed, Variation
+                    for item in sublist:
+                        if isinstance(item, list) and item[0] in ["Existing", "Proposed", "Variation"]:
+                            field_name = item[0]
+                            field_value = item[1]
 
-                                    # Extract position and note value
-                                    for sub_item in item:
-                                        if isinstance(sub_item, list) and sub_item[0] == "Position":
-                                            try:
-                                                position_data = XYZ(
-                                                    float(sub_item[1]),
-                                                    float(sub_item[2]),
-                                                    float(sub_item[3])
-                                                )
-                                            except ValueError:
-                                                OUT.append(f"Invalid position data: {sub_item[1:]}")
-                                        elif isinstance(sub_item, list) and sub_item[0] != "Position":
-                                            note_value = str(sub_item[1])
+                            # Locate Legend Index and Position
+                            legend_index_entry = next((entry for entry in item if isinstance(entry, list) and entry[0] == "Legend Index"), None)
+                            if legend_index_entry and len(legend_index_entry) > 2:
+                                legend_index_value = legend_index_entry[1]
+                                position_entry = next((entry for entry in legend_index_entry if isinstance(entry, list) and entry[0] == "Position"), None)
 
-                                    # Create TextNote if position and value are valid
-                                    if position_data and note_value:
+                                # Attempt to locate the TextNote using Legend Index
+                                try:
+                                    legend_element = doc.GetElement(ElementId(legend_index_value))
+                                    if legend_element and isinstance(legend_element, TextNote):
+                                        legend_element.Text = str(field_value)
+                                        OUT.append(f"Updated TextNote for {field_name} (Legend Index: {legend_index_value}) with value: {field_value}")
+                                    else:
+                                        OUT.append(f"Legend Index {legend_index_value} does not correspond to a TextNote.")
+                                except Exception as e:
+                                    OUT.append(f"Error accessing Legend Index {legend_index_value}: {str(e)}")
+
+                                # Fallback to Position if Legend Index fails
+                                if not legend_element and position_entry:
+                                    try:
+                                        position_data = XYZ(
+                                            float(position_entry[1]),
+                                            float(position_entry[2]),
+                                            float(position_entry[3])
+                                        )
                                         new_note = TextNote.Create(
                                             doc,
-                                            legend_id,
+                                            doc.ActiveView.Id,
                                             position_data,
-                                            note_value,
+                                            str(field_value),
                                             text_note_type.Id
                                         )
-                                        OUT.append(
-                                            f"Created TextNote '{note_value}' at {position_data} in Legend {legend_id}"
-                                        )
+                                        OUT.append(f"Created TextNote at {position_data} for {field_name} with value: {field_value}")
+                                    except Exception as e:
+                                        OUT.append(f"Error creating TextNote at Position {position_entry}: {str(e)}")
     except Exception as ex:
-        OUT.append(f"Error creating text notes: {str(ex)}")
+        OUT.append(f"Error updating text notes: {str(ex)}")
     finally:
         TransactionManager.Instance.TransactionTaskDone()
 
 # Example input structure from Dynamo
-# IN[0] = Nested list with data for TextNotes, including LegendID
-# IN[1] = Target LegendID
+# IN[0] = Nested list with data for TextNotes
 try:
     input_revit_data = IN[0]
-    if isinstance(IN[1], list) and len(IN[1]) == 1 and isinstance(IN[1][0], int):
-        target_legend_id = ElementId(IN[1][0])
-        create_textnotes_at_positions(input_revit_data, target_legend_id)
-    else:
-        OUT.append("Error: Target LegendID input format is invalid.")
+    update_textnotes_from_data(input_revit_data)
 except Exception as e:
     OUT.append(f"Error initializing script: {str(e)}")
