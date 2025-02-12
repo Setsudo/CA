@@ -11,8 +11,8 @@
   "Nodes": [
     {
       "ConcreteType": "CoreNodeModels.Input.Filename, CoreNodeModels",
-      "HintPath": "C:\\_Albertsons\\x17 (Lineal Footage Analysis)\\Templates\\ACI_Project_Template.rte",
-      "InputValue": "..\\Templates\\ACI_Project_Template.rte",
+      "HintPath": "C:\\Users\\micha\\OneDrive - Safeway, Inc\\Documents\\__Projects\\x17 (Lineal Footage Analysis)\\Templates\\ACI_Project_Template.rte",
+      "InputValue": "C:\\Users\\micha\\OneDrive - Safeway, Inc\\Documents\\__Projects\\x17 (Lineal Footage Analysis)\\Templates\\ACI_Project_Template.rte",
       "NodeType": "ExtensionNode",
       "Id": "35dc14e8cb7a4b1295f8637d6702a3f2",
       "Inputs": [],
@@ -480,7 +480,7 @@
         "HasNestedGroups": false,
         "Left": 2517.6254690050919,
         "Top": 3383.5732307798203,
-        "Width": 355.0,
+        "Width": 602.0,
         "Height": 362.82749999999987,
         "FontSize": 36.0,
         "InitialTop": 3456.5732307798203,
@@ -501,13 +501,13 @@
         ],
         "HasNestedGroups": false,
         "Left": 2583.662466114451,
-        "Top": 3780.5283138396585,
+        "Top": 3780.7283138396583,
         "Width": 261.0,
-        "Height": 410.34194168395925,
+        "Height": 410.14194168395943,
         "FontSize": 36.0,
         "InitialTop": 3905.7283138396583,
         "InitialHeight": 298.14194168395943,
-        "TextblockHeight": 115.2,
+        "TextblockHeight": 115.0,
         "Background": "#FFC1D676"
       },
       {
@@ -529,13 +529,13 @@
         "Height": 504.35780871614861,
         "FontSize": 36.0,
         "InitialTop": 4296.53128742514,
-        "InitialHeight": 292.0,
+        "InitialHeight": 444.35780871614861,
         "TextblockHeight": 63.0,
         "Background": "#FFC1D676"
       }
     ],
-    "X": -1196.37329135183,
-    "Y": -1635.8594275630335,
-    "Zoom": 0.493630492550703
+    "X": -719.84620988069855,
+    "Y": -1420.0062339149652,
+    "Zoom": 0.45214200441920005
   }
 }

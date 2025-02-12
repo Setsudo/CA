@@ -272,8 +272,8 @@
     },
     {
       "ConcreteType": "CoreNodeModels.Input.Filename, CoreNodeModels",
-      "HintPath": "C:\\_Albertsons\\x17 (Lineal Footage Analysis)\\Oracle Revit Cutsheets-11-13-24 TCS Release.xlsx",
-      "InputValue": "..\\Oracle Revit Cutsheets-11-13-24 TCS Release.xlsx",
+      "HintPath": "C:\\Users\\micha\\OneDrive - Safeway, Inc\\Documents\\__Projects\\x17 (Lineal Footage Analysis)\\Oracle Revit Cutsheets-1-7-25 TCS Release.xlsx",
+      "InputValue": "C:\\Users\\micha\\OneDrive - Safeway, Inc\\Documents\\__Projects\\x17 (Lineal Footage Analysis)\\Oracle Revit Cutsheets-1-7-25 TCS Release.xlsx",
       "NodeType": "ExtensionNode",
       "Id": "1b03e36244c74115a7e1798071ac4b3d",
       "Inputs": [],
@@ -1705,7 +1705,7 @@
     },
     {
       "ConcreteType": "CoreNodeModels.Input.Filename, CoreNodeModels",
-      "HintPath": "C:\\_Albertsons\\x17 (Lineal Footage Analysis)\\Templates\\01_Takeoff.xlsx",
+      "HintPath": "E:\\_CodingProjects\\CA\\Templates\\01_Takeoff.xlsx",
       "InputValue": "Templates\\01_Takeoff.xlsx",
       "NodeType": "ExtensionNode",
       "Id": "a34ff539235a4fc39e44b6adfb71da93",
@@ -1726,7 +1726,7 @@
     },
     {
       "ConcreteType": "CoreNodeModels.Input.Filename, CoreNodeModels",
-      "HintPath": "C:\\_Albertsons\\x17 (Lineal Footage Analysis)\\Templates\\02_Master-Check.xlsx",
+      "HintPath": "E:\\_CodingProjects\\CA\\Templates\\02_Master-Check.xlsx",
       "InputValue": "Templates\\02_Master-Check.xlsx",
       "NodeType": "ExtensionNode",
       "Id": "6fca8112a30740ffae499b20c814a330",
@@ -13055,7 +13055,7 @@
   "Dependencies": [],
   "NodeLibraryDependencies": [
     {
-      "Name": "Oracle Revit Cutsheets-11-13-24 TCS Release.xlsx",
+      "Name": "Oracle Revit Cutsheets-1-7-25 TCS Release.xlsx",
       "ReferenceType": "External",
       "Nodes": [
         "1b03e36244c74115a7e1798071ac4b3d"
@@ -13078,7 +13078,7 @@
       ]
     },
     {
-      "Name": "SS_3556_(3556) Concept_11-18-2024.rvt",
+      "Name": "63K_BASE_PLAN_Q3_2024_WORKING.rvt",
       "ReferenceType": "External",
       "Nodes": [
         "aa37b99e3c5f4108bb6ed698587e0f63"
@@ -13114,7 +13114,7 @@
       "ScaleFactor": 1.0,
       "HasRunWithoutCrash": true,
       "IsVisibleInDynamoLibrary": true,
-      "Version": "2.16.2.5624",
+      "Version": "2.16.4.10216",
       "RunType": "Automatic",
       "RunPeriod": "1000"
     },
@@ -13219,8 +13219,8 @@
         "IsSetAsInput": false,
         "IsSetAsOutput": false,
         "Excluded": false,
-        "X": -1855.3795260738739,
-        "Y": 611.2289664256914
+        "X": -2148.9519238725943,
+        "Y": 612.92102635536708
       },
       {
         "Name": "List.IndexOf",
@@ -16383,9 +16383,9 @@
           "07d799f978374e1b811303d74c276e71"
         ],
         "HasNestedGroups": false,
-        "Left": -1865.3795260738739,
+        "Left": -2158.9519238725943,
         "Top": 538.2289664256914,
-        "Width": 1079.0,
+        "Width": 1372.5723977987204,
         "Height": 500.0,
         "FontSize": 36.0,
         "InitialTop": 611.2289664256914,
@@ -18203,8 +18203,8 @@
         "Background": "#FF71C6A8"
       }
     ],
-    "X": -82.466307795509692,
-    "Y": 287.70907319026992,
-    "Zoom": 0.11730760524205561
+    "X": -472.60144662557673,
+    "Y": 473.01654033050158,
+    "Zoom": 0.15311335211342469
   }
 }

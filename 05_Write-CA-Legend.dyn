@@ -707,7 +707,7 @@
     },
     {
       "ConcreteType": "CoreNodeModels.Input.Filename, CoreNodeModels",
-      "HintPath": "C:\\Users\\micha\\OneDrive - Safeway, Inc\\Documents\\__Projects\\x17 (Lineal Footage Analysis)\\CA\\Templates\\02_Master-Check.xlsx",
+      "HintPath": "E:\\_CodingProjects\\CA\\Templates\\02_Master-Check.xlsx",
       "InputValue": "Templates\\02_Master-Check.xlsx",
       "NodeType": "ExtensionNode",
       "Id": "636651ca158d43f7a5f22b1311c67c41",
@@ -2602,15 +2602,7 @@
     }
   ],
   "Dependencies": [],
-  "NodeLibraryDependencies": [
-    {
-      "Name": "SS_3556_(3556) Concept_11-18-2024.rvt",
-      "ReferenceType": "External",
-      "Nodes": [
-        "b03b5de533ad46d1946cfb01737f875c"
-      ]
-    }
-  ],
+  "NodeLibraryDependencies": [],
   "Thumbnail": "",
   "GraphDocumentationURL": null,
   "ExtensionWorkspaceData": [
@@ -2641,7 +2633,7 @@
       "HasRunWithoutCrash": true,
       "IsVisibleInDynamoLibrary": true,
       "Version": "2.16.4.10216",
-      "RunType": "Automatic",
+      "RunType": "Manual",
       "RunPeriod": "1000"
     },
     "Camera": {
@@ -3889,8 +3881,8 @@
         "Background": "#FFFFAA45"
       }
     ],
-    "X": -586.18210208752657,
-    "Y": -571.65089485246142,
-    "Zoom": 0.18224606386506353
+    "X": 171.55171071756354,
+    "Y": -194.94716149735478,
+    "Zoom": 0.083749355560225863
   }
 }
