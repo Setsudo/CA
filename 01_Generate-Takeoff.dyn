@@ -2770,8 +2770,8 @@
     },
     {
       "ConcreteType": "CoreNodeModels.Input.Filename, CoreNodeModels",
-      "HintPath": "C:\\Users\\micha\\OneDrive - Safeway, Inc\\Documents\\__Projects\\x17 (Lineal Footage Analysis)\\Templates\\01_Takeoff.xlsx",
-      "InputValue": "C:\\Users\\micha\\OneDrive - Safeway, Inc\\Documents\\__Projects\\x17 (Lineal Footage Analysis)\\Templates\\01_Takeoff.xlsx",
+      "HintPath": "E:\\_CodingProjects\\CA\\Templates\\01_Takeoff.xlsx",
+      "InputValue": "Templates\\01_Takeoff.xlsx",
       "NodeType": "ExtensionNode",
       "Id": "0a0cac7796bf43309e0739cda9bf17f8",
       "Inputs": [],
@@ -8768,7 +8768,22 @@
     }
   ],
   "Dependencies": [],
-  "NodeLibraryDependencies": [],
+  "NodeLibraryDependencies": [
+    {
+      "Name": "63K_BASE_PLAN_Q3_2024_WORKING.rvt",
+      "ReferenceType": "External",
+      "Nodes": [
+        "9626a969a3814833bbcf13e5113c68c1"
+      ]
+    },
+    {
+      "Name": "01_Takeoff.xlsx",
+      "ReferenceType": "External",
+      "Nodes": [
+        "0a0cac7796bf43309e0739cda9bf17f8"
+      ]
+    }
+  ],
   "Thumbnail": "",
   "GraphDocumentationURL": null,
   "ExtensionWorkspaceData": [
@@ -8799,7 +8814,7 @@
       "HasRunWithoutCrash": true,
       "IsVisibleInDynamoLibrary": true,
       "Version": "2.16.4.10216",
-      "RunType": "Automatic",
+      "RunType": "Manual",
       "RunPeriod": "1000"
     },
     "Camera": {
@@ -12216,8 +12231,8 @@
         "Background": "#FFA4E1FF"
       }
     ],
-    "X": -836.28243069932341,
-    "Y": -5175.5064015313292,
-    "Zoom": 0.51955281156969946
+    "X": 765.84324698877754,
+    "Y": 245.55195073807329,
+    "Zoom": 0.070926040314038
   }
 }

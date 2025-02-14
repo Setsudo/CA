@@ -13053,38 +13053,7 @@
     }
   ],
   "Dependencies": [],
-  "NodeLibraryDependencies": [
-    {
-      "Name": "Oracle Revit Cutsheets-1-7-25 TCS Release.xlsx",
-      "ReferenceType": "External",
-      "Nodes": [
-        "1b03e36244c74115a7e1798071ac4b3d"
-      ]
-    },
-    {
-      "Name": "02_Master-Check.xlsx",
-      "ReferenceType": "External",
-      "Nodes": [
-        "fd392dff5012431c90165aa68785cfd3",
-        "6fca8112a30740ffae499b20c814a330"
-      ]
-    },
-    {
-      "Name": "01_Takeoff.xlsx",
-      "ReferenceType": "External",
-      "Nodes": [
-        "5a56339a5cb045a6bcdcbac466abf32f",
-        "a34ff539235a4fc39e44b6adfb71da93"
-      ]
-    },
-    {
-      "Name": "63K_BASE_PLAN_Q3_2024_WORKING.rvt",
-      "ReferenceType": "External",
-      "Nodes": [
-        "aa37b99e3c5f4108bb6ed698587e0f63"
-      ]
-    }
-  ],
+  "NodeLibraryDependencies": [],
   "Thumbnail": "",
   "GraphDocumentationURL": null,
   "ExtensionWorkspaceData": [
@@ -13115,7 +13084,7 @@
       "HasRunWithoutCrash": true,
       "IsVisibleInDynamoLibrary": true,
       "Version": "2.16.4.10216",
-      "RunType": "Automatic",
+      "RunType": "Manual",
       "RunPeriod": "1000"
     },
     "Camera": {
@@ -18203,8 +18172,8 @@
         "Background": "#FF71C6A8"
       }
     ],
-    "X": -472.60144662557673,
-    "Y": 473.01654033050158,
-    "Zoom": 0.15311335211342469
+    "X": 647.48269657750825,
+    "Y": 284.33713589305546,
+    "Zoom": 0.061775067219795379
   }
 }
